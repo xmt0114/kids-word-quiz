@@ -29,10 +29,37 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   });
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null } | null>(null);
 
+  // 初始化时同步 localStorage 中的设置
+  useEffect(() => {
+    // 从 localStorage 加载保存的设置
+    setSelectedSettings({
+      questionType: settings.questionType || 'text',
+      answerType: settings.answerType || 'choice',
+      difficulty: settings.difficulty || 'easy',
+      selectionStrategy: settings.selectionStrategy || 'sequential',
+      collectionId: settings.collectionId || selectedCollectionId || '11111111-1111-1111-1111-111111111111',
+    });
+  }, []);
+
+  // 同步 collectionId 变化到 selectedSettings 和 localStorage
+  useEffect(() => {
+    if (selectedCollectionId && selectedCollectionId !== selectedSettings.collectionId) {
+      const updatedSettings = {
+        ...selectedSettings,
+        collectionId: selectedCollectionId,
+      };
+      setSelectedSettings(updatedSettings);
+      setSettings(updatedSettings); // 同时保存到 localStorage
+    }
+  }, [selectedCollectionId]);
+
   // 加载当前选择的教材信息
   useEffect(() => {
-    if (selectedCollectionId) {
-      wordAPI.getCollectionById(selectedCollectionId).then(response => {
+    // 优先使用 selectedCollectionId，其次从 localStorage 读取
+    const collectionId = selectedCollectionId || localStorage.getItem('last-selected-textbook');
+
+    if (collectionId) {
+      wordAPI.getCollectionById(collectionId).then(response => {
         if (response.success && response.data) {
           setTextbookInfo({
             name: response.data.name,
@@ -107,36 +134,30 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const handleQuestionTypeSelect = (type: string) => {
     const newSettings = { ...selectedSettings, questionType: type as 'text' | 'audio' };
     setSelectedSettings(newSettings);
+    setSettings(newSettings); // 同时保存到 localStorage
   };
 
   const handleAnswerTypeSelect = (type: string) => {
     const newSettings = { ...selectedSettings, answerType: type as 'choice' | 'fill' };
     setSelectedSettings(newSettings);
+    setSettings(newSettings); // 同时保存到 localStorage
   };
 
   const handleDifficultySelect = (difficulty: string) => {
     const newSettings = { ...selectedSettings, difficulty: difficulty as 'easy' | 'medium' | 'hard' };
     setSelectedSettings(newSettings);
+    setSettings(newSettings); // 同时保存到 localStorage
   };
 
   const handleStrategySelect = (strategy: string) => {
     const newSettings = { ...selectedSettings, selectionStrategy: strategy as 'sequential' | 'random' };
     setSelectedSettings(newSettings);
+    setSettings(newSettings); // 同时保存到 localStorage
   };
 
-  const handleStartQuiz = () => {
-    setSettings(selectedSettings);
-    
-    // 使用默认collectionId如果未选择
-    const finalCollectionId = selectedCollectionId || '11111111-1111-1111-1111-111111111111';
-    
-    // 将设置传递给游戏页面并导航
-    navigate('/guess-word/game', { 
-      state: { 
-        settings: selectedSettings,
-        collectionId: finalCollectionId 
-      } 
-    });
+  const handleSaveSettings = () => {
+    setSettings(selectedSettings); // 保存设置到 localStorage
+    navigate('/'); // 返回主页
   };
 
   const handleDataManagement = () => {
@@ -388,6 +409,17 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           </div>
         </section>
 
+        {/* 保存设置按钮 */}
+        <section className="text-center mt-xl">
+          <Button
+            variant="success"
+            size="large"
+            onClick={handleSaveSettings}
+            className="px-2xl py-md text-h2 font-bold shadow-lg hover:shadow-xl transition-all duration-normal"
+          >
+            保存设置
+          </Button>
+        </section>
 
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { QuizSettings } from '../types';
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // 获取初始值
@@ -49,10 +50,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
 // 专门用于保存答题设置的hook
 export function useQuizSettings() {
-  const [settings, setSettings] = useLocalStorage('quiz-settings', {
+  const [settings, setSettings] = useLocalStorage<Partial<QuizSettings>>('quiz-settings', {
     questionType: 'text',
     answerType: 'choice',
     difficulty: 'easy',
+    selectionStrategy: 'sequential',
+    collectionId: '11111111-1111-1111-1111-111111111111', // 默认教材ID
   });
 
   return { settings, setSettings };

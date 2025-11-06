@@ -18,10 +18,13 @@ const GuessWordGamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { stats, updateStats } = useQuizStats();
-  
-  // 从路由状态获取设置
-  const { settings, collectionId } = location.state || {};
-  
+
+  // 从路由状态获取设置 - 只信任路由传递的设置
+  const { settings: routeSettings, collectionId } = location.state || {};
+
+  // 检查是否有有效的路由设置
+  const hasValidRouteSettings = routeSettings && collectionId;
+
   const {
     quizState,
     isLoading,
@@ -48,33 +51,28 @@ const GuessWordGamePage: React.FC = () => {
   const [viewportHeight, setViewportHeight] = useState(0);
   const questionTextRef = useRef<HTMLParagraphElement>(null);
 
-  // 初始化游戏
+  // 初始化游戏 - 只信任路由传递的设置
   useEffect(() => {
-    // 如果有传递设置和教材ID，使用传递的配置
-    if (settings && collectionId) {
-      const finalSettings: QuizSettings = {
-        ...settings,
-        collectionId
-      };
-      
-      initializeQuiz(finalSettings, collectionId).catch(err => {
-        console.error('Failed to initialize quiz:', err);
-      });
-    } 
-    // 如果没有传递设置，使用默认配置直接开始游戏
-    else {
-      const defaultSettings: QuizSettings = {
-        questionType: 'text',
-        answerType: 'choice',
-        difficulty: 'easy',
-        selectionStrategy: 'sequential'
-      };
-      
-      initializeQuiz(defaultSettings).catch(err => {
-        console.error('Failed to initialize quiz with default settings:', err);
-      });
+    if (!hasValidRouteSettings) {
+      // 如果没有有效的路由设置，显示错误提示
+      alert('错误：无效的路由访问！请从首页正确进入游戏。');
+      navigate('/');
+      return;
     }
-  }, [settings, collectionId, initializeQuiz]);
+
+    // 使用路由传递的设置
+    const finalSettings: QuizSettings = {
+      questionType: routeSettings.questionType || 'text',
+      answerType: routeSettings.answerType || 'choice',
+      difficulty: routeSettings.difficulty || 'easy',
+      selectionStrategy: routeSettings.selectionStrategy || 'sequential',
+      collectionId
+    };
+
+    initializeQuiz(finalSettings, collectionId).catch(err => {
+      console.error('Failed to initialize quiz:', err);
+    });
+  }, [routeSettings, collectionId, hasValidRouteSettings, navigate, initializeQuiz]);
 
   // 检测屏幕高度并动态调整布局
   useEffect(() => {
@@ -160,8 +158,8 @@ const GuessWordGamePage: React.FC = () => {
       // 所有题目完成，显示结果
       const result = getResult();
       updateStats(result.correctAnswers, result.totalQuestions);
-      navigate('/guess-word/result', { 
-        state: { result, settings, collectionId } 
+      navigate('/guess-word/result', {
+        state: { result, settings: routeSettings, collectionId }
       });
     } else {
       nextQuestion();

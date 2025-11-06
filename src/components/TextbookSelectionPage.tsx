@@ -4,6 +4,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { WordCollection } from '../types';
 import { wordAPI } from '../utils/api';
+import { useQuizSettings } from '../hooks/useLocalStorage';
 import { BookOpen, ArrowLeft, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -19,6 +20,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   currentCollectionId
 }) => {
   const navigate = useNavigate();
+  const { setSettings } = useQuizSettings(); // 获取setSettings函数
   const [collections, setCollections] = useState<WordCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(currentCollectionId || null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,12 +38,23 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   // 处理确认选择
   const handleConfirm = () => {
     if (selectedId) {
-      if (onSelectTextbook) {
-        onSelectTextbook(selectedId);
-      } else {
-        // 如果没有提供回调，直接返回上一页
-        navigate(-1);
-      }
+      // 保存选择的教材ID到 localStorage
+      localStorage.setItem('last-selected-textbook', selectedId);
+
+      // 同时更新 quiz-settings 中的 collectionId
+      setSettings((prevSettings) => ({
+        ...prevSettings,
+        collectionId: selectedId
+      }));
+
+      // 延迟跳转，确保状态更新完成
+      setTimeout(() => {
+        if (onSelectTextbook) {
+          onSelectTextbook(selectedId);
+        } else {
+          navigate(-1);
+        }
+      }, 500);
     }
   };
 
@@ -220,7 +233,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
                 disabled={!selectedId}
                 className="animate-bounce-in"
               >
-                {selectedId ? '开始学习' : '请选择教材'}
+                {selectedId ? '保存选择' : '请选择教材'}
               </Button>
             </div>
           </>

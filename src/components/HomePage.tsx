@@ -1,11 +1,36 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { Brain, BookOpen, Gamepad2, Trophy, Star, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useQuizSettings } from '../hooks/useLocalStorage';
+import { QuizSettings } from '../types';
 
 const HomePage: React.FC = () => {
+  const navigate = useNavigate();
+  const { settings } = useQuizSettings();
+
+  // 开始游戏函数 - 从 localStorage 加载设置
+  const handleStartGame = (gameId: string) => {
+    if (gameId === 'guess-word') {
+      const finalSettings: QuizSettings = {
+        questionType: settings.questionType || 'text',
+        answerType: settings.answerType || 'choice',
+        difficulty: settings.difficulty || 'easy',
+        selectionStrategy: settings.selectionStrategy || 'sequential',
+        collectionId: settings.collectionId || '11111111-1111-1111-1111-111111111111'
+      };
+
+      navigate('/guess-word/game', {
+        state: {
+          settings: finalSettings,
+          collectionId: finalSettings.collectionId
+        }
+      });
+    }
+  };
+
   // 游戏列表数据
   const games = [
     {
@@ -160,15 +185,14 @@ const HomePage: React.FC = () => {
                       </Button>
                     ) : (
                       <div className="flex items-center justify-center gap-sm">
-                        <Link to={game.gameLink}>
-                          <Button
-                            size="default"
-                            className="flex items-center gap-xs"
-                          >
-                            <Gamepad2 size={16} />
-                            开始游戏
-                          </Button>
-                        </Link>
+                        <Button
+                          size="default"
+                          className="flex items-center gap-xs"
+                          onClick={() => handleStartGame(game.id)}
+                        >
+                          <Gamepad2 size={16} />
+                          开始游戏
+                        </Button>
                         <Link to={game.settingsLink}>
                           <Button
                             variant="secondary"
