@@ -1,0 +1,20 @@
+CREATE TABLE words (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    collection_id UUID NOT NULL,
+    word TEXT NOT NULL,
+    definition TEXT NOT NULL,
+    audio_text TEXT NOT NULL,
+    difficulty TEXT NOT NULL CHECK (difficulty IN ('easy',
+    'medium',
+    'hard')),
+    options JSONB NOT NULL DEFAULT '[]',
+    answer TEXT NOT NULL,
+    hint TEXT,
+    pronunciation TEXT,
+    example_sentence TEXT,
+    image_url TEXT,
+    audio_url TEXT,
+    word_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Memory Debug - 调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .debug-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .debug-content {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 Progress Memory System Debug</h1>
+        
+        <div class="debug-section">
+            <div class="debug-title">📋 当前 localStorage 数据</div>
+            <div class="debug-content" id="localStorageData">加载中...</div>
+            <button class="test-button" onclick="refreshLocalStorage()">🔄 刷新数据</button>
+            <button class="test-button" onclick="clearProgress()">🗑️ 清除进度</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">🎮 测试进度保存功能</div>
+            <div class="debug-content" id="progressTest">点击按钮开始测试</div>
+            <button class="test-button" onclick="testSaveProgress()">💾 保存测试进度</button>
+            <button class="test-button" onclick="testLoadProgress()">📖 加载测试进度</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">🚀 测试 API 调用</div>
+            <div class="debug-content" id="apiTest">准备测试 API</div>
+            <button class="test-button" onclick="testAPI()">🌐 测试 Supabase API</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">📊 进度分析</div>
+            <div class="debug-content" id="progressAnalysis">分析进度数据</div>
+            <button class="test-button" onclick="analyzeProgress()">🔍 分析进度</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">📝 实时日志</div>
+            <div class="debug-content" id="logOutput">等待操作...</div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_COLLECTION_ID = '11111111-1111-1111-1111-111111111111';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logElement = document.getElementById('logOutput');
+            const className = type;
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function refreshLocalStorage() {
+            const progress = localStorage.getItem('quiz-progress');
+            const settings = localStorage.getItem('quiz-settings');
+            
+            const data = {
+                progress: progress ? JSON.parse(progress) : {},
+                settings: settings ? JSON.parse(settings) : {},
+                timestamp: new Date().toISOString()
+            };
+            
+            document.getElementById('localStorageData').textContent = JSON.stringify(data, null, 2);
+            log('📋 localStorage 数据已刷新', 'info');
+        }
+
+        function clearProgress() {
+            localStorage.removeItem('quiz-progress');
+            refreshLocalStorage();
+            log('🗑️ 进度数据已清除', 'warning');
+        }
+
+        function testSaveProgress() {
+            const testProgress = {
+                [DEFAULT_COLLECTION_ID]: {
+                    lastPosition: 3,
+                    lastPlayedAt: new Date().toISOString(),
+                    totalWords: 50
+                }
+            };
+            
+            localStorage.setItem('quiz-progress', JSON.stringify(testProgress));
+            log('💾 测试进度已保存: 位置 3', 'success');
+            refreshLocalStorage();
+        }
+
+        function testLoadProgress() {
+            const progress = localStorage.getItem('quiz-progress');
+            if (progress) {
+                const parsed = JSON.parse(progress);
+                const collectionProgress = parsed[DEFAULT_COLLECTION_ID];
+                if (collectionProgress) {
+                    log(`📖 加载到进度: 位置 ${collectionProgress.lastPosition}`, 'success');
+                } else {
+                    log('⚠️ 未找到指定教材的进度', 'warning');
+                }
+            } else {
+                log('❌ localStorage 中没有进度数据', 'error');
+            }
+        }
+
+        async function testAPI() {
+            log('🚀 开始测试 Supabase API...', 'info');
+            
+            const testFilters = {
+                difficulty: 'easy',
+                limit: 10,
+                startPosition: 3,
+                collectionId: DEFAULT_COLLECTION_ID
+            };
+            
+            log(`📋 API 测试参数: ${JSON.stringify(testFilters)}`, 'info');
+            
+            try {
+                // 模拟 API 调用
+                const expectedUrl = `https://apgzgtfxkkzygkkmsywg.supabase.co/rest/v1/words?select=*&collection_id=eq.${DEFAULT_COLLECTION_ID}&order=word.asc&difficulty=eq.easy&limit=10&offset=3`;
+                log(`🌐 期望的 API URL: ${expectedUrl}`, 'info');
+                
+                // 检查是否包含 offset 参数
+                if (expectedUrl.includes('&offset=')) {
+                    log('✅ URL 包含 offset 参数', 'success');
+                } else {
+                    log('❌ URL 缺少 offset 参数', 'error');
+                }
+                
+                document.getElementById('apiTest').textContent = `API 测试完成\n期望 URL: ${expectedUrl}\n包含 offset: ${expectedUrl.includes('&offset=') ? '是' : '否'}`;
+                
+            } catch (error) {
+                log(`❌ API 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function analyzeProgress() {
+            const progress = localStorage.getItem('quiz-progress');
+            let analysis = '';
+            
+            if (progress) {
+                const parsed = JSON.parse(progress);
+                const keys = Object.keys(parsed);
+                
+                analysis += `📊 进度分析结果:\n`;
+                analysis += `总进度条目数: ${keys.length}\n`;
+                
+                keys.forEach(key => {
+                    const item = parsed[key];
+                    analysis += `\n📚 教材 ID: ${key}\n`;
+                    analysis += `  位置: ${item.lastPosition}\n`;
+                    analysis += `  总词数: ${item.totalWords}\n`;
+                    analysis += `  上次时间: ${item.lastPlayedAt}\n`;
+                    
+                    // 计算下次起始位置
+                    const nextStart = item.lastPosition;
+                    analysis += `  下次起始位置: ${nextStart}\n`;
+                });
+            } else {
+                analysis = '❌ 没有找到进度数据';
+            }
+            
+            document.getElementById('progressAnalysis').textContent = analysis;
+            log('🔍 进度分析完成', 'info');
+        }
+
+        // 页面加载时自动刷新数据
+        window.onload = function() {
+            refreshLocalStorage();
+            log('🔍 调试页面已加载', 'success');
+            
+            // 显示当前页面信息
+            log(`📄 当前页面: ${window.location.href}`, 'info');
+            log(`🕒 页面加载时间: ${new Date().toLocaleString()}`, 'info');
+        };
+
+        // 监听 localStorage 变化
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'quiz-progress') {
+                log('🔄 检测到进度数据变化', 'info');
+                refreshLocalStorage();
+            }
+        });
+    </script>
+</body>
+</html>

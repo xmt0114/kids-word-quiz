@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>猜单词小天才 - 儿童英语学习游戏</title>
+  <meta name="description" content="专为10岁以下儿童设计的英语单词学习游戏，支持文字和音频答题模式，让学习更有趣！" />
+  
+  <!-- Google Fonts - Fredoka字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- 儿童友好设置 -->
+  <meta name="theme-color" content="#ff6b6b" />
+  <style>
+    /* 减少动画设置 */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+    
+    /* 防止选中文本（儿童界面） */
+    body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 确保触摸目标足够大 */
+    button, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

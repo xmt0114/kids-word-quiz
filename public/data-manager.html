@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儿童猜单词 - 数据管理工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .bounce {
+            animation: bounce 0.6s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .pulse-ring {
+            animation: pulse-ring 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-orange-100 via-yellow-50 to-pink-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 标题 -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                🎯 儿童猜单词数据管理
+            </h1>
+            <p class="text-lg text-gray-600">轻松管理和编辑单词数据</p>
+        </div>
+
+        <!-- 操作面板 -->
+        <div class="bg-white rounded-3xl shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button id="loadData" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105">
+                    📂 加载数据
+                </button>
+                <button id="addWord" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105">
+                    ➕ 添加单词
+                </button>
+                <button id="validateData" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105">
+                    ✅ 验证数据
+                </button>
+                <button id="exportData" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105">
+                    💾 导出数据
+                </button>
+                <button id="generateSample" class="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105">
+                    🎲 生成示例
+                </button>
+            </div>
+        </div>
+
+        <!-- 状态显示 -->
+        <div id="status" class="bg-white rounded-2xl shadow-lg p-4 mb-6 hidden">
+            <div id="statusContent" class="text-center"></div>
+        </div>
+
+        <!-- 单词列表 -->
+        <div class="bg-white rounded-3xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📚 单词列表</h2>
+            <div id="wordList" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <!-- 单词卡片将在这里动态生成 -->
+            </div>
+        </div>
+
+        <!-- 添加/编辑单词模态框 -->
+        <div id="wordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="modalTitle" class="text-2xl font-bold text-gray-800">添加新单词</h3>
+                    <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                </div>
+                
+                <form id="wordForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">单词</label>
+                        <input type="text" id="wordInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: brother">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">定义（文字题干）</label>
+                        <textarea id="definitionInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="例如: This boy or man has the same mother and father as you."></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">音频文本</label>
+                        <textarea id="audioTextInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="例如: He is a boy. His mother is your mother."></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">难度</label>
+                        <select id="difficultyInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="easy">简单</option>
+                            <option value="medium">中等</option>
+                            <option value="hard">困难</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选项（用逗号分隔）</label>
+                        <input type="text" id="optionsInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: sister, brother, father, uncle">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">正确答案</label>
+                        <input type="text" id="answerInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: brother">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">提示</label>
+                        <input type="text" id="hintInput" class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: B _ _ _ _ _ _">
+                    </div>
+                    
+                    <div class="flex gap-4 pt-4">
+                        <button type="submit" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-2xl font-medium transition-all duration-300">
+                            💾 保存
+                        </button>
+                        <button type="button" id="cancelBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-2xl font-medium transition-all duration-300">
+                            取消
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let wordsData = null;
+        let editingIndex = -1;
+
+        // DOM 元素
+        const elements = {
+            loadData: document.getElementById('loadData'),
+            addWord: document.getElementById('addWord'),
+            validateData: document.getElementById('validateData'),
+            exportData: document.getElementById('exportData'),
+            generateSample: document.getElementById('generateSample'),
+            wordList: document.getElementById('wordList'),
+            status: document.getElementById('status'),
+            statusContent: document.getElementById('statusContent'),
+            wordModal: document.getElementById('wordModal'),
+            modalTitle: document.getElementById('modalTitle'),
+            closeModal: document.getElementById('closeModal'),
+            wordForm: document.getElementById('wordForm'),
+            cancelBtn: document.getElementById('cancelBtn'),
+            // 表单输入
+            wordInput: document.getElementById('wordInput'),
+            definitionInput: document.getElementById('definitionInput'),
+            audioTextInput: document.getElementById('audioTextInput'),
+            difficultyInput: document.getElementById('difficultyInput'),
+            optionsInput: document.getElementById('optionsInput'),
+            answerInput: document.getElementById('answerInput'),
+            hintInput: document.getElementById('hintInput')
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadData();
+        });
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            elements.loadData.addEventListener('click', loadData);
+            elements.addWord.addEventListener('click', () => openModal());
+            elements.validateData.addEventListener('click', validateData);
+            elements.exportData.addEventListener('click', exportData);
+            elements.generateSample.addEventListener('click', generateSampleData);
+            elements.closeModal.addEventListener('click', closeModal);
+            elements.cancelBtn.addEventListener('click', closeModal);
+            elements.wordForm.addEventListener('submit', saveWord);
+            
+            // 点击模态框外部关闭
+            elements.wordModal.addEventListener('click', function(e) {
+                if (e.target === elements.wordModal) {
+                    closeModal();
+                }
+            });
+        }
+
+        // 显示状态消息
+        function showStatus(message, type = 'info') {
+            elements.statusContent.innerHTML = message;
+            elements.status.classList.remove('hidden');
+            
+            const colors = {
+                success: 'text-green-600',
+                error: 'text-red-600',
+                warning: 'text-yellow-600',
+                info: 'text-blue-600'
+            };
+            
+            elements.statusContent.className = `text-center ${colors[type]}`;
+            
+            setTimeout(() => {
+                elements.status.classList.add('hidden');
+            }, 5000);
+        }
+
+        // 加载数据
+        async function loadData() {
+            try {
+                showStatus('📂 正在加载数据...', 'info');
+                const response = await fetch('/data/words.json');
+                wordsData = await response.json();
+                renderWordList();
+                showStatus('✅ 数据加载成功！', 'success');
+            } catch (error) {
+                showStatus('❌ 数据加载失败: ' + error.message, 'error');
+            }
+        }
+
+        // 渲染单词列表
+        function renderWordList() {
+            if (!wordsData || !wordsData.words) return;
+            
+            elements.wordList.innerHTML = wordsData.words.map((word, index) => `
+                <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-4 border border-gray-200 hover:shadow-lg transition-all duration-300">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-xl font-bold text-gray-800">${word.word}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="editWord(${index})" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-300">
+                                ✏️ 编辑
+                            </button>
+                            <button onclick="deleteWord(${index})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-300">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <p><strong>定义:</strong> ${word.definition}</p>
+                        <p><strong>难度:</strong> <span class="px-2 py-1 rounded-full text-xs font-medium ${
+                            word.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                            word.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }">${word.difficulty === 'easy' ? '简单' : word.difficulty === 'medium' ? '中等' : '困难'}</span></p>
+                        <p><strong>提示:</strong> ${word.hint}</p>
+                        <p><strong>选项:</strong> ${word.options.join(', ')}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 打开模态框
+        function openModal(index = -1) {
+            editingIndex = index;
+            elements.modalTitle.textContent = index === -1 ? '添加新单词' : '编辑单词';
+            
+            if (index !== -1 && wordsData.words[index]) {
+                const word = wordsData.words[index];
+                elements.wordInput.value = word.word;
+                elements.definitionInput.value = word.definition;
+                elements.audioTextInput.value = word.audioText;
+                elements.difficultyInput.value = word.difficulty;
+                elements.optionsInput.value = word.options.join(', ');
+                elements.answerInput.value = word.answer;
+                elements.hintInput.value = word.hint;
+            } else {
+                elements.wordForm.reset();
+            }
+            
+            elements.wordModal.classList.remove('hidden');
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            elements.wordModal.classList.add('hidden');
+            editingIndex = -1;
+        }
+
+        // 保存单词
+        function saveWord(e) {
+            e.preventDefault();
+            
+            const wordData = {
+                id: editingIndex === -1 ? (wordsData.words.length + 1) : wordsData.words[editingIndex].id,
+                word: elements.wordInput.value.trim(),
+                definition: elements.definitionInput.value.trim(),
+                audioText: elements.audioTextInput.value.trim(),
+                difficulty: elements.difficultyInput.value,
+                options: elements.optionsInput.value.split(',').map(opt => opt.trim()).filter(opt => opt),
+                answer: elements.answerInput.value.trim(),
+                hint: elements.hintInput.value.trim()
+            };
+            
+            // 验证数据
+            const errors = validateWordData(wordData);
+            if (errors.length > 0) {
+                showStatus('❌ 数据验证失败: ' + errors.join(', '), 'error');
+                return;
+            }
+            
+            if (editingIndex === -1) {
+                wordsData.words.push(wordData);
+                showStatus('✅ 单词添加成功！', 'success');
+            } else {
+                wordsData.words[editingIndex] = wordData;
+                showStatus('✅ 单词更新成功！', 'success');
+            }
+            
+            renderWordList();
+            closeModal();
+        }
+
+        // 编辑单词
+        function editWord(index) {
+            openModal(index);
+        }
+
+        // 删除单词
+        function deleteWord(index) {
+            if (confirm('确定要删除这个单词吗？')) {
+                wordsData.words.splice(index, 1);
+                renderWordList();
+                showStatus('✅ 单词删除成功！', 'success');
+            }
+        }
+
+        // 验证数据
+        function validateData() {
+            if (!wordsData) {
+                showStatus('❌ 请先加载数据', 'error');
+                return;
+            }
+            
+            const errors = [];
+            wordsData.words.forEach((word, index) => {
+                const wordErrors = validateWordData(word);
+                if (wordErrors.length > 0) {
+                    errors.push(`第${index + 1}个单词: ${wordErrors.join(', ')}`);
+                }
+            });
+            
+            if (errors.length === 0) {
+                showStatus('✅ 数据验证通过！所有单词数据都正确。', 'success');
+            } else {
+                showStatus('❌ 数据验证失败:\n' + errors.join('\n'), 'error');
+            }
+        }
+
+        // 验证单个单词数据
+        function validateWordData(word) {
+            const errors = [];
+            
+            if (!word.word) errors.push('单词不能为空');
+            if (!word.definition) errors.push('定义不能为空');
+            if (!word.audioText) errors.push('音频文本不能为空');
+            if (!['easy', 'medium', 'hard'].includes(word.difficulty)) {
+                errors.push('难度必须是 easy、medium 或 hard');
+            }
+            if (!Array.isArray(word.options) || word.options.length < 3) {
+                errors.push('选项必须至少包含3个');
+            }
+            if (!word.answer) errors.push('答案不能为空');
+            if (word.options && !word.options.includes(word.answer)) {
+                errors.push('答案必须在选项列表中');
+            }
+            
+            return errors;
+        }
+
+        // 导出数据
+        function exportData() {
+            if (!wordsData) {
+                showStatus('❌ 请先加载数据', 'error');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(wordsData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'words.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showStatus('✅ 数据导出成功！', 'success');
+        }
+
+        // 生成示例数据
+        function generateSampleData() {
+            const sampleWords = [
+                {
+                    word: "cat",
+                    definition: "A small animal with fur, four legs, and a tail that people keep as a pet.",
+                    audioText: "A small furry animal with four legs and a tail. People keep it as a pet.",
+                    difficulty: "easy",
+                    options: ["dog", "cat", "bird", "fish"],
+                    answer: "cat",
+                    hint: "C _ _"
+                },
+                {
+                    word: "sun",
+                    definition: "The bright, hot thing in the sky that gives us light and warmth.",
+                    audioText: "The bright hot thing in the sky. It gives us light and makes us warm.",
+                    difficulty: "easy",
+                    options: ["moon", "star", "sun", "cloud"],
+                    answer: "sun",
+                    hint: "S _ _"
+                },
+                {
+                    word: "happy",
+                    definition: "Feeling good and smiling when something nice happens.",
+                    audioText: "When you feel good and smile because something nice happened to you.",
+                    difficulty: "medium",
+                    options: ["sad", "happy", "angry", "tired"],
+                    answer: "happy",
+                    hint: "H _ _ _ _"
+                }
+            ];
+            
+            wordsData = {
+                words: sampleWords,
+                questionTypes: [
+                    { id: "text", name: "文字题干", description: "在屏幕上显示题目描述" },
+                    { id: "audio", name: "音频题干", description: "通过语音朗读题目描述" }
+                ],
+                answerTypes: [
+                    { id: "choice", name: "选择题", description: "从多个选项中选择正确答案" },
+                    { id: "fill", name: "填空题", description: "根据提示填写完整单词" }
+                ],
+                difficultyLevels: [
+                    { id: "easy", name: "简单", color: "#4CAF50" },
+                    { id: "medium", name: "中等", color: "#FF9800" },
+                    { id: "hard", name: "困难", color: "#F44336" }
+                ]
+            };
+            
+            renderWordList();
+            showStatus('✅ 示例数据生成成功！', 'success');
+        }
+    </script>
+</body>
+</html>

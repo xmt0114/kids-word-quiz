@@ -1,0 +1,20 @@
+CREATE TABLE quiz_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    collection_id UUID NOT NULL,
+    question_type TEXT NOT NULL CHECK (question_type IN ('text',
+    'audio')),
+    answer_type TEXT NOT NULL CHECK (answer_type IN ('choice',
+    'fill')),
+    difficulty TEXT NOT NULL CHECK (difficulty IN ('easy',
+    'medium',
+    'hard')),
+    total_questions INTEGER NOT NULL,
+    correct_answers INTEGER DEFAULT 0,
+    score INTEGER DEFAULT 0,
+    percentage INTEGER DEFAULT 0,
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    duration_seconds INTEGER,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

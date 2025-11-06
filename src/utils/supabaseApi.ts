@@ -1,0 +1,561 @@
+// Supabase API实现
+import { supabase, DEFAULT_COLLECTION_ID } from '../lib/supabase'
+import { ApiResponse, WordApiResponse, WordAPI, WordCollection } from './api'
+
+// 类型转换：Supabase数据 → 前端数据格式
+function transformWord(dbWord: any): any {
+  return {
+    id: dbWord.id,
+    word: dbWord.word,
+    definition: dbWord.definition,
+    audioText: dbWord.audio_text,
+    difficulty: dbWord.difficulty,
+    options: dbWord.options,
+    answer: dbWord.answer,
+    hint: dbWord.hint
+  }
+}
+
+// 类型转换：教材数据
+function transformCollection(dbCollection: any): WordCollection {
+  return {
+    id: dbCollection.id,
+    name: dbCollection.name,
+    description: dbCollection.description,
+    category: dbCollection.category,
+    textbook_type: dbCollection.textbook_type,
+    grade_level: dbCollection.grade_level,
+    theme: dbCollection.theme,
+    is_public: dbCollection.is_public,
+    word_count: dbCollection.word_count,
+    created_at: dbCollection.created_at
+  }
+}
+
+// Supabase Word API 实现
+export class SupabaseWordAPI implements WordAPI {
+  // 获取教材列表
+  async getCollections(): Promise<ApiResponse<WordCollection[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('word_collections')
+        .select('*')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Supabase getCollections error:', error)
+        return {
+          success: false,
+          error: `获取教材列表失败: ${error.message}`
+        }
+      }
+
+      const collections = (data || []).map(transformCollection)
+
+      return {
+        success: true,
+        data: collections,
+        message: `获取到${collections.length}个教材`
+      }
+    } catch (error) {
+      console.error('Unexpected error in getCollections:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 获取指定教材信息
+  async getCollectionById(collectionId: string): Promise<ApiResponse<WordCollection>> {
+    try {
+      const { data, error } = await supabase
+        .from('word_collections')
+        .select('*')
+        .eq('id', collectionId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Supabase getCollectionById error:', error)
+        return {
+          success: false,
+          error: `获取教材信息失败: ${error.message}`
+        }
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: `未找到ID为${collectionId}的教材`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformCollection(data),
+        message: '获取教材成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in getCollectionById:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async getWords(filters?: {
+    difficulty?: string;
+    limit?: number;
+    offset?: number;
+    collectionId?: string; // 支持指定教材
+    selectionStrategy?: 'sequential' | 'random'; // 新增：词汇选取策略
+  }): Promise<WordApiResponse> {
+    try {
+      // 使用指定的collectionId或默认ID
+      const collectionId = filters?.collectionId || DEFAULT_COLLECTION_ID
+
+      // 构建查询
+      let query = supabase
+        .from('words')
+        .select('*')
+        .eq('collection_id', collectionId)
+
+      // 根据选取策略排序
+      if (filters?.selectionStrategy === 'sequential') {
+        // 顺序选取：按单词字母顺序排序
+        query = query.order('word', { ascending: true })
+      } else if (filters?.selectionStrategy === 'random') {
+        // 随机选取：先按创建时间排序，然后在客户端随机打乱
+        // 使用created_at字段确保稳定的随机性
+        query = query.order('created_at', { ascending: false })
+      } else {
+        // 默认按word排序
+        query = query.order('word', { ascending: true })
+      }
+
+      // 如果指定了难度，添加过滤
+      if (filters?.difficulty && filters.difficulty !== 'all') {
+        query = query.eq('difficulty', filters.difficulty)
+      }
+
+      // 分页
+      if (filters?.offset !== undefined) {
+        query = query.range(
+          filters.offset, 
+          filters.offset + (filters.limit || 10) - 1
+        )
+      } else if (filters?.limit) {
+        query = query.limit(filters.limit)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Supabase getWords error:', error)
+        return {
+          success: false,
+          error: `获取单词失败: ${error.message}`
+        }
+      }
+
+      // 转换数据格式
+      let words = (data || []).map(transformWord)
+
+      // 如果是随机策略，在客户端进行随机排序
+      if (filters?.selectionStrategy === 'random' && words.length > 0) {
+        words = words.sort(() => Math.random() - 0.5)
+      }
+
+      return {
+        success: true,
+        data: words,
+        message: `获取到${words.length}个单词`
+      }
+    } catch (error) {
+      console.error('Unexpected error in getWords:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async getWordById(id: number): Promise<WordApiResponse> {
+    try {
+      const { data, error } = await supabase
+        .from('words')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Supabase getWordById error:', error)
+        return {
+          success: false,
+          error: `获取单词失败: ${error.message}`
+        }
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: `未找到ID为${id}的单词`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformWord(data),
+        message: '获取单词成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in getWordById:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async addWord(word: any): Promise<WordApiResponse> {
+    try {
+      // 转换为数据库格式
+      const dbWord = {
+        collection_id: word.collectionId || DEFAULT_COLLECTION_ID,
+        word: word.word,
+        definition: word.definition,
+        audio_text: word.audioText || word.definition,
+        difficulty: word.difficulty,
+        options: word.options,
+        answer: word.answer,
+        hint: word.hint || '',
+        word_order: word.order || 0
+      }
+
+      const { data, error } = await supabase
+        .from('words')
+        .insert(dbWord)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase addWord error:', error)
+        return {
+          success: false,
+          error: `添加单词失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformWord(data),
+        message: '添加单词成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in addWord:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async updateWord(id: number, word: any): Promise<WordApiResponse> {
+    try {
+      // 转换为数据库格式
+      const dbWord = {
+        word: word.word,
+        definition: word.definition,
+        audio_text: word.audioText || word.definition,
+        difficulty: word.difficulty,
+        options: word.options,
+        answer: word.answer,
+        hint: word.hint || ''
+      }
+
+      const { data, error } = await supabase
+        .from('words')
+        .update(dbWord)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase updateWord error:', error)
+        return {
+          success: false,
+          error: `更新单词失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformWord(data),
+        message: '更新单词成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in updateWord:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async deleteWord(id: number): Promise<WordApiResponse> {
+    try {
+      const { error } = await supabase
+        .from('words')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Supabase deleteWord error:', error)
+        return {
+          success: false,
+          error: `删除单词失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        message: '删除单词成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in deleteWord:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 批量删除词汇
+  async batchDeleteWords(ids: number[]): Promise<ApiResponse<{ count: number }>> {
+    try {
+      const { error, count } = await supabase
+        .from('words')
+        .delete()
+        .in('id', ids)
+
+      if (error) {
+        console.error('Supabase batchDeleteWords error:', error)
+        return {
+          success: false,
+          error: `批量删除词汇失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: { count: count || 0 },
+        message: `成功删除${count || 0}个词汇`
+      }
+    } catch (error) {
+      console.error('Unexpected error in batchDeleteWords:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 创建教材
+  async createCollection(collectionData: {
+    name: string;
+    description?: string;
+    category?: string;
+    textbook_type?: string;
+    grade_level?: string;
+    theme?: string;
+    is_public?: boolean;
+  }): Promise<ApiResponse<WordCollection>> {
+    try {
+      // 为匿名用户设置一个固定的UUID作为created_by
+      const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000'
+      
+      const { data, error } = await supabase
+        .from('word_collections')
+        .insert({
+          name: collectionData.name,
+          description: collectionData.description || null,
+          category: collectionData.category || 'textbook',
+          textbook_type: collectionData.textbook_type || null,
+          grade_level: collectionData.grade_level || null,
+          theme: collectionData.theme || null,
+          is_public: collectionData.is_public !== undefined ? collectionData.is_public : true,
+          word_count: 0,
+          created_by: ANONYMOUS_USER_ID
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase createCollection error:', error)
+        return {
+          success: false,
+          error: `创建教材失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformCollection(data),
+        message: '创建教材成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in createCollection:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 更新教材
+  async updateCollection(id: string, collectionData: {
+    name?: string;
+    description?: string;
+    category?: string;
+    textbook_type?: string;
+    grade_level?: string;
+    theme?: string;
+    is_public?: boolean;
+  }): Promise<ApiResponse<WordCollection>> {
+    try {
+      const updateData: any = {}
+      if (collectionData.name !== undefined) updateData.name = collectionData.name
+      if (collectionData.description !== undefined) updateData.description = collectionData.description
+      if (collectionData.category !== undefined) updateData.category = collectionData.category
+      if (collectionData.textbook_type !== undefined) updateData.textbook_type = collectionData.textbook_type
+      if (collectionData.grade_level !== undefined) updateData.grade_level = collectionData.grade_level
+      if (collectionData.theme !== undefined) updateData.theme = collectionData.theme
+      if (collectionData.is_public !== undefined) updateData.is_public = collectionData.is_public
+
+      const { data, error } = await supabase
+        .from('word_collections')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase updateCollection error:', error)
+        return {
+          success: false,
+          error: `更新教材失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: transformCollection(data),
+        message: '更新教材成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in updateCollection:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 删除教材
+  async deleteCollection(id: string): Promise<ApiResponse<void>> {
+    try {
+      // 先检查是否有词汇
+      const { data: words, error: checkError } = await supabase
+        .from('words')
+        .select('id')
+        .eq('collection_id', id)
+        .limit(1)
+
+      if (checkError) {
+        console.error('Supabase check words error:', checkError)
+        return {
+          success: false,
+          error: `检查教材词汇失败: ${checkError.message}`
+        }
+      }
+
+      if (words && words.length > 0) {
+        return {
+          success: false,
+          error: '该教材下还有词汇，请先删除所有词汇'
+        }
+      }
+
+      // 删除教材
+      const { error } = await supabase
+        .from('word_collections')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Supabase deleteCollection error:', error)
+        return {
+          success: false,
+          error: `删除教材失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        message: '删除教材成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in deleteCollection:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  async validateAnswer(wordId: number, answer: string): Promise<ApiResponse<{
+    correct: boolean;
+    message: string;
+  }>> {
+    try {
+      const { data, error } = await supabase
+        .from('words')
+        .select('answer')
+        .eq('id', wordId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Supabase validateAnswer error:', error)
+        return {
+          success: false,
+          error: `验证答案失败: ${error.message}`
+        }
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: `未找到ID为${wordId}的单词`
+        }
+      }
+
+      const isCorrect = answer.toLowerCase().trim() === data.answer.toLowerCase().trim()
+
+      return {
+        success: true,
+        data: {
+          correct: isCorrect,
+          message: isCorrect ? '回答正确！' : '回答错误，再试一次吧！'
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error in validateAnswer:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+}
