@@ -4,7 +4,8 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { QuizSettings } from '../types';
 import { useQuizSettings } from '../hooks/useLocalStorage';
-import { Volume2, Type, MousePointer, Edit3, Trophy, Database, BookOpen, ListOrdered, Shuffle } from 'lucide-react';
+import { useLearningProgress } from '../hooks/useLearningProgress';
+import { Volume2, Type, MousePointer, Edit3, Trophy, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 
@@ -21,6 +22,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { settings, setSettings } = useQuizSettings();
+  const { getProgressPercentage, getRemainingWords, formatLastUpdated, resetProgress } = useLearningProgress();
   const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
     questionType: 'text',
     answerType: 'choice',
@@ -243,6 +245,39 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
               选择教材
             </Button>
           </div>
+
+          {/* 学习进度信息 */}
+          {textbookInfo && selectedSettings.collectionId && (
+            <div className="mt-md pt-md border-t border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-md">
+                  <TrendingUp size={20} className="text-blue-500" />
+                  <div>
+                    <p className="text-small font-semibold text-text-primary">
+                      学习进度：{getProgressPercentage(selectedSettings.collectionId)}%
+                    </p>
+                    <p className="text-xs text-text-tertiary">
+                      剩余 {getRemainingWords(selectedSettings.collectionId)} 个单词
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-md">
+                  <p className="text-xs text-text-tertiary">
+                    {formatLastUpdated(selectedSettings.collectionId)}
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="default"
+                    onClick={() => resetProgress(selectedSettings.collectionId!)}
+                    className="flex items-center gap-xs text-xs px-sm py-xs"
+                  >
+                    <RotateCcw size={14} />
+                    重置
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 

@@ -2,6 +2,9 @@
 import { supabase, DEFAULT_COLLECTION_ID } from '../lib/supabase'
 import { ApiResponse, WordApiResponse, WordAPI, WordCollection } from './api'
 
+// 题目总数常量
+const TOTAL_QUESTIONS = 10;
+
 // 类型转换：Supabase数据 → 前端数据格式
 function transformWord(dbWord: any): any {
   return {
@@ -140,14 +143,19 @@ export class SupabaseWordAPI implements WordAPI {
         query = query.eq('difficulty', filters.difficulty)
       }
 
-      // 分页
-      if (filters?.offset !== undefined) {
+      // 分页：优先使用offset，如果没有则使用limit
+      if (filters?.offset !== undefined && filters.offset > 0) {
+        // 使用offset分页：从offset位置开始，取limit个
         query = query.range(
-          filters.offset, 
-          filters.offset + (filters.limit || 10) - 1
+          filters.offset,
+          filters.offset + (filters.limit || TOTAL_QUESTIONS) - 1
         )
       } else if (filters?.limit) {
+        // 使用limit：从第0个开始，取limit个
         query = query.limit(filters.limit)
+      } else {
+        // 默认取TOTAL_QUESTIONS个
+        query = query.limit(TOTAL_QUESTIONS)
       }
 
       const { data, error } = await query

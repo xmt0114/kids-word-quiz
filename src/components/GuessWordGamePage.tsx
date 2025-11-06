@@ -2,22 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
-import { AudioButton } from './AudioButton';
 import { OptionButton } from './OptionButton';
 import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
-import { Word, QuizSettings } from '../types';
+import { QuizSettings } from '../types';
 import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
+import { useLearningProgress } from '../hooks/useLearningProgress';
 
 const GuessWordGamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { stats, updateStats } = useQuizStats();
+  const { updateStats } = useQuizStats();
+  const { getOffset, advanceProgress } = useLearningProgress();
 
   // 从路由状态获取设置 - 只信任路由传递的设置
   const { settings: routeSettings, collectionId } = location.state || {};
@@ -36,8 +37,6 @@ const GuessWordGamePage: React.FC = () => {
     previousQuestion,
     getCurrentQuestion,
     getResult,
-    clearError,
-    totalQuestions,
     restartQuiz,
   } = useQuiz();
 
@@ -46,8 +45,6 @@ const GuessWordGamePage: React.FC = () => {
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showStarExplosion, setShowStarExplosion] = useState(false);
-  const [audioPlaying, setAudioPlaying] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const questionTextRef = useRef<HTMLParagraphElement>(null);
 
@@ -69,10 +66,14 @@ const GuessWordGamePage: React.FC = () => {
       collectionId
     };
 
-    initializeQuiz(finalSettings, collectionId).catch(err => {
+    // 获取学习进度偏移量
+    const offset = getOffset(collectionId!);
+
+    // 初始化时传入offset和教材总单词数
+    initializeQuiz(finalSettings, collectionId, offset, 0).catch(err => {
       console.error('Failed to initialize quiz:', err);
     });
-  }, [routeSettings, collectionId, hasValidRouteSettings, navigate, initializeQuiz]);
+  }, [routeSettings, collectionId, hasValidRouteSettings, navigate, initializeQuiz, getOffset]);
 
   // 检测屏幕高度并动态调整布局
   useEffect(() => {
@@ -102,12 +103,9 @@ const GuessWordGamePage: React.FC = () => {
       questionArea: 'mb-lg',
       buttonArea: 'pt-lg'
     };
-    
-    let deviceType = '大屏幕 (≥800px)';
-    
+
     // 小屏幕 (< 600px) 使用紧凑布局
     if (viewportHeight > 0 && viewportHeight < 600) {
-      deviceType = '小屏幕 (<600px)';
       spacing = {
         container: 'p-xs',
         navbar: 'mb-xs',
@@ -119,7 +117,6 @@ const GuessWordGamePage: React.FC = () => {
     }
     // 中等屏幕 (600px - 799px) 使用中等布局
     else if (viewportHeight >= 600 && viewportHeight < 800) {
-      deviceType = '中等屏幕 (600px-799px)';
       spacing = {
         container: 'p-xs',
         navbar: 'mb-xs',
@@ -129,11 +126,11 @@ const GuessWordGamePage: React.FC = () => {
         buttonArea: 'pt-xs'
       };
     }
-    
-    return { spacing, deviceType };
+
+    return spacing;
   };
 
-  const { spacing, deviceType } = getDynamicSpacing();
+  const spacing = getDynamicSpacing();
 
   const currentWord = getCurrentQuestion();
 
@@ -158,6 +155,18 @@ const GuessWordGamePage: React.FC = () => {
       // 所有题目完成，显示结果
       const result = getResult();
       updateStats(result.correctAnswers, result.totalQuestions);
+
+      // 更新学习进度
+      if (collectionId) {
+        // 使用当前进度作为偏移量，完成本次的10题
+        const currentOffset = getOffset(collectionId);
+        const completedQuestions = result.totalQuestions;
+        const newTotalWords = completedQuestions + currentOffset;
+
+        // 更新学习进度
+        advanceProgress(collectionId, completedQuestions, newTotalWords);
+      }
+
       navigate('/guess-word/result', {
         state: { result, settings: routeSettings, collectionId }
       });

@@ -27,8 +27,9 @@ export function useQuiz() {
 
   // 带超时和重试的数据获取
   const fetchWordsWithRetry = useCallback(async (
-    settings: QuizSettings, 
+    settings: QuizSettings,
     collectionId?: string,
+    offset: number = 0,
     retries: number = MAX_RETRIES
   ): Promise<Word[]> => {
     try {
@@ -41,6 +42,7 @@ export function useQuiz() {
       const requestPromise = wordAPI.getWords({
         difficulty: settings.difficulty,
         limit: TOTAL_QUESTIONS,
+        offset: offset, // 传递偏移量
         collectionId: collectionId, // 传递教材ID
         selectionStrategy: settings.selectionStrategy, // 传递选取策略
       });
@@ -60,10 +62,10 @@ export function useQuiz() {
       if (retries > 0) {
         console.warn(`获取题目失败，剩余重试次数: ${retries - 1}, 错误: ${errorMessage}`);
         setRetryCount(MAX_RETRIES - retries + 1);
-        
+
         // 等待一段时间后重试
         await new Promise(resolve => setTimeout(resolve, 1000 * (MAX_RETRIES - retries + 1)));
-        return fetchWordsWithRetry(settings, collectionId, retries - 1);
+        return fetchWordsWithRetry(settings, collectionId, offset, retries - 1);
       }
       
       throw new Error(`获取题目失败: ${errorMessage}`);
@@ -71,15 +73,20 @@ export function useQuiz() {
   }, []);
 
   // 初始化题目
-  const initializeQuiz = useCallback(async (settings: QuizSettings, collectionId?: string) => {
+  const initializeQuiz = useCallback(async (
+    settings: QuizSettings,
+    collectionId?: string,
+    offset: number = 0,
+    totalWords?: number
+  ) => {
     setIsLoading(true);
     setError(null);
     setRetryCount(0);
 
     try {
       // 获取单词数据（带重试机制）
-      const wordsData = await fetchWordsWithRetry(settings, collectionId);
-      
+      const wordsData = await fetchWordsWithRetry(settings, collectionId, offset);
+
       // 验证数据完整性
       if (!Array.isArray(wordsData) || wordsData.length === 0) {
         throw new Error('没有可用的题目数据');
@@ -90,24 +97,28 @@ export function useQuiz() {
       // 随机选取：随机打乱
       const shouldShuffle = settings.selectionStrategy !== 'sequential';
       const selectedWords = getRandomWords(wordsData, TOTAL_QUESTIONS, undefined, shouldShuffle);
-      
+
       // 验证选择的题目数据完整性
-      const validWords = selectedWords.filter(word => 
-        word && 
-        (typeof word.id === 'number' || typeof word.id === 'string') && 
-        typeof word.word === 'string' && 
-        typeof word.definition === 'string' &&
-        Array.isArray(word.options) &&
-        word.options.length >= 3 &&
-        typeof word.answer === 'string'
-      );
+      const validWords = selectedWords.filter(word => {
+        if (!word) return false;
+
+        // 基本字段验证
+        if (!word.id) return false;
+        if (!word.word) return false;
+        if (!word.definition) return false;
+        if (!Array.isArray(word.options)) return false;
+        if (word.options.length < 3) return false;
+        if (!word.answer) return false;
+
+        return true;
+      });
 
       if (validWords.length === 0) {
         throw new Error('没有有效的题目数据');
       }
 
       // 如果有效题目不足TOTAL_QUESTIONS，使用所有有效题目
-      const questionsToUse = validWords.length >= TOTAL_QUESTIONS 
+      const questionsToUse = validWords.length >= TOTAL_QUESTIONS
         ? validWords.slice(0, TOTAL_QUESTIONS)
         : validWords;
 
