@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useQuizSettings } from '../hooks/useLocalStorage';
 
 interface TextToSpeechButtonProps {
   text?: string;
@@ -15,6 +16,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
   size = 'medium',
   textRef
 }) => {
+  const { settings } = useQuizSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
@@ -106,32 +108,60 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       // 取消之前的播放
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      
-      // 设置语音参数
-      utterance.lang = 'en-US'; // 英语语音
-      utterance.rate = 0.8; // 语速稍慢，适合儿童
-      utterance.pitch = 1.0; // 正常音调
-      utterance.volume = 1.0; // 最大音量
+      // 等待一小段时间确保之前的语音完全停止
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-      // 监听播放事件
-      utterance.onstart = () => {
-        setIsPlaying(true);
-        setHasError(false);
-      };
+        // 获取TTS设置（使用默认值或设置中的值）
+        const ttsSettings = settings.tts || {
+          lang: 'en-US',
+          rate: 0.8,
+          pitch: 1.0,
+          volume: 1.0,
+        };
 
-      utterance.onend = () => {
-        setIsPlaying(false);
-      };
+        // 设置语音参数
+        utterance.lang = ttsSettings.lang;
+        utterance.rate = ttsSettings.rate;
+        utterance.pitch = ttsSettings.pitch;
+        utterance.volume = ttsSettings.volume;
 
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setHasError(true);
-        setTimeout(() => setHasError(false), 2000);
-      };
+        // 如果指定了语音名称，尝试设置
+        if (ttsSettings.voiceName) {
+          const voices = window.speechSynthesis.getVoices();
 
-      // 开始播放
-      window.speechSynthesis.speak(utterance);
+          // 使用灵活匹配（处理名称差异）
+          const selectedVoice = voices.find(voice => {
+            const trimmedName = voice.name.trim();
+            const searchName = ttsSettings.voiceName!.trim();
+            return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
+          });
+
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+        }
+
+        // 监听播放事件
+        utterance.onstart = () => {
+          setIsPlaying(true);
+          setHasError(false);
+        };
+
+        utterance.onend = () => {
+          setIsPlaying(false);
+        };
+
+        utterance.onerror = (e) => {
+          console.error('语音播放错误:', e);
+          setIsPlaying(false);
+          setHasError(true);
+          setTimeout(() => setHasError(false), 2000);
+        };
+
+        // 开始播放
+        window.speechSynthesis.speak(utterance);
+      }, 100);
     } catch (error) {
       console.error('语音播放失败:', error);
       setIsPlaying(false);

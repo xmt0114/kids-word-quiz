@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
-import { QuizSettings } from '../types';
+import { QuizSettings, TTSSettings } from '../types';
 import { useQuizSettings } from '../hooks/useLocalStorage';
 import { useLearningProgress } from '../hooks/useLearningProgress';
-import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp } from 'lucide-react';
+import { useAvailableVoices } from '../hooks/useAvailableVoices';
+import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 
@@ -19,10 +20,17 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const navigate = useNavigate();
   const { settings, setSettings } = useQuizSettings();
   const { getProgressPercentage, getRemainingWords, formatLastUpdated, resetProgress, getProgress, updateProgress } = useLearningProgress();
+  const { voices, isLoaded: isVoicesLoaded } = useAvailableVoices();
   const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
     questionType: 'text',
     answerType: 'choice',
     selectionStrategy: 'sequential',
+    tts: {
+      lang: 'en-US',
+      rate: 0.8,
+      pitch: 1.0,
+      volume: 1.0,
+    },
   });
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
 
@@ -34,6 +42,12 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
       answerType: settings.answerType || 'choice',
       selectionStrategy: settings.selectionStrategy || 'sequential',
       collectionId: settings.collectionId || selectedCollectionId || '11111111-1111-1111-1111-111111111111',
+      tts: settings.tts || {
+        lang: 'en-US',
+        rate: 0.8,
+        pitch: 1.0,
+        volume: 1.0,
+      },
     });
   }, []);
 
@@ -144,6 +158,58 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     const newSettings = { ...selectedSettings, selectionStrategy: strategy as 'sequential' | 'random' };
     setSelectedSettings(newSettings);
     setSettings(newSettings); // 同时保存到 localStorage
+  };
+
+  const handleTtsSettingChange = (key: keyof TTSSettings, value: string | number) => {
+    const newSettings = {
+      ...selectedSettings,
+      tts: {
+        ...selectedSettings.tts!,
+        [key]: value,
+      },
+    };
+    setSelectedSettings(newSettings);
+    setSettings(newSettings); // 同时保存到 localStorage
+  };
+
+  const handleTtsTest = () => {
+    // 首先取消任何正在进行的语音
+    window.speechSynthesis.cancel();
+
+    // 等待一小段时间确保之前的语音完全停止
+    setTimeout(() => {
+      // 测试朗读功能
+      const testText = "This is a test of the text-to-speech feature.";
+      const utterance = new SpeechSynthesisUtterance(testText);
+      const ttsSettings = selectedSettings.tts!;
+
+      // 设置基础参数
+      utterance.lang = ttsSettings.lang;
+      utterance.rate = ttsSettings.rate;
+      utterance.pitch = ttsSettings.pitch;
+      utterance.volume = ttsSettings.volume;
+
+      // 如果选择了特定语音，尝试使用它
+      // 直接从浏览器获取语音列表，确保名称匹配
+      const availableVoices = window.speechSynthesis.getVoices();
+
+      if (ttsSettings.voiceName && availableVoices.length > 0) {
+        // 使用完全匹配（trim并比较）
+        const selectedVoice = availableVoices.find(voice => {
+          const trimmedName = voice.name.trim();
+          const searchName = ttsSettings.voiceName!.trim();
+          return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
+        });
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+      } else if (availableVoices.length === 0) {
+        // 语音列表尚未加载
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }, 100);
   };
 
   const handleSaveSettings = () => {
@@ -369,14 +435,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
             {selectionStrategies.map((strategy) => {
               const Icon = strategy.icon;
               const isSelected = selectedSettings.selectionStrategy === strategy.id;
-              
+
               return (
                 <Card
                   key={strategy.id}
                   className={cn(
                     'cursor-pointer transition-all duration-normal border-4',
-                    isSelected 
-                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg' 
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
                       : 'border-gray-200 hover:border-primary-300 hover:scale-102'
                   )}
                   onClick={() => handleStrategySelect(strategy.id)}
@@ -404,6 +470,179 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
               );
             })}
           </div>
+        </section>
+
+        {/* 语音朗读设置 */}
+        <section>
+          <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
+            语音朗读设置
+          </h2>
+          <Card className="p-lg">
+            <div className="space-y-lg">
+              {/* 语音引擎选择 */}
+              <div>
+                <label className="text-body font-bold text-text-primary mb-sm block">
+                  语音引擎
+                  {!isVoicesLoaded && <span className="text-xs text-text-tertiary ml-sm">(加载中...)</span>}
+                </label>
+                <select
+                  value={selectedSettings.tts?.voiceName || ''}
+                  onChange={(e) => {
+                    const voiceName = e.target.value;
+                    let newLang = selectedSettings.tts?.lang;
+
+                    // 自动更新语言为选中语音的语言
+                    if (voiceName) {
+                      // 使用灵活匹配，处理名称差异
+                      const selectedVoice = voices.find(voice => {
+                        const trimmedName = voice.name.trim();
+                        const searchName = voiceName.trim();
+                        return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
+                      });
+
+                      if (selectedVoice) {
+                        newLang = selectedVoice.lang;
+                      }
+                    }
+
+                    // 一次性更新两个值，避免状态更新冲突
+                    const newSettings = {
+                      ...selectedSettings,
+                      tts: {
+                        ...selectedSettings.tts!,
+                        voiceName: voiceName,
+                        lang: newLang,
+                      },
+                    };
+                    setSelectedSettings(newSettings);
+                    setSettings(newSettings);
+                  }}
+                  className="w-full px-md py-sm border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
+                  disabled={!isVoicesLoaded}
+                >
+                  <option value="">默认语音（系统自动选择）</option>
+                  {voices
+                    .filter(voice => voice.lang.startsWith('en') || voice.lang.startsWith('zh'))
+                    .map((voice) => (
+                      <option key={voice.name} value={voice.name}>
+                        {voice.displayName}
+                      </option>
+                    ))}
+                </select>
+                {/* 显示当前选择的语音信息 */}
+                {selectedSettings.tts?.voiceName && (
+                  <p className="text-small text-text-tertiary mt-xs">
+                    当前语音：
+                    {(() => {
+                      const voiceName = selectedSettings.tts!.voiceName!;
+                      // 优先从 voices 数组中查找
+                      const selectedVoice = voices.find(v => {
+                        const trimmedName = v.name.trim();
+                        const searchName = voiceName.trim();
+                        return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
+                      });
+                      // 如果找到匹配的语音，显示完整信息；否则显示名称
+                      return selectedVoice ? selectedVoice.displayName : voiceName;
+                    })()}
+                  </p>
+                )}
+                {/* 显示当前语言 */}
+                <p className="text-small text-text-tertiary mt-xs">
+                  语言：{selectedSettings.tts?.lang || 'en-US'}
+                </p>
+              </div>
+
+              {/* 语速控制 */}
+              <div>
+                <div className="flex items-center justify-between mb-sm">
+                  <label className="text-body font-bold text-text-primary">
+                    语速
+                  </label>
+                  <span className="text-small text-text-secondary">
+                    {selectedSettings.tts?.rate?.toFixed(1) || '0.8'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={selectedSettings.tts?.rate || 0.8}
+                  onChange={(e) => handleTtsSettingChange('rate', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-text-tertiary mt-xs">
+                  <span>慢</span>
+                  <span>正常</span>
+                  <span>快</span>
+                </div>
+              </div>
+
+              {/* 音调控制 */}
+              <div>
+                <div className="flex items-center justify-between mb-sm">
+                  <label className="text-body font-bold text-text-primary">
+                    音调
+                  </label>
+                  <span className="text-small text-text-secondary">
+                    {selectedSettings.tts?.pitch?.toFixed(1) || '1.0'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={selectedSettings.tts?.pitch || 1.0}
+                  onChange={(e) => handleTtsSettingChange('pitch', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-text-tertiary mt-xs">
+                  <span>低</span>
+                  <span>正常</span>
+                  <span>高</span>
+                </div>
+              </div>
+
+              {/* 音量控制 */}
+              <div>
+                <div className="flex items-center justify-between mb-sm">
+                  <label className="text-body font-bold text-text-primary">
+                    音量
+                  </label>
+                  <span className="text-small text-text-secondary">
+                    {Math.round((selectedSettings.tts?.volume || 1.0) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="1.0"
+                  step="0.1"
+                  value={selectedSettings.tts?.volume || 1.0}
+                  onChange={(e) => handleTtsSettingChange('volume', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-text-tertiary mt-xs">
+                  <span>小</span>
+                  <span>正常</span>
+                  <span>大</span>
+                </div>
+              </div>
+
+              {/* 测试按钮 */}
+              <div className="pt-md border-t border-gray-200">
+                <Button
+                  variant="secondary"
+                  onClick={handleTtsTest}
+                  className="w-full flex items-center justify-center gap-sm"
+                >
+                  <Speaker size={20} />
+                  测试朗读效果
+                </Button>
+              </div>
+            </div>
+          </Card>
         </section>
 
         {/* 保存设置按钮 */}

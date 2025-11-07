@@ -55,6 +55,12 @@ export function useQuizSettings() {
     answerType: 'choice',
     selectionStrategy: 'sequential',
     collectionId: '11111111-1111-1111-1111-111111111111', // 默认教材ID
+    tts: {
+      lang: 'en-US',
+      rate: 0.8,
+      pitch: 1.0,
+      volume: 1.0,
+    },
   });
 
   return { settings, setSettings };

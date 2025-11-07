@@ -52,12 +52,22 @@ export interface WordCollection {
 // 词汇选取策略类型
 export type WordSelectionStrategy = 'sequential' | 'random';
 
+// TTS语音合成配置
+export interface TTSSettings {
+  lang: string;          // 语言，如 'en-US'
+  rate: number;          // 语速，0.1-10，默认0.8
+  pitch: number;         // 音调，0-2，默认1.0
+  volume: number;        // 音量，0-1，默认1.0
+  voiceName?: string;    // 语音引擎名称（可选）
+}
+
 // 应用状态类型
 export interface QuizSettings {
   questionType: 'text' | 'audio';
   answerType: 'choice' | 'fill';
   collectionId?: string; // 选择的教材ID
   selectionStrategy?: WordSelectionStrategy; // 词汇选取策略
+  tts?: TTSSettings;     // 语音朗读配置
 }
 
 export interface QuizState {
