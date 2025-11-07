@@ -5,20 +5,16 @@ import { Button } from './Button';
 import { QuizSettings } from '../types';
 import { useQuizSettings } from '../hooks/useLocalStorage';
 import { useLearningProgress } from '../hooks/useLearningProgress';
-import { Volume2, Type, MousePointer, Edit3, Trophy, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp } from 'lucide-react';
+import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 
 interface GuessWordSettingsPageProps {
   selectedCollectionId?: string;
-  onSelectTextbook?: () => void;
-  onDataManagement?: () => void;
 }
 
 const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   selectedCollectionId,
-  onSelectTextbook = () => {},
-  onDataManagement = () => {},
 }) => {
   const navigate = useNavigate();
   const { settings, setSettings } = useQuizSettings();
@@ -117,8 +113,8 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     {
       id: 'sequential' as const,
       name: '顺序选取',
-      description: '按单词字母顺序依次出题',
-      detail: '单词将按照A-Z的字母顺序排列，适合系统性学习',
+      description: '按添加时间顺序依次出题',
+      detail: '单词将按照添加的时间顺序排列，新添加的单词优先出现',
       icon: ListOrdered,
       color: 'from-blue-400 to-blue-600',
     },

@@ -130,8 +130,8 @@ export class SupabaseWordAPI implements WordAPI {
 
       // 根据选取策略排序（优先级高于sortBy/sortOrder）
       if (filters?.selectionStrategy === 'sequential') {
-        // 顺序选取：按单词字母顺序排序
-        query = query.order('word', { ascending: true })
+        // 顺序选取：按创建时间排序（最新添加的在前）
+        query = query.order('created_at', { ascending: false })
       } else if (filters?.selectionStrategy === 'random') {
         // 随机选取：先按创建时间排序，然后在客户端随机打乱
         // 使用created_at字段确保稳定的随机性
