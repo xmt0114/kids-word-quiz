@@ -79,10 +79,13 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
     navigate('/');
   };
 
-  // 进入数据管理
+  // 进入数据管理 - 仅在开发环境显示
   const handleDataManagement = () => {
     navigate('/guess-word/data');
   };
+
+  // 判断是否为开发环境
+  const isDevMode = import.meta.env.DEV;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
@@ -168,15 +171,18 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
             再来一局
           </Button>
           
-          <Button
-            variant="secondary"
-            onClick={handleDataManagement}
-            className="flex items-center gap-sm"
-          >
-            <BookOpen size={20} />
-            数据管理
-          </Button>
-          
+          {/* 数据管理按钮 - 仅在开发环境显示 */}
+          {isDevMode && (
+            <Button
+              variant="secondary"
+              onClick={handleDataManagement}
+              className="flex items-center gap-sm"
+            >
+              <BookOpen size={20} />
+              数据管理
+            </Button>
+          )}
+
           <Button
             variant="secondary"
             onClick={handleBackToHome}

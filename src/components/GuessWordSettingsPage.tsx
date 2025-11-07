@@ -155,6 +155,9 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     navigate('/guess-word/data');
   };
 
+  // 判断是否为开发环境
+  const isDevMode = import.meta.env.DEV;
+
   const handleSelectTextbook = () => {
     navigate('/textbook-selection');
   };
@@ -175,15 +178,18 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           <span>←</span>
           返回主页
         </Button>
-        
-        <Button
-          variant="secondary"
-          onClick={handleDataManagement}
-          className="flex items-center gap-sm"
-        >
-          <Database size={20} />
-          数据管理
-        </Button>
+
+        {/* 数据管理按钮 - 仅在开发环境显示 */}
+        {isDevMode && (
+          <Button
+            variant="secondary"
+            onClick={handleDataManagement}
+            className="flex items-center gap-sm"
+          >
+            <Database size={20} />
+            数据管理
+          </Button>
+        )}
       </div>
 
       {/* 页面标题 */}
