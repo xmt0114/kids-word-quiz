@@ -122,19 +122,44 @@ export class SupabaseWordAPI implements WordAPI {
 
       console.log('[SupabaseAPI] getWords called with filters:', filters)
 
-      // 构建查询
+      // 随机选取：使用数据库的RPC函数
+      if (filters?.selectionStrategy === 'random') {
+        const limit = filters.limit || TOTAL_QUESTIONS
+        console.log('[SupabaseAPI] Using RPC get_random_words:', { collectionId, limit })
+
+        const { data, error } = await supabase.rpc('get_random_words', {
+          p_collection_id: collectionId,
+          p_limit: limit
+        })
+
+        if (error) {
+          console.error('Supabase getWords RPC error:', error)
+          return {
+            success: false,
+            error: `获取随机单词失败: ${error.message}`
+          }
+        }
+
+        // 转换数据格式
+        const words = (data || []).map(transformWord)
+        console.log('[SupabaseAPI] Returning random words:', { count: words.length })
+
+        return {
+          success: true,
+          data: words,
+          message: `获取到${words.length}个随机单词`
+        }
+      }
+
+      // 非随机选取：使用普通查询
       let query = supabase
         .from('words')
         .select('*')
         .eq('collection_id', collectionId)
 
-      // 根据选取策略排序（优先级高于sortBy/sortOrder）
+      // 根据选取策略排序
       if (filters?.selectionStrategy === 'sequential') {
         // 顺序选取：按创建时间排序（最新添加的在前）
-        query = query.order('created_at', { ascending: false })
-      } else if (filters?.selectionStrategy === 'random') {
-        // 随机选取：先按创建时间排序，然后在客户端随机打乱
-        // 使用created_at字段确保稳定的随机性
         query = query.order('created_at', { ascending: false })
       } else if (filters?.sortBy && filters?.sortOrder) {
         // 使用自定义排序
@@ -175,11 +200,6 @@ export class SupabaseWordAPI implements WordAPI {
 
       // 转换数据格式
       let words = (data || []).map(transformWord)
-
-      // 如果是随机策略，在客户端进行随机排序
-      if (filters?.selectionStrategy === 'random' && words.length > 0) {
-        words = words.sort(() => Math.random() - 0.5)
-      }
 
       console.log('[SupabaseAPI] Returning words:', { count: words.length, totalRequested: filters?.limit || TOTAL_QUESTIONS })
 
