@@ -114,6 +114,8 @@ export class SupabaseWordAPI implements WordAPI {
     offset?: number;
     collectionId?: string; // 支持指定教材
     selectionStrategy?: 'sequential' | 'random'; // 新增：词汇选取策略
+    sortBy?: 'word' | 'created_at';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse> {
     try {
       // 使用指定的collectionId或默认ID
@@ -127,7 +129,7 @@ export class SupabaseWordAPI implements WordAPI {
         .select('*')
         .eq('collection_id', collectionId)
 
-      // 根据选取策略排序
+      // 根据选取策略排序（优先级高于sortBy/sortOrder）
       if (filters?.selectionStrategy === 'sequential') {
         // 顺序选取：按单词字母顺序排序
         query = query.order('word', { ascending: true })
@@ -135,6 +137,10 @@ export class SupabaseWordAPI implements WordAPI {
         // 随机选取：先按创建时间排序，然后在客户端随机打乱
         // 使用created_at字段确保稳定的随机性
         query = query.order('created_at', { ascending: false })
+      } else if (filters?.sortBy && filters?.sortOrder) {
+        // 使用自定义排序
+        const ascending = filters.sortOrder === 'asc'
+        query = query.order(filters.sortBy, { ascending })
       } else {
         // 默认按word排序
         query = query.order('word', { ascending: true })
@@ -270,6 +276,59 @@ export class SupabaseWordAPI implements WordAPI {
       }
     } catch (error) {
       console.error('Unexpected error in addWord:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 批量添加词汇
+  async batchAddWords(words: any[]): Promise<ApiResponse<{ count: number; errors?: { word: string; error: string }[] }>> {
+    try {
+      // 转换为数据库格式
+      const dbWords = words.map(word => ({
+        collection_id: word.collectionId || DEFAULT_COLLECTION_ID,
+        word: word.word,
+        definition: word.definition,
+        audio_text: word.audioText || word.definition,
+        difficulty: word.difficulty,
+        options: word.options,
+        answer: word.answer,
+        hint: word.hint || '',
+        word_order: word.order || 0
+      }))
+
+      const { data, error } = await supabase
+        .from('words')
+        .insert(dbWords)
+        .select()
+
+      if (error) {
+        console.error('Supabase batchAddWords error:', error)
+        return {
+          success: false,
+          error: `批量添加单词失败: ${error.message}`
+        }
+      }
+
+      // 检查是否有部分失败（Supabase在某些情况下可能不会返回error，但返回的数据少于预期）
+      const successCount = data?.length || 0
+      const expectedCount = words.length
+      const errors = successCount < expectedCount
+        ? words.slice(successCount).map(word => ({
+            word: word.word,
+            error: '插入失败（可能因为重复或其他约束）'
+          }))
+        : []
+
+      return {
+        success: true,
+        data: { count: successCount, errors },
+        message: `成功添加${successCount}个单词${errors.length > 0 ? `，${errors.length}个失败` : ''}`
+      }
+    } catch (error) {
+      console.error('Unexpected error in batchAddWords:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : '未知错误'

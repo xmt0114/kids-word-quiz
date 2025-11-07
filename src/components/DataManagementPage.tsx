@@ -48,6 +48,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedWordIds, setSelectedWordIds] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState<'word' | 'created_at'>('word');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // 模态框状态
   const [isWordModalOpen, setIsWordModalOpen] = useState(false);
@@ -104,12 +106,14 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     setError(null);
     try {
       const offset = (page - 1) * limit;
-      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, difficultyFilter });
+      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, difficultyFilter, sortBy, sortOrder });
       const response = await wordAPI.getWords({
         collectionId,
         difficulty: difficultyFilter === 'all' ? undefined : difficultyFilter,
         limit,
         offset,
+        sortBy,
+        sortOrder,
       });
       if (response.success && response.data) {
         setWords(response.data);
@@ -125,24 +129,55 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
 
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const WORDS_PER_PAGE = 20;
 
-  // 计算总页数（基于word_collections.word_count，不受难度过滤影响）
-  const totalPages = selectedCollection?.word_count
-    ? Math.ceil(selectedCollection.word_count / WORDS_PER_PAGE)
-    : 1;
+  // 重新计算总页数（基于过滤后的实际单词数）
+  const recalculateTotalPages = async (collectionId: string, difficulty: string) => {
+    try {
+      const response = await wordAPI.getWords({
+        collectionId,
+        difficulty: difficulty === 'all' ? undefined : difficulty,
+        limit: 10000, // 获取所有匹配单词来计算准确数量
+      });
+
+      if (response.success && response.data) {
+        const filteredCount = response.data.length;
+        const pages = Math.ceil(filteredCount / WORDS_PER_PAGE);
+        const newTotalPages = Math.max(pages, 1); // 至少1页
+        setTotalPages(newTotalPages);
+
+        // 如果当前页超出范围，调整到最后一页
+        if (currentPage > newTotalPages) {
+          setCurrentPage(newTotalPages);
+          console.log('[DataManagement] 调整当前页:', { oldPage: currentPage, newPage: newTotalPages });
+        }
+
+        console.log('[DataManagement] 重新计算分页:', { difficulty, filteredCount, pages, currentPage, newTotalPages });
+      }
+    } catch (err) {
+      console.error('计算分页失败:', err);
+    }
+  };
+
+  // 当教材或难度变化时，重新计算总页数
+  useEffect(() => {
+    if (selectedCollectionId) {
+      recalculateTotalPages(selectedCollectionId, difficultyFilter);
+    }
+  }, [selectedCollectionId, difficultyFilter]);
 
   // 当选择教材或难度变化时，重置到第一页
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCollectionId, difficultyFilter]);
+  }, [selectedCollectionId, difficultyFilter, sortBy, sortOrder]);
 
   // 加载词汇（带分页）
   useEffect(() => {
     if (selectedCollectionId && activeTab === 'words') {
       loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
     }
-  }, [selectedCollectionId, activeTab, currentPage, difficultyFilter]);
+  }, [selectedCollectionId, activeTab, currentPage, difficultyFilter, sortBy, sortOrder]);
 
   const handleCollectionSelect = async (collection: WordCollection) => {
     setSelectedCollectionId(collection.id);
@@ -242,44 +277,72 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
 
     try {
-      let successCount = 0;
-      let errorCount = 0;
-      const errors: string[] = [];
+      // 准备数据
+      const preparedData = batchWords.map(wordData => ({
+        ...wordData,
+        collectionId: selectedCollectionId,
+        audioText: wordData.audioText || wordData.definition, // 默认使用定义作为音频文本
+      }));
 
-      for (const wordData of batchWords) {
-        try {
-          // 准备数据
-          const preparedData = {
-            ...wordData,
-            collectionId: selectedCollectionId,
-            audioText: wordData.audioText || wordData.definition, // 默认使用定义作为音频文本
-          };
+      // 分批处理（Supabase 建议每批不超过 100 个单词）
+      const BATCH_SIZE = 100;
+      let totalSuccess = 0;
+      let totalErrors: string[] = [];
 
-          const response = await wordAPI.addWord(preparedData);
-          if (response.success) {
-            successCount++;
-          } else {
-            errorCount++;
-            errors.push(`"${wordData.word}": ${response.error || '未知错误'}`);
+      for (let i = 0; i < preparedData.length; i += BATCH_SIZE) {
+        const batch = preparedData.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(preparedData.length / BATCH_SIZE);
+
+        // 显示进度
+        toast.loading(`正在插入第 ${batchNum}/${totalBatches} 批 (${batch.length} 个单词)...`, { id: 'batch-add' });
+
+        const response = await supabaseAPI.batchAddWords(batch);
+
+        if (response.success) {
+          totalSuccess += response.data?.count || 0;
+          // 记录部分失败的单词
+          if (response.data?.errors && response.data.errors.length > 0) {
+            totalErrors.push(`第${batchNum}批: ${response.data.errors.map(e => e.word).join(', ')}`);
           }
-        } catch (err) {
-          errorCount++;
-          errors.push(`"${wordData.word}": 添加失败`);
+        } else {
+          totalErrors.push(`第${batchNum}批完全失败: ${response.error}`);
         }
       }
 
+      // 隐藏进度提示
+      toast.dismiss('batch-add');
+
       // 显示结果
-      if (successCount > 0) {
-        toast.success(`成功添加 ${successCount} 个词汇`);
+      if (totalSuccess > 0) {
+        toast.success(`成功添加 ${totalSuccess} 个词汇`);
       }
-      if (errorCount > 0) {
-        toast.error(`${errorCount} 个词汇添加失败`);
-        console.error('批量添加错误:', errors);
+      if (totalErrors.length > 0) {
+        toast.error(`${totalErrors.length} 个批次有问题`, {
+          duration: 5000, // 显示5秒
+        });
+        console.error('批量添加错误详情:', totalErrors);
       }
 
       // 重新加载词汇列表
       if (selectedCollectionId) {
-        loadWords(selectedCollectionId);
+        // 手动更新当前选中教材的 word_count
+        if (selectedCollection && totalSuccess > 0) {
+          const newWordCount = selectedCollection.word_count + totalSuccess;
+          setSelectedCollection({
+            ...selectedCollection,
+            word_count: newWordCount
+          });
+
+          // 批量添加后，如果当前是最后一页或增加了新页，刷新数据
+          const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+          if (currentPage === newTotalPages || newTotalPages > totalPages) {
+            loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+          }
+        } else {
+          loadWords(selectedCollectionId);
+        }
+
         // 重新加载教材列表（数据库触发器会自动更新 word_count）
         loadCollections();
       }
@@ -307,7 +370,27 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
           if (response.success) {
             toast.success('删除词汇成功');
             if (selectedCollectionId) {
-              loadWords(selectedCollectionId);
+              // 手动更新当前选中教材的 word_count
+              if (selectedCollection) {
+                const newWordCount = Math.max(selectedCollection.word_count - 1, 0);
+                setSelectedCollection({
+                  ...selectedCollection,
+                  word_count: newWordCount
+                });
+
+                // 更新总页数
+                const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+                setTotalPages(newTotalPages);
+
+                // 检查当前页是否需要调整
+                if (currentPage > newTotalPages) {
+                  setCurrentPage(newTotalPages);
+                  console.log('[DataManagement] 删除后调整页码:', { oldPage: currentPage, newPage: newTotalPages });
+                }
+              }
+
+              // 重新加载词汇列表
+              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
               // 重新加载教材列表（数据库触发器会自动更新 word_count）
               loadCollections();
             }
@@ -345,7 +428,27 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             toast.success(`成功删除 ${selectedWordIds.length} 个词汇`);
             setSelectedWordIds([]);
             if (selectedCollectionId) {
-              loadWords(selectedCollectionId);
+              // 手动更新当前选中教材的 word_count
+              if (selectedCollection) {
+                const newWordCount = Math.max(selectedCollection.word_count - selectedWordIds.length, 0);
+                setSelectedCollection({
+                  ...selectedCollection,
+                  word_count: newWordCount
+                });
+
+                // 更新总页数并同步到状态
+                const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+                setTotalPages(newTotalPages);
+
+                // 检查当前页是否需要调整
+                if (currentPage > newTotalPages) {
+                  setCurrentPage(newTotalPages);
+                  console.log('[DataManagement] 批量删除后调整页码:', { oldPage: currentPage, newPage: newTotalPages });
+                }
+              }
+
+              // 重新加载词汇列表
+              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
               // 重新加载教材列表（数据库触发器会自动更新 word_count）
               loadCollections();
             }
@@ -403,7 +506,26 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
         const response = await wordAPI.addWord(wordData);
         if (response.success) {
           toast.success('添加词汇成功');
-          loadWords(selectedCollectionId);
+
+          // 手动更新当前选中教材的 word_count
+          if (selectedCollection) {
+            const newWordCount = selectedCollection.word_count + 1;
+            setSelectedCollection({
+              ...selectedCollection,
+              word_count: newWordCount
+            });
+
+            // 添加后，如果当前页数据量不足，补充数据
+            // 新添加的单词会出现在最后一页，如果当前是最后一页，需要刷新
+            const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+            if (currentPage === newTotalPages || newTotalPages > totalPages) {
+              // 重新加载当前页（可能显示新数据）
+              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+            }
+          } else {
+            loadWords(selectedCollectionId);
+          }
+
           // 重新加载教材列表（数据库触发器会自动更新 word_count）
           loadCollections();
         } else {
@@ -446,6 +568,33 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  };
+
+  // 生成页码数组（最多显示5页，其余用...表示）
+  const getPageNumbers = (current: number, total: number) => {
+    const delta = 2; // 当前页前后显示的页数
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
+      range.push(i);
+    }
+
+    if (current - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (current + delta < total - 1) {
+      rangeWithDots.push('...', total);
+    } else if (total > 1) {
+      rangeWithDots.push(total);
+    }
+
+    return rangeWithDots;
   };
 
   return (
@@ -627,24 +776,46 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                   </div>
                 </div>
 
-                {/* Difficulty Filter */}
-                <div className="flex items-center gap-sm">
-                  <Filter size={20} className="text-text-secondary" />
-                  <div className="flex gap-sm">
-                    {(['all', 'easy', 'medium', 'hard'] as const).map((level) => (
-                      <button
-                        key={level}
-                        className={cn(
-                          'px-md py-sm rounded-full text-small font-bold transition-all duration-fast',
-                          difficultyFilter === level
-                            ? 'bg-blue-500 text-white shadow-md scale-105'
-                            : 'bg-white text-text-secondary border-2 border-gray-200 hover:border-blue-500'
-                        )}
-                        onClick={() => setDifficultyFilter(level)}
-                      >
-                        {level === 'all' ? '全部' : getDifficultyName(level)}
-                      </button>
-                    ))}
+                {/* Filters and Sort */}
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-md">
+                  {/* Difficulty Filter */}
+                  <div className="flex items-center gap-sm">
+                    <Filter size={20} className="text-text-secondary" />
+                    <div className="flex gap-sm">
+                      {(['all', 'easy', 'medium', 'hard'] as const).map((level) => (
+                        <button
+                          key={level}
+                          className={cn(
+                            'px-md py-sm rounded-full text-small font-bold transition-all duration-fast',
+                            difficultyFilter === level
+                              ? 'bg-blue-500 text-white shadow-md scale-105'
+                              : 'bg-white text-text-secondary border-2 border-gray-200 hover:border-blue-500'
+                          )}
+                          onClick={() => setDifficultyFilter(level)}
+                        >
+                          {level === 'all' ? '全部' : getDifficultyName(level)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sort Options */}
+                  <div className="flex items-center gap-sm">
+                    <span className="text-small font-bold text-text-secondary">排序:</span>
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [newSortBy, newSortOrder] = e.target.value.split('-') as ['word' | 'created_at', 'asc' | 'desc'];
+                        setSortBy(newSortBy);
+                        setSortOrder(newSortOrder);
+                      }}
+                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="word-asc">单词 A-Z</option>
+                      <option value="word-desc">单词 Z-A</option>
+                      <option value="created_at-asc">添加时间 旧→新</option>
+                      <option value="created_at-desc">添加时间 新→旧</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -767,39 +938,43 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
 
               {/* 分页控件 */}
               {words.length > 0 && totalPages > 1 && (
-                <div className="flex items-center justify-between mt-lg border-t border-gray-200 pt-md">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-md mt-lg border-t border-gray-200 pt-md">
                   <div className="text-small text-text-secondary">
                     第 {currentPage} 页，共 {totalPages} 页
                   </div>
-                  <div className="flex items-center gap-sm">
+                  <div className="flex items-center gap-xs flex-wrap justify-center">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-sm py-xs bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       上一页
                     </button>
 
-                    {/* 页码按钮 */}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={cn(
-                          'w-10 h-10 rounded-lg text-small font-bold transition-colors',
-                          currentPage === page
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-white border-2 border-gray-200 text-text-secondary hover:border-blue-500'
-                        )}
-                      >
-                        {page}
-                      </button>
+                    {/* 页码按钮 - 优化显示 */}
+                    {getPageNumbers(currentPage, totalPages).map((page, index) => (
+                      page === '...' ? (
+                        <span key={`dots-${index}`} className="px-sm py-xs text-text-tertiary">...</span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page as number)}
+                          className={cn(
+                            'w-8 h-8 rounded-lg text-small font-bold transition-colors',
+                            currentPage === page
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-white border-2 border-gray-200 text-text-secondary hover:border-blue-500'
+                          )}
+                        >
+                          {page}
+                        </button>
+                      )
                     ))}
 
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-sm py-xs bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       下一页
                     </button>

@@ -47,14 +47,18 @@ export interface WordAPI {
     offset?: number;
     collectionId?: string;
     selectionStrategy?: 'sequential' | 'random';
+    sortBy?: 'word' | 'created_at';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse>;
   
   getWordById(id: number): Promise<WordApiResponse>;
   
   addWord(word: any): Promise<WordApiResponse>;
-  
+
+  batchAddWords?(words: any[]): Promise<ApiResponse<{ count: number }>>;
+
   updateWord(id: number, word: any): Promise<WordApiResponse>;
-  
+
   deleteWord(id: number): Promise<WordApiResponse>;
   
   validateAnswer(wordId: number, answer: string): Promise<ApiResponse<{
