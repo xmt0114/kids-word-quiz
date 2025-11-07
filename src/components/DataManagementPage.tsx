@@ -6,7 +6,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { WordFormModal } from './WordFormModal';
 import { CollectionFormModal } from './CollectionFormModal';
 import { BatchAddWordsModal } from './BatchAddWordsModal';
-import { ArrowLeft, Database, BookOpen, BookMarked, Plus, Edit, Trash2, Filter } from 'lucide-react';
+import { ArrowLeft, Database, BookOpen, BookMarked, Plus, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { WordCollection } from '../types';
@@ -44,7 +44,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   const [words, setWords] = useState<WordData[]>([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<WordCollection | null>(null);
-  const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedWordIds, setSelectedWordIds] = useState<number[]>([]);
@@ -106,10 +105,9 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     setError(null);
     try {
       const offset = (page - 1) * limit;
-      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, difficultyFilter, sortBy, sortOrder });
+      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, sortBy, sortOrder });
       const response = await wordAPI.getWords({
         collectionId,
-        difficulty: difficultyFilter === 'all' ? undefined : difficultyFilter,
         limit,
         offset,
         sortBy,
@@ -132,52 +130,39 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   const [totalPages, setTotalPages] = useState(1);
   const WORDS_PER_PAGE = 20;
 
-  // 重新计算总页数（基于过滤后的实际单词数）
-  const recalculateTotalPages = async (collectionId: string, difficulty: string) => {
-    try {
-      const response = await wordAPI.getWords({
-        collectionId,
-        difficulty: difficulty === 'all' ? undefined : difficulty,
-        limit: 10000, // 获取所有匹配单词来计算准确数量
-      });
+  // 计算总页数（使用word_count字段）
+  const calculateTotalPages = () => {
+    if (!selectedCollection) return 1;
+    const wordCount = selectedCollection.word_count;
+    const pages = Math.ceil(wordCount / WORDS_PER_PAGE);
+    const newTotalPages = Math.max(pages, 1); // 至少1页
+    setTotalPages(newTotalPages);
 
-      if (response.success && response.data) {
-        const filteredCount = response.data.length;
-        const pages = Math.ceil(filteredCount / WORDS_PER_PAGE);
-        const newTotalPages = Math.max(pages, 1); // 至少1页
-        setTotalPages(newTotalPages);
-
-        // 如果当前页超出范围，调整到最后一页
-        if (currentPage > newTotalPages) {
-          setCurrentPage(newTotalPages);
-          console.log('[DataManagement] 调整当前页:', { oldPage: currentPage, newPage: newTotalPages });
-        }
-
-        console.log('[DataManagement] 重新计算分页:', { difficulty, filteredCount, pages, currentPage, newTotalPages });
-      }
-    } catch (err) {
-      console.error('计算分页失败:', err);
+    // 如果当前页超出范围，调整到最后一页
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages);
+      console.log('[DataManagement] 调整当前页:', { oldPage: currentPage, newPage: newTotalPages });
     }
+
+    console.log('[DataManagement] 估算分页:', { wordCount, pages, currentPage, newTotalPages });
   };
 
-  // 当教材或难度变化时，重新计算总页数
+  // 当教材变化时，更新总页数
   useEffect(() => {
-    if (selectedCollectionId) {
-      recalculateTotalPages(selectedCollectionId, difficultyFilter);
-    }
-  }, [selectedCollectionId, difficultyFilter]);
+    calculateTotalPages();
+  }, [selectedCollectionId, selectedCollection?.word_count]);
 
-  // 当选择教材或难度变化时，重置到第一页
+  // 当选择教材或排序变化时，重置到第一页
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCollectionId, difficultyFilter, sortBy, sortOrder]);
+  }, [selectedCollectionId, sortBy, sortOrder]);
 
   // 加载词汇（带分页）
   useEffect(() => {
     if (selectedCollectionId && activeTab === 'words') {
       loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
     }
-  }, [selectedCollectionId, activeTab, currentPage, difficultyFilter, sortBy, sortOrder]);
+  }, [selectedCollectionId, activeTab, currentPage, sortBy, sortOrder]);
 
   const handleCollectionSelect = async (collection: WordCollection) => {
     setSelectedCollectionId(collection.id);
@@ -539,32 +524,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return 'text-green-600 bg-green-100';
-      case 'medium':
-        return 'text-orange-600 bg-orange-100';
-      case 'hard':
-        return 'text-red-600 bg-red-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getDifficultyName = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return '简单';
-      case 'medium':
-        return '中等';
-      case 'hard':
-        return '困难';
-      default:
-        return difficulty;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -776,47 +735,23 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                   </div>
                 </div>
 
-                {/* Filters and Sort */}
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-md">
-                  {/* Difficulty Filter */}
-                  <div className="flex items-center gap-sm">
-                    <Filter size={20} className="text-text-secondary" />
-                    <div className="flex gap-sm">
-                      {(['all', 'easy', 'medium', 'hard'] as const).map((level) => (
-                        <button
-                          key={level}
-                          className={cn(
-                            'px-md py-sm rounded-full text-small font-bold transition-all duration-fast',
-                            difficultyFilter === level
-                              ? 'bg-blue-500 text-white shadow-md scale-105'
-                              : 'bg-white text-text-secondary border-2 border-gray-200 hover:border-blue-500'
-                          )}
-                          onClick={() => setDifficultyFilter(level)}
-                        >
-                          {level === 'all' ? '全部' : getDifficultyName(level)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Sort Options */}
-                  <div className="flex items-center gap-sm">
-                    <span className="text-small font-bold text-text-secondary">排序:</span>
-                    <select
-                      value={`${sortBy}-${sortOrder}`}
-                      onChange={(e) => {
-                        const [newSortBy, newSortOrder] = e.target.value.split('-') as ['word' | 'created_at', 'asc' | 'desc'];
-                        setSortBy(newSortBy);
-                        setSortOrder(newSortOrder);
-                      }}
-                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
-                    >
-                      <option value="word-asc">单词 A-Z</option>
-                      <option value="word-desc">单词 Z-A</option>
-                      <option value="created_at-asc">添加时间 旧→新</option>
-                      <option value="created_at-desc">添加时间 新→旧</option>
-                    </select>
-                  </div>
+                {/* Sort Options */}
+                <div className="flex items-center gap-sm">
+                  <span className="text-small font-bold text-text-secondary">排序:</span>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [newSortBy, newSortOrder] = e.target.value.split('-') as ['word' | 'created_at', 'asc' | 'desc'];
+                      setSortBy(newSortBy);
+                      setSortOrder(newSortOrder);
+                    }}
+                    className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="word-asc">单词 A-Z</option>
+                    <option value="word-desc">单词 Z-A</option>
+                    <option value="created_at-asc">添加时间 旧→新</option>
+                    <option value="created_at-desc">添加时间 新→旧</option>
+                  </select>
                 </div>
               </div>
             </Card>
@@ -825,9 +760,7 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             <div className="flex justify-between items-center mb-lg">
               <div className="flex items-center gap-md">
                 <p className="text-body text-text-secondary">
-                  {difficultyFilter === 'all' 
-                    ? `显示全部词汇` 
-                    : `筛选: ${getDifficultyName(difficultyFilter)}`}
+                  显示全部词汇
                 </p>
                 {selectedWordIds.length > 0 && (
                   <span className="px-md py-sm bg-blue-50 text-blue-600 rounded-full text-small font-bold">
@@ -882,7 +815,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                     </th>
                     <th className="text-left py-md px-md text-body font-bold text-text-primary">单词</th>
                     <th className="text-left py-md px-md text-body font-bold text-text-primary">定义</th>
-                    <th className="text-left py-md px-md text-body font-bold text-text-primary">难度</th>
                     <th className="text-left py-md px-md text-body font-bold text-text-primary">选项数量</th>
                     <th className="text-center py-md px-md text-body font-bold text-text-primary">操作</th>
                   </tr>
@@ -906,11 +838,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                       </td>
                       <td className="py-md px-md text-text-secondary">
                         <span className="line-clamp-2">{word.definition}</span>
-                      </td>
-                      <td className="py-md px-md">
-                        <span className={cn('px-sm py-xs rounded-full text-small font-bold', getDifficultyColor(word.difficulty))}>
-                          {getDifficultyName(word.difficulty)}
-                        </span>
                       </td>
                       <td className="py-md px-md text-text-secondary">
                         {word.options?.length || 0} 个选项
@@ -988,9 +915,7 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                     <BookMarked size={48} className="text-gray-400" />
                   </div>
                   <p className="text-body text-text-secondary">
-                    {difficultyFilter === 'all' 
-                      ? '该教材暂无词汇数据' 
-                      : `该教材暂无${getDifficultyName(difficultyFilter)}难度的词汇`}
+                    该教材暂无词汇数据
                   </p>
                 </div>
               )}

@@ -42,7 +42,6 @@ export interface WordAPI {
   getCollectionById?(collectionId: string): Promise<ApiResponse<WordCollection>>;
   
   getWords(filters?: {
-    difficulty?: string;
     limit?: number;
     offset?: number;
     collectionId?: string;

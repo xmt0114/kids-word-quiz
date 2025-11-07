@@ -78,7 +78,6 @@ const GuessWordGamePage: React.FC = () => {
         const finalSettings: QuizSettings = {
           questionType: routeSettings.questionType || 'text',
           answerType: routeSettings.answerType || 'choice',
-          difficulty: routeSettings.difficulty || 'easy',
           selectionStrategy: routeSettings.selectionStrategy || 'sequential',
           collectionId
         };
@@ -86,8 +85,8 @@ const GuessWordGamePage: React.FC = () => {
         // 获取学习进度偏移量
         const offset = getOffset(collectionId!);
 
-        // 初始化时传入offset和教材总单词数
-        await initializeQuiz(finalSettings, collectionId, offset, totalWordCount);
+        // 初始化时传入offset
+        await initializeQuiz(finalSettings, collectionId, offset);
       } catch (err) {
         console.error('Failed to initialize quiz:', err);
       } finally {

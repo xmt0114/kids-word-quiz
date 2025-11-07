@@ -56,7 +56,6 @@ export type WordSelectionStrategy = 'sequential' | 'random';
 export interface QuizSettings {
   questionType: 'text' | 'audio';
   answerType: 'choice' | 'fill';
-  difficulty: 'easy' | 'medium' | 'hard';
   collectionId?: string; // 选择的教材ID
   selectionStrategy?: WordSelectionStrategy; // 词汇选取策略
 }

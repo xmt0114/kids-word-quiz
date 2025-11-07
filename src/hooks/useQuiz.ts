@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Word, QuizSettings, QuizState, QuizResult } from '../types';
 import { getRandomWords } from '../utils/dataUtils';
 import { wordAPI } from '../utils/api';
@@ -12,7 +12,6 @@ export function useQuiz() {
     settings: {
       questionType: 'text',
       answerType: 'choice',
-      difficulty: 'easy',
     },
     currentQuestionIndex: 0,
     questions: [],
@@ -40,7 +39,6 @@ export function useQuiz() {
 
       // 创建请求Promise
       const requestPromise = wordAPI.getWords({
-        difficulty: settings.difficulty,
         limit: TOTAL_QUESTIONS,
         offset: offset, // 传递偏移量
         collectionId: collectionId, // 传递教材ID
@@ -76,8 +74,7 @@ export function useQuiz() {
   const initializeQuiz = useCallback(async (
     settings: QuizSettings,
     collectionId?: string,
-    offset: number = 0,
-    totalWords?: number
+    offset: number = 0
   ) => {
     setIsLoading(true);
     setError(null);
@@ -208,13 +205,8 @@ export function useQuiz() {
 
   // 获取结果
   const getResult = useCallback((): QuizResult => {
-    const wrongAnswers = quizState.questions.filter((word, index) => {
-      const userAnswer = quizState.answers[index];
-      return !userAnswer || userAnswer.toLowerCase().trim() !== word.answer.toLowerCase().trim();
-    });
-
-    const accuracy = quizState.questions.length > 0 
-      ? Math.round((quizState.score / quizState.questions.length) * 100) 
+    const accuracy = quizState.questions.length > 0
+      ? Math.round((quizState.score / quizState.questions.length) * 100)
       : 0;
 
     return {

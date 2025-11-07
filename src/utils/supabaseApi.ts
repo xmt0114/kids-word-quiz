@@ -109,7 +109,6 @@ export class SupabaseWordAPI implements WordAPI {
   }
 
   async getWords(filters?: {
-    difficulty?: string;
     limit?: number;
     offset?: number;
     collectionId?: string; // 支持指定教材
@@ -144,11 +143,6 @@ export class SupabaseWordAPI implements WordAPI {
       } else {
         // 默认按word排序
         query = query.order('word', { ascending: true })
-      }
-
-      // 如果指定了难度，添加过滤
-      if (filters?.difficulty && filters.difficulty !== 'all') {
-        query = query.eq('difficulty', filters.difficulty)
       }
 
       // 分页：优先使用offset，如果没有则使用limit

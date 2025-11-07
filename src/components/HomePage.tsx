@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
-import { Brain, BookOpen, Gamepad2, Trophy, Star, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
+import { Brain, Gamepad2, Trophy, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuizSettings } from '../hooks/useLocalStorage';
 import { QuizSettings } from '../types';
@@ -17,7 +17,6 @@ const HomePage: React.FC = () => {
       const finalSettings: QuizSettings = {
         questionType: settings.questionType || 'text',
         answerType: settings.answerType || 'choice',
-        difficulty: settings.difficulty || 'easy',
         selectionStrategy: settings.selectionStrategy || 'sequential',
         collectionId: settings.collectionId || '11111111-1111-1111-1111-111111111111'
       };

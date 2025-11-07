@@ -53,7 +53,6 @@ export function useQuizSettings() {
   const [settings, setSettings] = useLocalStorage<Partial<QuizSettings>>('quiz-settings', {
     questionType: 'text',
     answerType: 'choice',
-    difficulty: 'easy',
     selectionStrategy: 'sequential',
     collectionId: '11111111-1111-1111-1111-111111111111', // 默认教材ID
   });

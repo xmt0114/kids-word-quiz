@@ -26,7 +26,6 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
     questionType: 'text',
     answerType: 'choice',
-    difficulty: 'easy',
     selectionStrategy: 'sequential',
   });
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
@@ -37,7 +36,6 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     setSelectedSettings({
       questionType: settings.questionType || 'text',
       answerType: settings.answerType || 'choice',
-      difficulty: settings.difficulty || 'easy',
       selectionStrategy: settings.selectionStrategy || 'sequential',
       collectionId: settings.collectionId || selectedCollectionId || '11111111-1111-1111-1111-111111111111',
     });
@@ -115,12 +113,6 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     },
   ];
 
-  const difficultyLevels = [
-    { id: 'easy', name: '简单', color: '#4CAF50' },
-    { id: 'medium', name: '中等', color: '#FF9800' },
-    { id: 'hard', name: '困难', color: '#F44336' },
-  ];
-
   const selectionStrategies = [
     {
       id: 'sequential' as const,
@@ -148,12 +140,6 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
 
   const handleAnswerTypeSelect = (type: string) => {
     const newSettings = { ...selectedSettings, answerType: type as 'choice' | 'fill' };
-    setSelectedSettings(newSettings);
-    setSettings(newSettings); // 同时保存到 localStorage
-  };
-
-  const handleDifficultySelect = (difficulty: string) => {
-    const newSettings = { ...selectedSettings, difficulty: difficulty as 'easy' | 'medium' | 'hard' };
     setSelectedSettings(newSettings);
     setSettings(newSettings); // 同时保存到 localStorage
   };
@@ -367,39 +353,6 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     </p>
                   </div>
                 </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 难度选择 */}
-        <section>
-          <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
-            选择难度
-          </h2>
-          <div className="flex justify-center gap-lg flex-wrap">
-            {difficultyLevels.map((level) => {
-              const isSelected = selectedSettings.difficulty === level.id;
-              
-              return (
-                <button
-                  key={level.id}
-                  className={cn(
-                    'px-xl py-md rounded-full text-h3 font-bold transition-all duration-fast',
-                    'focus:outline-none focus:ring-4 focus:ring-primary-500 focus:ring-opacity-50',
-                    'active:scale-95',
-                    isSelected
-                      ? 'text-white shadow-lg scale-105'
-                      : 'bg-background-secondary text-text-primary border-4 border-gray-200 hover:border-primary-500'
-                  )}
-                  style={{
-                    backgroundColor: isSelected ? level.color : undefined,
-                    borderColor: isSelected ? level.color : undefined,
-                  }}
-                  onClick={() => handleDifficultySelect(level.id)}
-                >
-                  {level.name}
-                </button>
               );
             })}
           </div>
