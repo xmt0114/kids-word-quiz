@@ -22,14 +22,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { settings, setSettings } = useQuizSettings();
-  const { getProgressPercentage, getRemainingWords, formatLastUpdated, resetProgress } = useLearningProgress();
+  const { getProgressPercentage, getRemainingWords, formatLastUpdated, resetProgress, getProgress, updateProgress } = useLearningProgress();
   const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
     questionType: 'text',
     answerType: 'choice',
     difficulty: 'easy',
     selectionStrategy: 'sequential',
   });
-  const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null } | null>(null);
+  const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
 
   // 初始化时同步 localStorage 中的设置
   useEffect(() => {
@@ -65,8 +65,15 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         if (response.success && response.data) {
           setTextbookInfo({
             name: response.data.name,
-            grade_level: response.data.grade_level
+            grade_level: response.data.grade_level,
+            word_count: response.data.word_count
           });
+
+          // 初始化学习进度（如果还没有的话）
+          const currentProgress = getProgress(collectionId);
+          if (!currentProgress && response.data.word_count > 0) {
+            updateProgress(collectionId, 0, response.data.word_count);
+          }
         }
       });
     } else {

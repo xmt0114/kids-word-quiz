@@ -77,13 +77,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     loadCollections();
   }, []);
 
-  // 当选择教材后加载词汇
-  useEffect(() => {
-    if (selectedCollectionId && activeTab === 'words') {
-      loadWords(selectedCollectionId);
-    }
-  }, [selectedCollectionId, activeTab, difficultyFilter]);
-
   const loadCollections = async () => {
     setIsLoading(true);
     setError(null);
@@ -106,13 +99,17 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
   };
 
-  const loadWords = async (collectionId: string) => {
+  const loadWords = async (collectionId: string, page: number = 1, limit: number = 20) => {
     setIsLoading(true);
     setError(null);
     try {
+      const offset = (page - 1) * limit;
+      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, difficultyFilter });
       const response = await wordAPI.getWords({
         collectionId,
         difficulty: difficultyFilter === 'all' ? undefined : difficultyFilter,
+        limit,
+        offset,
       });
       if (response.success && response.data) {
         setWords(response.data);
@@ -126,7 +123,28 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
   };
 
-  const handleCollectionSelect = (collection: WordCollection) => {
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const WORDS_PER_PAGE = 20;
+
+  // 计算总页数（基于word_collections.word_count，不受难度过滤影响）
+  const totalPages = selectedCollection?.word_count
+    ? Math.ceil(selectedCollection.word_count / WORDS_PER_PAGE)
+    : 1;
+
+  // 当选择教材或难度变化时，重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCollectionId, difficultyFilter]);
+
+  // 加载词汇（带分页）
+  useEffect(() => {
+    if (selectedCollectionId && activeTab === 'words') {
+      loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+    }
+  }, [selectedCollectionId, activeTab, currentPage, difficultyFilter]);
+
+  const handleCollectionSelect = async (collection: WordCollection) => {
     setSelectedCollectionId(collection.id);
     setSelectedCollection(collection);
     setActiveTab('words');
@@ -262,6 +280,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
       // 重新加载词汇列表
       if (selectedCollectionId) {
         loadWords(selectedCollectionId);
+        // 重新加载教材列表（数据库触发器会自动更新 word_count）
+        loadCollections();
       }
     } catch (err) {
       console.error('批量添加失败:', err);
@@ -288,6 +308,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             toast.success('删除词汇成功');
             if (selectedCollectionId) {
               loadWords(selectedCollectionId);
+              // 重新加载教材列表（数据库触发器会自动更新 word_count）
+              loadCollections();
             }
           } else {
             toast.error(response.error || '删除词汇失败');
@@ -324,6 +346,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             setSelectedWordIds([]);
             if (selectedCollectionId) {
               loadWords(selectedCollectionId);
+              // 重新加载教材列表（数据库触发器会自动更新 word_count）
+              loadCollections();
             }
           } else {
             toast.error(response.error || '批量删除失败');
@@ -380,6 +404,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
         if (response.success) {
           toast.success('添加词汇成功');
           loadWords(selectedCollectionId);
+          // 重新加载教材列表（数据库触发器会自动更新 word_count）
+          loadCollections();
         } else {
           toast.error(response.error || '添加词汇失败');
           throw new Error(response.error);
@@ -596,7 +622,7 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                       {selectedCollection?.name || '请选择教材'}
                     </h3>
                     <p className="text-small text-text-secondary">
-                      共 {words.length} 个词汇
+                      共 {selectedCollection?.word_count || 0} 个词汇
                     </p>
                   </div>
                 </div>
@@ -738,6 +764,48 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                   ))}
                 </tbody>
               </table>
+
+              {/* 分页控件 */}
+              {words.length > 0 && totalPages > 1 && (
+                <div className="flex items-center justify-between mt-lg border-t border-gray-200 pt-md">
+                  <div className="text-small text-text-secondary">
+                    第 {currentPage} 页，共 {totalPages} 页
+                  </div>
+                  <div className="flex items-center gap-sm">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      上一页
+                    </button>
+
+                    {/* 页码按钮 */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          'w-10 h-10 rounded-lg text-small font-bold transition-colors',
+                          currentPage === page
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white border-2 border-gray-200 text-text-secondary hover:border-blue-500'
+                        )}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-secondary hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {words.length === 0 && selectedCollectionId && (
                 <div className="text-center py-2xl">

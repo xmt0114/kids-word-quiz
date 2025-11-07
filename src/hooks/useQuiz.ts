@@ -57,7 +57,7 @@ export function useQuiz() {
       return response.data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '未知错误';
-      
+
       // 如果还有重试次数，则重试
       if (retries > 0) {
         console.warn(`获取题目失败，剩余重试次数: ${retries - 1}, 错误: ${errorMessage}`);
@@ -67,7 +67,7 @@ export function useQuiz() {
         await new Promise(resolve => setTimeout(resolve, 1000 * (MAX_RETRIES - retries + 1)));
         return fetchWordsWithRetry(settings, collectionId, offset, retries - 1);
       }
-      
+
       throw new Error(`获取题目失败: ${errorMessage}`);
     }
   }, []);

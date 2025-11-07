@@ -119,6 +119,8 @@ export class SupabaseWordAPI implements WordAPI {
       // 使用指定的collectionId或默认ID
       const collectionId = filters?.collectionId || DEFAULT_COLLECTION_ID
 
+      console.log('[SupabaseAPI] getWords called with filters:', filters)
+
       // 构建查询
       let query = supabase
         .from('words')
@@ -146,15 +148,18 @@ export class SupabaseWordAPI implements WordAPI {
       // 分页：优先使用offset，如果没有则使用limit
       if (filters?.offset !== undefined && filters.offset > 0) {
         // 使用offset分页：从offset位置开始，取limit个
+        console.log('[SupabaseAPI] Using range:', { offset: filters.offset, limit: filters.limit || TOTAL_QUESTIONS })
         query = query.range(
           filters.offset,
           filters.offset + (filters.limit || TOTAL_QUESTIONS) - 1
         )
       } else if (filters?.limit) {
         // 使用limit：从第0个开始，取limit个
+        console.log('[SupabaseAPI] Using limit only:', { limit: filters.limit })
         query = query.limit(filters.limit)
       } else {
         // 默认取TOTAL_QUESTIONS个
+        console.log('[SupabaseAPI] Using default TOTAL_QUESTIONS:', { TOTAL_QUESTIONS })
         query = query.limit(TOTAL_QUESTIONS)
       }
 
@@ -175,6 +180,8 @@ export class SupabaseWordAPI implements WordAPI {
       if (filters?.selectionStrategy === 'random' && words.length > 0) {
         words = words.sort(() => Math.random() - 0.5)
       }
+
+      console.log('[SupabaseAPI] Returning words:', { count: words.length, totalRequested: filters?.limit || TOTAL_QUESTIONS })
 
       return {
         success: true,

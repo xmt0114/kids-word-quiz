@@ -33,7 +33,10 @@ export function useLearningProgress() {
       return 0;
     }
 
-    return progress.lastPosition;
+    // 修复：每次取10个单词，第一次 offset=0, 第二次应该是 offset=9（而不是 offset=10）
+    // 避免跳过单词：如果 lastPosition=10, 则从索引9开始取10个（索引9-18）
+    // 如果 lastPosition=20, 则从索引19开始取10个（索引19-28）
+    return Math.max(progress.lastPosition - 1, 0);
   };
 
   // 更新学习进度

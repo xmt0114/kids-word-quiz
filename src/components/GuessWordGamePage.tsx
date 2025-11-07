@@ -13,12 +13,14 @@ import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
 import { useLearningProgress } from '../hooks/useLearningProgress';
+import { wordAPI } from '../utils/api';
 
 const GuessWordGamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { updateStats } = useQuizStats();
   const { getOffset, advanceProgress } = useLearningProgress();
+  const [totalWords, setTotalWords] = useState<number>(0);
 
   // 从路由状态获取设置 - 只信任路由传递的设置
   const { settings: routeSettings, collectionId } = location.state || {};
@@ -47,8 +49,9 @@ const GuessWordGamePage: React.FC = () => {
   const [showStarExplosion, setShowStarExplosion] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const questionTextRef = useRef<HTMLParagraphElement>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  // 初始化游戏 - 只信任路由传递的设置
+  // 获取教材信息并初始化游戏
   useEffect(() => {
     if (!hasValidRouteSettings) {
       // 如果没有有效的路由设置，显示错误提示
@@ -57,23 +60,43 @@ const GuessWordGamePage: React.FC = () => {
       return;
     }
 
-    // 使用路由传递的设置
-    const finalSettings: QuizSettings = {
-      questionType: routeSettings.questionType || 'text',
-      answerType: routeSettings.answerType || 'choice',
-      difficulty: routeSettings.difficulty || 'easy',
-      selectionStrategy: routeSettings.selectionStrategy || 'sequential',
-      collectionId
+    // 防止重复初始化
+    if (isInitializing) {
+      return;
+    }
+
+    setIsInitializing(true);
+
+    const initializeGame = async () => {
+      try {
+        // 获取教材信息
+        const response = await wordAPI.getCollectionById(collectionId!);
+        const totalWordCount = response.success && response.data ? response.data.word_count || 0 : 0;
+        setTotalWords(totalWordCount);
+
+        // 使用路由传递的设置
+        const finalSettings: QuizSettings = {
+          questionType: routeSettings.questionType || 'text',
+          answerType: routeSettings.answerType || 'choice',
+          difficulty: routeSettings.difficulty || 'easy',
+          selectionStrategy: routeSettings.selectionStrategy || 'sequential',
+          collectionId
+        };
+
+        // 获取学习进度偏移量
+        const offset = getOffset(collectionId!);
+
+        // 初始化时传入offset和教材总单词数
+        await initializeQuiz(finalSettings, collectionId, offset, totalWordCount);
+      } catch (err) {
+        console.error('Failed to initialize quiz:', err);
+      } finally {
+        setIsInitializing(false);
+      }
     };
 
-    // 获取学习进度偏移量
-    const offset = getOffset(collectionId!);
-
-    // 初始化时传入offset和教材总单词数
-    initializeQuiz(finalSettings, collectionId, offset, 0).catch(err => {
-      console.error('Failed to initialize quiz:', err);
-    });
-  }, [routeSettings, collectionId, hasValidRouteSettings, navigate, initializeQuiz, getOffset]);
+    initializeGame();
+  }, [routeSettings, collectionId, hasValidRouteSettings, navigate]);
 
   // 检测屏幕高度并动态调整布局
   useEffect(() => {
@@ -157,14 +180,12 @@ const GuessWordGamePage: React.FC = () => {
       updateStats(result.correctAnswers, result.totalQuestions);
 
       // 更新学习进度
-      if (collectionId) {
+      if (collectionId && totalWords > 0) {
         // 使用当前进度作为偏移量，完成本次的10题
-        const currentOffset = getOffset(collectionId);
         const completedQuestions = result.totalQuestions;
-        const newTotalWords = completedQuestions + currentOffset;
 
         // 更新学习进度
-        advanceProgress(collectionId, completedQuestions, newTotalWords);
+        advanceProgress(collectionId, completedQuestions, totalWords);
       }
 
       navigate('/guess-word/result', {
