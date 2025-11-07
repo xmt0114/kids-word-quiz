@@ -41,10 +41,10 @@ const BatchAddWordsModal: React.FC<BatchAddWordsModalProps> = ({
   if (!isOpen) return null;
 
   // CSV格式示例
-  const csvExample = `word,definition,difficulty,options,answer,hint,audioText
-apple,苹果,easy,"苹果;香蕉;橙子;西瓜","苹果",,"苹果"
-cat,猫,medium,"狗;猫;鸟;鱼","猫","meow sound","猫"
-dog,狗,easy,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
+  const csvExample = `word,definition,options,answer,hint,audioText
+apple,苹果,"苹果;香蕉;橙子;西瓜","苹果",,"苹果"
+cat,猫,"狗;猫;鸟;鱼","猫","meow sound","猫"
+dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
   // 下载CSV模板
   const downloadTemplate = () => {
@@ -107,7 +107,7 @@ dog,狗,easy,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
         console.log(`第${i + 1}行解析结果:`, parts);
 
-        if (parts.length < 6) {
+        if (parts.length < 5) {
           console.log(`第${i + 1}行字段不足:`, parts.length);
           words.push({
             word: '',
@@ -117,14 +117,24 @@ dog,狗,easy,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
             answer: '',
             hint: '',
             audioText: '',
-            errors: [`第${i + 1}行：字段不足，至少需要word,definition,difficulty,options,answer,audioText`],
+            errors: [`第${i + 1}行：字段不足，至少需要word,definition,options,answer,audioText`],
             isValid: false,
           });
           continue;
         }
 
-        const [word, definition, difficulty, optionsStr, answer, hint, audioText] = parts;
-        
+        // 支持带difficulty和不带difficulty的两种格式
+        let word: string, definition: string, difficulty: string, optionsStr: string, answer: string, hint: string, audioText: string;
+
+        if (parts.length >= 7) {
+          // 包含difficulty列: word,definition,difficulty,options,answer,hint,audioText
+          [word, definition, difficulty, optionsStr, answer, hint, audioText] = parts;
+        } else {
+          // 不包含difficulty列: word,definition,options,answer,hint,audioText
+          [word, definition, optionsStr, answer, hint, audioText] = parts;
+          difficulty = 'easy'; // 默认难度
+        }
+
         // 解析选项，处理引号包围的选项
         const cleanOptionsStr = optionsStr.replace(/^"|"$/g, ''); // 移除首尾引号
         const options = cleanOptionsStr.split(';').map(opt => opt.trim()).filter(opt => opt);
@@ -313,8 +323,10 @@ dog,狗,easy,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-md mb-lg">
           <h4 className="font-bold text-blue-800 mb-sm">CSV格式说明：</h4>
           <ul className="text-small text-blue-700 space-y-xs">
-            <li>• 第一行必须是表头：word,definition,difficulty,options,answer,hint,audioText</li>
-            <li>• difficulty只能是：easy、medium、hard</li>
+            <li>• 支持两种表头格式：</li>
+            <li>&nbsp;&nbsp;- word,definition,options,answer,hint,audioText（推荐）</li>
+            <li>&nbsp;&nbsp;- word,definition,difficulty,options,answer,hint,audioText（兼容旧格式）</li>
+            <li>• difficulty列可选，如果不提供将自动设为easy</li>
             <li>• options用分号(;)分隔多个选项</li>
             <li>• answer必须是options中的一个</li>
             <li>• audioText为音频文本，hint为提示（hint可为空）</li>

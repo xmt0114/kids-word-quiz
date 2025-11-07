@@ -227,34 +227,6 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
             )}
           </div>
 
-          {/* 难度 */}
-          <div>
-            <label className="block text-body font-bold text-text-primary mb-sm">
-              难度 <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-md">
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  className={cn(
-                    'px-lg py-sm rounded-full text-body font-bold transition-all',
-                    formData.difficulty === level
-                      ? level === 'easy'
-                        ? 'bg-green-500 text-white'
-                        : level === 'medium'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-red-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  )}
-                  onClick={() => setFormData({ ...formData, difficulty: level })}
-                >
-                  {level === 'easy' ? '简单' : level === 'medium' ? '中等' : '困难'}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* 选项 */}
           <div>
             <div className="flex items-center justify-between mb-sm">

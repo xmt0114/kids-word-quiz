@@ -242,7 +242,7 @@ export class SupabaseWordAPI implements WordAPI {
         word: word.word,
         definition: word.definition,
         audio_text: word.audioText || word.definition,
-        difficulty: word.difficulty,
+        difficulty: word.difficulty || 'easy', // 默认为easy
         options: word.options,
         answer: word.answer,
         hint: word.hint || '',
@@ -286,7 +286,7 @@ export class SupabaseWordAPI implements WordAPI {
         word: word.word,
         definition: word.definition,
         audio_text: word.audioText || word.definition,
-        difficulty: word.difficulty,
+        difficulty: word.difficulty || 'easy', // 默认为easy
         options: word.options,
         answer: word.answer,
         hint: word.hint || '',
