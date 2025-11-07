@@ -23,7 +23,7 @@ const GuessWordGamePage: React.FC = () => {
   const [totalWords, setTotalWords] = useState<number>(0);
 
   // 从路由状态获取设置 - 只信任路由传递的设置
-  const { settings: routeSettings, collectionId } = location.state || {};
+  const { settings: routeSettings, collectionId, questions: passedQuestions, isReplay } = location.state || {};
 
   // 检查是否有有效的路由设置
   const hasValidRouteSettings = routeSettings && collectionId;
@@ -69,11 +69,6 @@ const GuessWordGamePage: React.FC = () => {
 
     const initializeGame = async () => {
       try {
-        // 获取教材信息
-        const response = await wordAPI.getCollectionById(collectionId!);
-        const totalWordCount = response.success && response.data ? response.data.word_count || 0 : 0;
-        setTotalWords(totalWordCount);
-
         // 使用路由传递的设置
         const finalSettings: QuizSettings = {
           questionType: routeSettings.questionType || 'text',
@@ -81,6 +76,21 @@ const GuessWordGamePage: React.FC = () => {
           selectionStrategy: routeSettings.selectionStrategy || 'sequential',
           collectionId
         };
+
+        // 如果是重新学习（使用相同单词）
+        if (isReplay && passedQuestions && passedQuestions.length > 0) {
+          console.log('[GamePage] 使用相同单词重新学习:', passedQuestions.length);
+
+          // 直接使用传递过来的单词，不更新进度
+          await initializeQuiz(finalSettings, collectionId, 0, passedQuestions);
+          setTotalWords(passedQuestions.length); // 临时设置，用于显示
+          return;
+        }
+
+        // 正常流程：从API获取单词
+        const response = await wordAPI.getCollectionById(collectionId!);
+        const totalWordCount = response.success && response.data ? response.data.word_count || 0 : 0;
+        setTotalWords(totalWordCount);
 
         // 获取学习进度偏移量
         const offset = getOffset(collectionId!);
@@ -95,7 +105,7 @@ const GuessWordGamePage: React.FC = () => {
     };
 
     initializeGame();
-  }, [routeSettings, collectionId, hasValidRouteSettings, navigate]);
+  }, [routeSettings, collectionId, hasValidRouteSettings, navigate, isReplay, passedQuestions]);
 
   // 检测屏幕高度并动态调整布局
   useEffect(() => {
@@ -178,8 +188,8 @@ const GuessWordGamePage: React.FC = () => {
       const result = getResult();
       updateStats(result.correctAnswers, result.totalQuestions);
 
-      // 更新学习进度
-      if (collectionId && totalWords > 0) {
+      // 更新学习进度 - 只在非replay模式下更新
+      if (collectionId && totalWords > 0 && !isReplay) {
         // 使用当前进度作为偏移量，完成本次的10题
         const completedQuestions = result.totalQuestions;
 
@@ -188,7 +198,12 @@ const GuessWordGamePage: React.FC = () => {
       }
 
       navigate('/guess-word/result', {
-        state: { result, settings: routeSettings, collectionId }
+        state: {
+          result,
+          settings: routeSettings,
+          collectionId,
+          questions: quizState.questions // 传递本轮单词列表
+        }
       });
     } else {
       nextQuestion();

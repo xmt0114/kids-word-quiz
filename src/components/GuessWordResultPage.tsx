@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { StarExplosion } from './StarExplosion';
-import { Trophy, RotateCcw, Home, BookOpen, Target, Clock, Award } from 'lucide-react';
+import { Trophy, RotateCcw, Home, BookOpen, Target, Award } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useQuiz } from '../hooks/useQuiz';
 
 interface QuizResult {
   correctAnswers: number;
@@ -24,7 +25,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
   const location = useLocation();
   
   // 从路由状态获取结果和设置
-  const { result: routeResult, settings, collectionId } = location.state || {};
+  const { result: routeResult, settings, collectionId, questions } = location.state || {};
   const result = propResult || routeResult;
 
   // 如果没有结果数据，显示错误信息
@@ -60,10 +61,16 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
 
   const gradeInfo = getGrade();
 
-  // 重新开始游戏
+  // 重新开始游戏（使用相同单词，不更新进度）
   const handleRestart = () => {
-    navigate('/guess-word/settings', {
-      state: { settings, collectionId }
+    // 直接跳转到游戏页面，传递相同的单词和设置
+    navigate('/guess-word/game', {
+      state: {
+        settings,
+        collectionId,
+        questions, // 传递相同的单词列表
+        isReplay: true // 标识这是重新学习，不更新进度
+      }
     });
   };
 

@@ -74,50 +74,61 @@ export function useQuiz() {
   const initializeQuiz = useCallback(async (
     settings: QuizSettings,
     collectionId?: string,
-    offset: number = 0
+    offset: number = 0,
+    questions?: Word[] // 可选的预加载题目
   ) => {
     setIsLoading(true);
     setError(null);
     setRetryCount(0);
 
     try {
-      // 获取单词数据（带重试机制）
-      const wordsData = await fetchWordsWithRetry(settings, collectionId, offset);
+      let questionsToUse: Word[];
 
-      // 验证数据完整性
-      if (!Array.isArray(wordsData) || wordsData.length === 0) {
-        throw new Error('没有可用的题目数据');
+      // 如果提供了预加载题目，直接使用
+      if (questions && questions.length > 0) {
+        console.log('[useQuiz] 使用预加载题目:', questions.length);
+        questionsToUse = questions.slice(0, TOTAL_QUESTIONS);
+      } else {
+        // 否则从API获取题目
+        console.log('[useQuiz] 从API获取题目');
+        // 获取单词数据（带重试机制）
+        const wordsData = await fetchWordsWithRetry(settings, collectionId, offset);
+
+        // 验证数据完整性
+        if (!Array.isArray(wordsData) || wordsData.length === 0) {
+          throw new Error('没有可用的题目数据');
+        }
+
+        // 根据选取策略选择题目
+        // 顺序选取：保持API返回的顺序（已按word字母排序）
+        // 随机选取：随机打乱
+        const shouldShuffle = settings.selectionStrategy !== 'sequential';
+        const selectedWords = getRandomWords(wordsData, TOTAL_QUESTIONS, undefined, shouldShuffle);
+
+        // 验证选择的题目数据完整性
+        const validWords = selectedWords.filter(word => {
+          if (!word) return false;
+
+          // 基本字段验证
+          if (!word.id) return false;
+          if (!word.word) return false;
+          if (!word.definition) return false;
+          if (!Array.isArray(word.options)) return false;
+          if (word.options.length < 3) return false;
+          if (!word.answer) return false;
+
+          return true;
+        });
+
+        if (validWords.length === 0) {
+          throw new Error('没有有效的题目数据');
+        }
+
+        // 如果有效题目不足TOTAL_QUESTIONS，使用所有有效题目
+        questionsToUse = validWords.length >= TOTAL_QUESTIONS
+          ? validWords.slice(0, TOTAL_QUESTIONS)
+          : validWords;
       }
-
-      // 根据选取策略选择题目
-      // 顺序选取：保持API返回的顺序（已按word字母排序）
-      // 随机选取：随机打乱
-      const shouldShuffle = settings.selectionStrategy !== 'sequential';
-      const selectedWords = getRandomWords(wordsData, TOTAL_QUESTIONS, undefined, shouldShuffle);
-
-      // 验证选择的题目数据完整性
-      const validWords = selectedWords.filter(word => {
-        if (!word) return false;
-
-        // 基本字段验证
-        if (!word.id) return false;
-        if (!word.word) return false;
-        if (!word.definition) return false;
-        if (!Array.isArray(word.options)) return false;
-        if (word.options.length < 3) return false;
-        if (!word.answer) return false;
-
-        return true;
-      });
-
-      if (validWords.length === 0) {
-        throw new Error('没有有效的题目数据');
-      }
-
-      // 如果有效题目不足TOTAL_QUESTIONS，使用所有有效题目
-      const questionsToUse = validWords.length >= TOTAL_QUESTIONS
-        ? validWords.slice(0, TOTAL_QUESTIONS)
-        : validWords;
 
       setQuizState({
         settings,

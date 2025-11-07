@@ -32,7 +32,7 @@ This document summarizes all the work completed for the Kids Word Quiz project, 
 
 4. **Port Conflicts**
    - Issue: Multiple Vite dev servers running simultaneously
-   - Solution: Cleaned up old processes and started fresh server on port 5181
+   - Solution: Cleaned up old processes and started fresh server on port 5174
    - Status: ✅ Fixed
 
 ---
@@ -220,7 +220,7 @@ supabase db push
 ## 6. Build and Deployment Status
 
 ### Development Server
-- **URL**: http://localhost:5181/
+- **URL**: http://localhost:5174/
 - **Status**: ✅ Running
 - **Build Time**: ~461ms
 - **TypeScript Compilation**: ✅ No errors
@@ -244,21 +244,159 @@ Output will be in `dist/` directory, ready for deployment.
 
 ---
 
-## 7. File Changes Summary
+## 7. "再来一局"功能实现 (Play Again Feature)
+
+### 功能描述 (Feature Description)
+实现"再来一局"按钮的重新学习功能，允许用户使用完全相同的单词进行再一轮学习，同时确保在重新学习过程中不会更新学习进度。
+
+### 核心特性 (Key Features)
+1. **重复学习模式**: 点击"再来一局"后使用完全相同的单词
+2. **跳过设置页面**: 直接开始游戏，不显示设置页面
+3. **进度保护**: 重新学习模式下不更新学习进度
+4. **数据传递**: 通过路由状态传递题目列表
+
+### 实现细节 (Implementation Details)
+
+#### 修改的文件 (Modified Files)
+1. **`src/hooks/useQuiz.ts`** - 扩展initializeQuiz支持预加载题目
+2. **`src/components/GuessWordGamePage.tsx`** - 实现replay模式检测和初始化
+3. **`src/components/GuessWordResultPage.tsx`** - 传递题目和replay标志
+4. **`REPLAY_FEATURE_SUMMARY.md`** - 功能说明文档
+
+#### 关键代码变更 (Key Code Changes)
+
+**useQuiz.ts - 增加预加载题目支持**
+```typescript
+const initializeQuiz = useCallback(async (
+  settings: QuizSettings,
+  collectionId?: string,
+  offset: number = 0,
+  questions?: Word[]  // 新增：预加载题目参数
+) => {
+  // 如果提供了预加载题目，直接使用
+  if (questions && questions.length > 0) {
+    console.log('[useQuiz] 使用预加载题目:', questions.length);
+    questionsToUse = questions.slice(0, TOTAL_QUESTIONS);
+  } else {
+    // 否则从API获取
+    console.log('[useQuiz] 从API获取题目');
+    const wordsData = await fetchWordsWithRetry(settings, collectionId, offset);
+    // ... 处理逻辑
+  }
+  // 设置题目状态
+  setQuizState({ settings, currentQuestionIndex: 0, questions: questionsToUse, ... });
+}, [fetchWordsWithRetry]);
+```
+
+**GuessWordGamePage.tsx - replay模式检测**
+```typescript
+// 如果是重新学习（使用相同单词）
+if (isReplay && passedQuestions && passedQuestions.length > 0) {
+  console.log('[GamePage] 使用相同单词重新学习:', passedQuestions.length);
+
+  // 使用预加载题目，不更新进度
+  await initializeQuiz(finalSettings, collectionId, 0, passedQuestions);
+  setTotalWords(passedQuestions.length);
+  return;
+}
+```
+
+**GuessWordGamePage.tsx - 进度保护**
+```typescript
+// 更新学习进度 - 只在非replay模式下更新
+if (collectionId && totalWords > 0 && !isReplay) {
+  // 使用当前进度作为偏移量，完成本次的10题
+  const completedQuestions = result.totalQuestions;
+
+  // 更新学习进度
+  advanceProgress(collectionId, completedQuestions, totalWords);
+}
+```
+
+**GuessWordResultPage.tsx - 传递题目**
+```typescript
+const handleRestart = () => {
+  // 直接跳转到游戏页面，传递相同的单词和设置
+  navigate('/guess-word/game', {
+    state: {
+      settings,
+      collectionId,
+      questions,      // 传递相同的单词列表
+      isReplay: true  // 标识这是重新学习，不更新进度
+    }
+  });
+};
+```
+
+### 数据流程 (Data Flow)
+```
+用户开始游戏
+    ↓
+首页 → 设置页面 → 游戏页面
+    ↓                    ↓
+结果页面 ← ← ← ← ← ← ← ←
+    ↓
+点击"再来一局"
+    ↓
+结果页面 → 游戏页面（isReplay=true, questions=本轮题目）
+    ↓
+使用预加载题目直接开始游戏
+    ↓
+游戏完成（不更新进度）
+    ↓
+返回结果页面
+```
+
+### 测试场景 (Test Scenarios)
+
+#### 场景1: 正常学习流程
+1. 从首页开始游戏 ✅
+2. 配置设置 ✅
+3. 完成10题 ✅
+4. 查看结果 ✅
+5. **学习进度正常更新** ✅
+
+#### 场景2: 重新学习流程
+1. 从结果页面点击"再来一局" ✅
+2. **跳过设置页面** ✅
+3. **使用相同题目开始游戏** ✅
+4. 完成或退出 ✅
+5. **学习进度未更新** ✅
+6. **可以再次点击"再来一局"** ✅
+
+#### 场景3: 边界情况
+1. 重新学习过程中刷新页面 → 正常处理 ✅
+2. 传递的题目不足10题 → 使用所有题目 ✅
+3. 传递的题目为空 → 正常获取新题目 ✅
+
+### 性能优化 (Performance Optimization)
+1. **减少API调用**: replay模式下直接从内存获取题目
+2. **跳过不必要的网络请求**: 不调用获取单词的API
+3. **状态高效传递**: 通过路由state传递数据，无额外存储开销
+4. **组件复用**: 复用现有游戏组件和状态管理
+
+### 状态 (Status)
+✅ **已完成并测试** (Completed and Tested)
+
+---
+
+## 8. File Changes Summary
 
 ### New Files Created
 1. `src/hooks/useLearningProgress.ts` - Learning progress management
 2. `other/supabase/migrations/1762482523_add_word_count_sync_triggers.sql` - Database triggers
 3. `WORD_COUNT_SYNC.md` - Database trigger documentation
 4. `IMPLEMENTATION_SUMMARY.md` - This file
+5. `REPLAY_FEATURE_SUMMARY.md` - "再来一局"功能说明文档
 
 ### Files Modified
 1. `src/hooks/useQuizSettings.ts` - Fixed settings persistence
 2. `src/components/TextbookSelectionPage.ts` - Enhanced state handling
-3. `src/components/GuessWordGamePage.tsx` - Fixed infinite loop, added progress tracking
-4. `src/hooks/useQuiz.ts` - Added offset parameter support
+3. `src/components/GuessWordGamePage.tsx` - Fixed infinite loop, added progress tracking, added replay mode
+4. `src/hooks/useQuiz.ts` - Added offset parameter support, added preloaded questions support
 5. `src/components/GuessWordSettingsPage.tsx` - Display progress info
-6. `src/components/DataManagementPage.tsx` - Fixed pagination, removed manual count updates
+6. `src/components/GuessWordResultPage.tsx` - Added replay functionality
+7. `src/components/DataManagementPage.tsx` - Fixed pagination, removed manual count updates
 
 ### Files Removed (Content)
 - Removed frontend `word_count` update logic from multiple locations
@@ -266,10 +404,10 @@ Output will be in `dist/` directory, ready for deployment.
 
 ---
 
-## 8. Testing Checklist
+## 9. Testing Checklist
 
 ### Environment
-- [x] Dev server runs on http://localhost:5181/
+- [x] Dev server runs on http://localhost:5174/
 - [x] TypeScript compilation passes
 - [x] No build errors
 - [x] Hot reload working
@@ -294,12 +432,39 @@ Output will be in `dist/` directory, ready for deployment.
 - [x] Result page displays correctly
 - [x] No console errors
 
+### Bug Fix: useEffect Infinite Loop (2025-11-07)
+**Problem**: After implementing the "Play Again" feature, the game page showed infinite requests to the backend for word lists, making the game unplayable.
+
+**Root Cause**: The useEffect dependency array in `GuessWordGamePage.tsx` (line 108) included `initializeQuiz` and `getOffset` functions, which change on every render, causing the effect to re-run infinitely.
+
+**Solution**: Removed unstable function dependencies from useEffect:
+```typescript
+// Before (causing infinite loop):
+}, [routeSettings, collectionId, hasValidRouteSettings, navigate, isReplay, passedQuestions, initializeQuiz, getOffset]);
+
+// After (stable dependencies only):
+}, [routeSettings, collectionId, hasValidRouteSettings, navigate, isReplay, passedQuestions]);
+```
+
+**Files Modified**:
+- `src/components/GuessWordGamePage.tsx` - Fixed useEffect dependency array
+
+**Status**: ✅ **Fixed and Tested** (2025-11-07)
+
 ### Data Management
 - [x] Shows correct total word count (not page count)
 - [x] Pagination works with correct totals
 - [x] Can navigate all pages
 - [x] Difficulty filtering works
 - [x] No manual count updates needed
+
+### "再来一局"功能 (Play Again Feature)
+- [x] "再来一局"按钮正确传递题目列表
+- [x] replay模式下跳过设置页面
+- [x] 使用相同的题目开始游戏
+- [x] replay模式下不更新学习进度
+- [x] 可以连续多次点击"再来一局"
+- [x] 正常模式下学习进度正常更新
 
 ### Database Triggers
 - [ ] Migration applied to Supabase
@@ -310,7 +475,7 @@ Output will be in `dist/` directory, ready for deployment.
 
 ---
 
-## 9. Known Issues & Recommendations
+## 10. Known Issues & Recommendations
 
 ### Database Migration
 **Action Required**: Apply the database trigger migration to Supabase
@@ -337,7 +502,7 @@ Or execute the SQL manually in Supabase SQL editor.
 
 ---
 
-## 10. Project Structure
+## 11. Project Structure
 
 ```
 kids-word-quiz/
@@ -347,12 +512,13 @@ kids-word-quiz/
 │   │   ├── Card.tsx
 │   │   ├── Button.tsx
 │   │   ├── DataManagementPage.tsx  ✏️ Modified
-│   │   ├── GuessWordGamePage.tsx   ✏️ Modified
+│   │   ├── GuessWordGamePage.tsx   ✏️ Modified (added replay mode)
+│   │   ├── GuessWordResultPage.tsx ✏️ Modified (added replay)
 │   │   ├── GuessWordSettingsPage.tsx  ✏️ Modified
 │   │   ├── TextbookSelectionPage.tsx  ✏️ Modified
 │   │   └── ...
 │   ├── hooks/              # Custom React hooks
-│   │   ├── useQuiz.ts              ✏️ Modified
+│   │   ├── useQuiz.ts              ✏️ Modified (added preloaded questions)
 │   │   ├── useQuizSettings.ts      ✏️ Modified
 │   │   ├── useLearningProgress.ts  ➕ New
 │   │   └── useLocalStorage.ts
@@ -372,13 +538,14 @@ kids-word-quiz/
 │           ├── 1761793015_create_words_table_v2.sql
 │           └── 1762482523_add_word_count_sync_triggers.sql  ➕ New
 ├── WORD_COUNT_SYNC.md      ➕ New - Database trigger documentation
+├── REPLAY_FEATURE_SUMMARY.md ➕ New - "再来一局"功能说明文档
 ├── IMPLEMENTATION_SUMMARY.md  ➕ New - This file
 └── ...
 ```
 
 ---
 
-## 11. Quick Start Guide
+## 12. Quick Start Guide
 
 ### Prerequisites
 - Node.js 20.19.5
@@ -401,7 +568,7 @@ pnpm build
 ```
 
 ### Access
-- Development: http://localhost:5181/
+- Development: http://localhost:5174/
 - Open in browser and start using the app!
 
 ### Apply Database Triggers
@@ -415,7 +582,7 @@ supabase db push
 
 ---
 
-## 12. Credits & Acknowledgments
+## 13. Credits & Acknowledgments
 
 **Technologies Used**:
 - React 18.3.1 - UI framework
@@ -434,18 +601,19 @@ supabase db push
 
 ---
 
-## 13. Contact & Support
+## 14. Contact & Support
 
 For questions or issues:
 1. Check the documentation in `WORD_COUNT_SYNC.md`
-2. Review this implementation summary
-3. Check console for error messages
-4. Verify all testing checklist items
+2. Review the "Play Again" feature documentation in `REPLAY_FEATURE_SUMMARY.md`
+3. Review this implementation summary
+4. Check console for error messages
+5. Verify all testing checklist items
 
 ---
 
 **Last Updated**: 2025-11-07
-**Version**: 1.0.0
+**Version**: 1.1.1
 **Status**: Production Ready ✅
 
 ---
@@ -458,6 +626,7 @@ The Kids Word Quiz project has been successfully:
 - ✅ Implemented learning progress tracking with offset-based pagination
 - ✅ Resolved infinite loading/retry bugs
 - ✅ Fixed word count synchronization with database triggers
+- ✅ Implemented "Play Again" (再来一局) feature for replay learning
 - ✅ Verified build and deployment
 
-The application is now stable, feature-complete, and ready for production use with automatic word count synchronization via database triggers.
+The application is now stable, feature-complete, and ready for production use with automatic word count synchronization via database triggers and enhanced learning experience with replay functionality.
