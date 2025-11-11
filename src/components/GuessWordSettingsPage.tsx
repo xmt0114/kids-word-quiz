@@ -6,9 +6,11 @@ import { QuizSettings, TTSSettings } from '../types';
 import { useQuizSettings } from '../hooks/useLocalStorage';
 import { useLearningProgress } from '../hooks/useLearningProgress';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
+import { useAuth } from '../hooks/useAuth';
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
+import { LoginModal } from './auth/LoginModal';
 
 interface GuessWordSettingsPageProps {
   selectedCollectionId?: string;
@@ -21,6 +23,27 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const { settings, setSettings } = useQuizSettings();
   const { getProgressPercentage, getRemainingWords, formatLastUpdated, resetProgress, getProgress, updateProgress } = useLearningProgress();
   const { voices, isLoaded: isVoicesLoaded } = useAvailableVoices();
+  const { user, profile } = useAuth();
+  const isLoggedIn = !!(user && profile);
+  const isAdmin = profile?.role === 'admin';
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // 页面加载时检查登录状态
+  useEffect(() => {
+    if (!isLoggedIn) {
+      // 未登录，弹出登录框
+      setShowLoginModal(true);
+    }
+  }, [isLoggedIn]);
+
+  // 处理弹框关闭
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
+    if (!isLoggedIn) {
+      // 未登录，关闭弹框后跳转到主页
+      navigate('/');
+    }
+  };
   const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
     questionType: 'text',
     answerType: 'choice',
@@ -213,16 +236,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   };
 
   const handleSaveSettings = () => {
-    setSettings(selectedSettings); // 保存设置到 localStorage
-    navigate('/'); // 返回主页
+    // 页面已有登录保护，直接保存设置
+    setSettings(selectedSettings);
+    navigate('/');
   };
 
   const handleDataManagement = () => {
     navigate('/guess-word/data');
   };
-
-  // 判断是否为开发环境
-  const isDevMode = import.meta.env.DEV;
 
   const handleSelectTextbook = () => {
     navigate('/textbook-selection');
@@ -245,8 +266,8 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           返回主页
         </Button>
 
-        {/* 数据管理按钮 - 仅在开发环境显示 */}
-        {isDevMode && (
+        {/* 数据管理按钮 - 仅管理员显示 */}
+        {isAdmin && (
           <Button
             variant="secondary"
             onClick={handleDataManagement}
@@ -658,6 +679,13 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         </section>
 
       </div>
+
+      {/* 登录弹框 */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleCloseLoginModal}
+        action="访问设置"
+      />
     </div>
   );
 };

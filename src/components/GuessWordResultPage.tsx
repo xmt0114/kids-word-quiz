@@ -6,6 +6,7 @@ import { StarExplosion } from './StarExplosion';
 import { Trophy, RotateCcw, Home, BookOpen, Target, Award } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
+import { useAuth } from '../hooks/useAuth';
 
 interface QuizResult {
   correctAnswers: number;
@@ -23,7 +24,9 @@ interface GuessWordResultPageProps {
 const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propResult }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+
   // 从路由状态获取结果和设置
   const { result: routeResult, settings, collectionId, questions } = location.state || {};
   const result = propResult || routeResult;
@@ -79,13 +82,10 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
     navigate('/');
   };
 
-  // 进入数据管理 - 仅在开发环境显示
+  // 进入数据管理 - 仅管理员显示
   const handleDataManagement = () => {
     navigate('/guess-word/data');
   };
-
-  // 判断是否为开发环境
-  const isDevMode = import.meta.env.DEV;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
@@ -171,8 +171,8 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
             再来一局
           </Button>
           
-          {/* 数据管理按钮 - 仅在开发环境显示 */}
-          {isDevMode && (
+          {/* 数据管理按钮 - 仅管理员显示 */}
+          {isAdmin && (
             <Button
               variant="secondary"
               onClick={handleDataManagement}

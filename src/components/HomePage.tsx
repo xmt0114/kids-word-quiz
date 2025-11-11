@@ -1,18 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { Brain, Gamepad2, Trophy, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useAuth } from '../hooks/useAuth';
 import { QuizSettings } from '../types';
+import { LoginModal } from './auth/LoginModal';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { settings } = useQuizSettings();
+  const { user, profile } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  // 开始游戏函数 - 从 localStorage 加载设置
+  // 监听用户状态变化，登录后自动执行pendingAction
+  useEffect(() => {
+    if (user && profile && pendingAction) {
+      if (pendingAction === 'guess-word') {
+        const finalSettings: QuizSettings = {
+          questionType: settings.questionType || 'text',
+          answerType: settings.answerType || 'choice',
+          selectionStrategy: settings.selectionStrategy || 'sequential',
+          collectionId: settings.collectionId || '11111111-1111-1111-1111-111111111111'
+        };
+
+        navigate('/guess-word/game', {
+          state: {
+            settings: finalSettings,
+            collectionId: finalSettings.collectionId
+          }
+        });
+      }
+      setPendingAction(null);
+    }
+  }, [user, profile, pendingAction, settings, navigate]);
+
+  // 开始游戏函数 - 检查登录状态
   const handleStartGame = (gameId: string) => {
+    if (!user || !profile) {
+      // 用户未登录，弹出登录弹框
+      setPendingAction(gameId);
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    // 用户已登录，正常开始游戏
     if (gameId === 'guess-word') {
       const finalSettings: QuizSettings = {
         questionType: settings.questionType || 'text',
@@ -28,6 +63,12 @@ const HomePage: React.FC = () => {
         }
       });
     }
+  };
+
+  // 登录弹框关闭回调
+  const handleLoginModalClose = () => {
+    setIsLoginModalOpen(false);
+    setPendingAction(null);
   };
 
   // 游戏列表数据
@@ -222,9 +263,14 @@ const HomePage: React.FC = () => {
             </p>
           </Card>
         </div>
-
-
       </div>
+
+      {/* 登录弹框 */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={handleLoginModalClose}
+        action="开始游戏"
+      />
     </div>
   );
 };
