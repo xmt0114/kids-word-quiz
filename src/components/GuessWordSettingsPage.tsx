@@ -27,6 +27,8 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const isLoggedIn = !!(user && profile);
   const isAdmin = profile?.role === 'admin';
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
+  const [pendingSettings, setPendingSettings] = useState<Partial<QuizSettings> | null>(null);
 
   // 页面加载时检查登录状态
   useEffect(() => {
@@ -44,52 +46,26 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
       navigate('/');
     }
   };
-  const [selectedSettings, setSelectedSettings] = useState<QuizSettings>({
-    questionType: 'text',
-    answerType: 'choice',
-    selectionStrategy: 'sequential',
-    tts: {
-      lang: 'en-US',
-      rate: 0.8,
-      pitch: 1.0,
-      volume: 1.0,
-    },
-  });
-  const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
 
-  // 初始化时同步 localStorage 中的设置
+  // 初始化 collectionId 和 pendingSettings
   useEffect(() => {
-    // 从 localStorage 加载保存的设置
-    setSelectedSettings({
-      questionType: settings.questionType || 'text',
-      answerType: settings.answerType || 'choice',
-      selectionStrategy: settings.selectionStrategy || 'sequential',
-      collectionId: settings.collectionId || selectedCollectionId || '11111111-1111-1111-1111-111111111111',
-      tts: settings.tts || {
-        lang: 'en-US',
-        rate: 0.8,
-        pitch: 1.0,
-        volume: 1.0,
-      },
-    });
-  }, []);
-
-  // 同步 collectionId 变化到 selectedSettings 和 localStorage
-  useEffect(() => {
-    if (selectedCollectionId && selectedCollectionId !== selectedSettings.collectionId) {
-      const updatedSettings = {
-        ...selectedSettings,
+    if (selectedCollectionId && selectedCollectionId !== (pendingSettings || settings).collectionId) {
+      setSettings((prevSettings) => ({
+        ...prevSettings,
         collectionId: selectedCollectionId,
-      };
-      setSelectedSettings(updatedSettings);
-      setSettings(updatedSettings); // 同时保存到 localStorage
+      }));
     }
   }, [selectedCollectionId]);
 
+  // 初始化 pendingSettings
+  useEffect(() => {
+    setPendingSettings(settings);
+  }, []);
+
   // 加载当前选择的教材信息
   useEffect(() => {
-    // 优先使用 selectedCollectionId，其次从 localStorage 读取
-    const collectionId = selectedCollectionId || localStorage.getItem('last-selected-textbook');
+    // 使用 (pendingSettings || settings).collectionId
+    const collectionId = selectedCollectionId || (pendingSettings || settings).collectionId;
 
     if (collectionId) {
       wordAPI.getCollectionById(collectionId).then(response => {
@@ -110,7 +86,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     } else {
       setTextbookInfo(null);
     }
-  }, [selectedCollectionId]);
+  }, [selectedCollectionId, (pendingSettings || settings).collectionId]);
 
   const questionTypes = [
     {
@@ -166,33 +142,42 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   ];
 
   const handleQuestionTypeSelect = (type: string) => {
-    const newSettings = { ...selectedSettings, questionType: type as 'text' | 'audio' };
-    setSelectedSettings(newSettings);
-    setSettings(newSettings); // 同时保存到 localStorage
+    setPendingSettings((prev) => ({
+      ...(prev || settings),
+      questionType: type as 'text' | 'audio'
+    }));
   };
 
   const handleAnswerTypeSelect = (type: string) => {
-    const newSettings = { ...selectedSettings, answerType: type as 'choice' | 'fill' };
-    setSelectedSettings(newSettings);
-    setSettings(newSettings); // 同时保存到 localStorage
+    setPendingSettings((prev) => ({
+      ...(prev || settings),
+      answerType: type as 'choice' | 'fill'
+    }));
   };
 
   const handleStrategySelect = (strategy: string) => {
-    const newSettings = { ...selectedSettings, selectionStrategy: strategy as 'sequential' | 'random' };
-    setSelectedSettings(newSettings);
-    setSettings(newSettings); // 同时保存到 localStorage
+    setPendingSettings((prev) => ({
+      ...(prev || settings),
+      selectionStrategy: strategy as 'sequential' | 'random'
+    }));
   };
 
   const handleTtsSettingChange = (key: keyof TTSSettings, value: string | number) => {
-    const newSettings = {
-      ...selectedSettings,
-      tts: {
-        ...selectedSettings.tts!,
-        [key]: value,
-      },
-    };
-    setSelectedSettings(newSettings);
-    setSettings(newSettings); // 同时保存到 localStorage
+    setPendingSettings((prev) => {
+      const current = prev || settings;
+      return {
+        ...current,
+        tts: {
+          ...(current.tts || {
+            lang: 'en-US',
+            rate: 0.8,
+            pitch: 1.0,
+            volume: 1.0,
+          }),
+          [key]: value,
+        },
+      };
+    });
   };
 
   const handleTtsTest = () => {
@@ -204,7 +189,12 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
       // 测试朗读功能
       const testText = "This is a test of the text-to-speech feature.";
       const utterance = new SpeechSynthesisUtterance(testText);
-      const ttsSettings = selectedSettings.tts!;
+      const ttsSettings = (pendingSettings || settings).tts || {
+        lang: 'en-US',
+        rate: 0.8,
+        pitch: 1.0,
+        volume: 1.0,
+      };
 
       // 设置基础参数
       utterance.lang = ttsSettings.lang;
@@ -236,8 +226,11 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   };
 
   const handleSaveSettings = () => {
-    // 页面已有登录保护，直接保存设置
-    setSettings(selectedSettings);
+    // 保存待处理的设置
+    if (pendingSettings) {
+      setSettings(pendingSettings);
+      console.log('💾 [GuessWordSettings] 用户点击保存设置:', pendingSettings);
+    }
     navigate('/');
   };
 
@@ -329,28 +322,28 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           </div>
 
           {/* 学习进度信息 */}
-          {textbookInfo && selectedSettings.collectionId && (
+          {textbookInfo && (pendingSettings || settings).collectionId && (
             <div className="mt-md pt-md border-t border-blue-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-md">
                   <TrendingUp size={20} className="text-blue-500" />
                   <div>
                     <p className="text-small font-semibold text-text-primary">
-                      学习进度：{getProgressPercentage(selectedSettings.collectionId)}%
+                      学习进度：{getProgressPercentage((pendingSettings || settings).collectionId)}%
                     </p>
                     <p className="text-xs text-text-tertiary">
-                      剩余 {getRemainingWords(selectedSettings.collectionId)} 个单词
+                      剩余 {getRemainingWords((pendingSettings || settings).collectionId)} 个单词
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-md">
                   <p className="text-xs text-text-tertiary">
-                    {formatLastUpdated(selectedSettings.collectionId)}
+                    {formatLastUpdated((pendingSettings || settings).collectionId)}
                   </p>
                   <Button
                     variant="secondary"
                     size="default"
-                    onClick={() => resetProgress(selectedSettings.collectionId!)}
+                    onClick={() => resetProgress((pendingSettings || settings).collectionId!)}
                     className="flex items-center gap-xs text-xs px-sm py-xs"
                   >
                     <RotateCcw size={14} />
@@ -373,7 +366,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
             {questionTypes.map((type) => {
               const Icon = type.icon;
-              const isSelected = selectedSettings.questionType === type.id;
+              const isSelected = (pendingSettings || settings).questionType === type.id;
               
               return (
                 <Card
@@ -414,7 +407,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
             {answerTypes.map((type) => {
               const Icon = type.icon;
-              const isSelected = selectedSettings.answerType === type.id;
+              const isSelected = (pendingSettings || settings).answerType === type.id;
               
               return (
                 <Card
@@ -455,7 +448,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
             {selectionStrategies.map((strategy) => {
               const Icon = strategy.icon;
-              const isSelected = selectedSettings.selectionStrategy === strategy.id;
+              const isSelected = (pendingSettings || settings).selectionStrategy === strategy.id;
 
               return (
                 <Card
@@ -507,10 +500,10 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                   {!isVoicesLoaded && <span className="text-xs text-text-tertiary ml-sm">(加载中...)</span>}
                 </label>
                 <select
-                  value={selectedSettings.tts?.voiceName || ''}
+                  value={(pendingSettings || settings).tts?.voiceName || ''}
                   onChange={(e) => {
                     const voiceName = e.target.value;
-                    let newLang = selectedSettings.tts?.lang;
+                    let newLang = (pendingSettings || settings).tts?.lang;
 
                     // 自动更新语言为选中语音的语言
                     if (voiceName) {
@@ -527,16 +520,22 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     }
 
                     // 一次性更新两个值，避免状态更新冲突
-                    const newSettings = {
-                      ...selectedSettings,
-                      tts: {
-                        ...selectedSettings.tts!,
-                        voiceName: voiceName,
-                        lang: newLang,
-                      },
-                    };
-                    setSelectedSettings(newSettings);
-                    setSettings(newSettings);
+                    setPendingSettings((prev) => {
+                      const current = prev || settings;
+                      return {
+                        ...current,
+                        tts: {
+                          ...(current.tts || {
+                            lang: 'en-US',
+                            rate: 0.8,
+                            pitch: 1.0,
+                            volume: 1.0,
+                          }),
+                          voiceName: voiceName,
+                          lang: newLang,
+                        },
+                      };
+                    });
                   }}
                   className="w-full px-md py-sm border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
                   disabled={!isVoicesLoaded}
@@ -551,25 +550,24 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     ))}
                 </select>
                 {/* 显示当前选择的语音信息 */}
-                {selectedSettings.tts?.voiceName && (
-                  <p className="text-small text-text-tertiary mt-xs">
-                    当前语音：
-                    {(() => {
-                      const voiceName = selectedSettings.tts!.voiceName!;
-                      // 优先从 voices 数组中查找
-                      const selectedVoice = voices.find(v => {
-                        const trimmedName = v.name.trim();
-                        const searchName = voiceName.trim();
-                        return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
-                      });
-                      // 如果找到匹配的语音，显示完整信息；否则显示名称
-                      return selectedVoice ? selectedVoice.displayName : voiceName;
-                    })()}
-                  </p>
-                )}
+                {(() => {
+                  const tts = (pendingSettings || settings).tts;
+                  if (!tts?.voiceName) return null;
+                  const voiceName = tts.voiceName;
+                  const selectedVoice = voices.find(v => {
+                    const trimmedName = v.name.trim();
+                    const searchName = voiceName.trim();
+                    return trimmedName === searchName || trimmedName.includes(searchName) || searchName.includes(trimmedName);
+                  });
+                  return (
+                    <p className="text-small text-text-tertiary mt-xs">
+                      当前语音：{selectedVoice ? selectedVoice.displayName : voiceName}
+                    </p>
+                  );
+                })()}
                 {/* 显示当前语言 */}
                 <p className="text-small text-text-tertiary mt-xs">
-                  语言：{selectedSettings.tts?.lang || 'en-US'}
+                  语言：{(pendingSettings || settings).tts?.lang || 'en-US'}
                 </p>
               </div>
 
@@ -580,7 +578,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     语速
                   </label>
                   <span className="text-small text-text-secondary">
-                    {selectedSettings.tts?.rate?.toFixed(1) || '0.8'}
+                    {(pendingSettings || settings).tts?.rate?.toFixed(1) || '0.8'}
                   </span>
                 </div>
                 <input
@@ -588,7 +586,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                   min="0.5"
                   max="2.0"
                   step="0.1"
-                  value={selectedSettings.tts?.rate || 0.8}
+                  value={(pendingSettings || settings).tts?.rate || 0.8}
                   onChange={(e) => handleTtsSettingChange('rate', parseFloat(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                 />
@@ -606,7 +604,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     音调
                   </label>
                   <span className="text-small text-text-secondary">
-                    {selectedSettings.tts?.pitch?.toFixed(1) || '1.0'}
+                    {(pendingSettings || settings).tts?.pitch?.toFixed(1) || '1.0'}
                   </span>
                 </div>
                 <input
@@ -614,7 +612,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                   min="0.5"
                   max="2.0"
                   step="0.1"
-                  value={selectedSettings.tts?.pitch || 1.0}
+                  value={(pendingSettings || settings).tts?.pitch || 1.0}
                   onChange={(e) => handleTtsSettingChange('pitch', parseFloat(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                 />
@@ -632,7 +630,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     音量
                   </label>
                   <span className="text-small text-text-secondary">
-                    {Math.round((selectedSettings.tts?.volume || 1.0) * 100)}%
+                    {Math.round(((pendingSettings || settings).tts?.volume || 1.0) * 100)}%
                   </span>
                 </div>
                 <input
@@ -640,7 +638,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                   min="0.0"
                   max="1.0"
                   step="0.1"
-                  value={selectedSettings.tts?.volume || 1.0}
+                  value={(pendingSettings || settings).tts?.volume || 1.0}
                   onChange={(e) => handleTtsSettingChange('volume', parseFloat(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                 />

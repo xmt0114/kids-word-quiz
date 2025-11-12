@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>localStorage用户数据隔离测试指南</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; background: #f0f2f5; }
+    h1 { color: #1a365d; border-bottom: 3px solid #3182ce; padding-bottom: 10px; }
+    h2 { color: #2c5282; margin-top: 30px; }
+    .log { background: #f7fafc; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3182ce; }
+    .success { color: #22543d; }
+    .error { color: #742a2a; }
+    .warning { color: #744210; }
+    .info { color: #2c5282; }
+    code { background: #2d3748; color: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+    .code-block { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+    .highlight { background: #fef5e7; padding: 15px; border-left: 4px solid #f59e0b; margin: 15px 0; border-radius: 4px; }
+    .test-step { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h1>🔒 localStorage用户数据隔离测试指南</h1>
+
+  <div class="highlight">
+    <strong>✨ 修复内容：</strong>
+    <ul>
+      <li><strong>数据隔离：</strong> 不同登录用户的localStorage数据完全隔离</li>
+      <li><strong>未登录用户：</strong> 使用设备ID区分不同设备，未登录用户数据不会混淆</li>
+      <li><strong>Key格式：</strong> 登录用户使用 <code>key_user_{userId}</code>，未登录用户使用 <code>key_anonymous_{deviceId}</code></li>
+      <li><strong>保底机制：</strong> 未登录用户可以直接使用app_config的服务器配置</li>
+    </ul>
+  </div>
+
+  <h2>🔍 修复前后对比</h2>
+
+  <div class="test-step">
+    <h3>修复前（问题）</h3>
+    <div class="log error">
+      <strong>所有用户共享同一个localStorage key：</strong><br>
+      • <code>'quiz-settings'</code> - 所有用户共享<br>
+      • <code>'quiz-stats'</code> - 所有用户共享<br>
+      • <code>'learning-progress'</code> - 所有用户共享<br>
+      <br>
+      <strong>导致的问题：</strong><br>
+      ❌ 用户A的设置覆盖用户B的设置<br>
+      ❌ 用户A的游戏次数加到用户B的统计上<br>
+      ❌ 用户A的学习进度覆盖用户B的进度
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>修复后（正常）</h3>
+    <div class="log success">
+      <strong>每个用户使用独立的localStorage key：</strong><br>
+      • <code>'quiz-settings_user_{userId_A}'</code> - 用户A专用<br>
+      • <code>'quiz-settings_user_{userId_B}'</code> - 用户B专用<br>
+      • <code>'quiz-stats_user_{userId_A}'</code> - 用户A专用<br>
+      • <code>'quiz-stats_user_{userId_B}'</code> - 用户B专用<br>
+      • <code>'learning-progress_user_{userId_A}'</code> - 用户A专用<br>
+      • <code>'learning-progress_user_{userId_B}'</code> - 用户B专用<br>
+      <br>
+      <strong>未登录用户：</strong><br>
+      • <code>'quiz-settings_anonymous_{deviceId}'</code> - 设备专用<br>
+      • <code>'quiz-stats_anonymous_{deviceId}'</code> - 设备专用<br>
+      • <code>'learning-progress_anonymous_{deviceId}'</code> - 设备专用
+    </div>
+  </div>
+
+  <h2>🧪 测试场景1: 登录用户数据隔离</h2>
+
+  <div class="test-step">
+    <h3>步骤1: 用户A登录并修改设置</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 使用浏览器A（推荐Chrome）访问应用<br>
+      2. 注册/登录用户A（邮箱: userA@test.com）<br>
+      3. 进入"猜单词" → "设置"<br>
+      4. 修改设置为：题型='音频题干', 答题方式='填空题'<br>
+      5. 点击"保存设置"<br>
+      <br>
+      <strong>预期控制台日志：</strong><br>
+      <div class="code-block">
+💾 [GuessWordSettings] 用户点击保存设置: {<br>
+  questionType: "audio",<br>
+  answerType: "fill",<br>
+  ...<br>
+}<br>
+💾 [useLocalStorage] 保存到localStorage: {<br>
+  key: "quiz-settings_user_[userA的ID]",<br>
+  value: {...}<br>
+}<br>
+✅ [useQuizSettings] 设置已同步到后端
+      </div>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤2: 用户B登录并修改设置</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 使用浏览器B（推荐Firefox或Chrome无痕模式）访问应用<br>
+      2. 注册/登录用户B（邮箱: userB@test.com）<br>
+      3. 进入"猜单词" → "设置"<br>
+      4. 修改设置为：题型='文字题干', 答题方式='选择题'<br>
+      5. 点击"保存设置"<br>
+      <br>
+      <strong>预期控制台日志：</strong><br>
+      <div class="code-block">
+💾 [GuessWordSettings] 用户点击保存设置: {<br>
+  questionType: "text",<br>
+  answerType: "choice",<br>
+  ...<br>
+}<br>
+💾 [useLocalStorage] 保存到localStorage: {<br>
+  key: "quiz-settings_user_[userB的ID]",<br>
+  value: {...}<br>
+}<br>
+✅ [useQuizSettings] 设置已同步到后端
+      </div>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤3: 验证数据隔离</h3>
+    <div class="log success">
+      <strong>操作：</strong><br>
+      1. 在浏览器A中刷新页面，检查设置是否保持为：题型='音频题干', 答题方式='填空题'<br>
+      2. 在浏览器B中刷新页面，检查设置是否保持为：题型='文字题干', 答题方式='选择题'<br>
+      3. 打开浏览器开发者工具 → Application → Local Storage，检查：<br>
+      <br>
+      <strong>应该看到：</strong><br>
+      • Chrome: <code>quiz-settings_user_[userA的ID]</code> = { questionType: "audio", answerType: "fill" }<br>
+      • Firefox: <code>quiz-settings_user_[userB的ID]</code> = { questionType: "text", answerType: "choice" }<br>
+      <br>
+      <strong>✅ 验证通过：</strong><br>
+      ✓ 用户A和用户B的设置完全隔离<br>
+      ✓ 各自看到自己的设置，互不影响<br>
+      ✓ localStorage key包含用户ID前缀
+    </div>
+  </div>
+
+  <h2>🧪 测试场景2: 未登录用户数据隔离</h2>
+
+  <div class="test-step">
+    <h3>步骤1: 未登录用户A使用应用</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 打开Chrome无痕模式（或清除localStorage后）<br>
+      2. <strong style="color: red;">不登录</strong>，直接访问应用<br>
+      3. 进入"猜单词" → "设置"<br>
+      4. 修改设置并保存<br>
+      <br>
+      <strong>预期控制台日志：</strong><br>
+      <div class="code-block">
+🔍 [useQuizSettings] 获取默认设置: {<br>
+  isLoggedIn: false,<br>
+  from: "服务器配置",<br>
+  finalSettings: {...}<br>
+}<br>
+💾 [GuessWordSettings] 用户点击保存设置: {...}<br>
+💾 [useLocalStorage] 保存到localStorage: {<br>
+  key: "quiz-settings_anonymous_[deviceId]",<br>
+  value: {...}<br>
+}<br>
+⚠️ [useQuizSettings] 用户未登录，跳过同步到后端
+      </div>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤2: 未登录用户B使用应用</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 打开Firefox浏览器（或Chrome另一个无痕窗口）<br>
+      2. <strong style="color: red;">不登录</strong>，直接访问应用<br>
+      3. 进入"猜单词" → "设置"<br>
+      4. 修改为不同的设置并保存<br>
+      <br>
+      <strong>预期控制台日志：</strong><br>
+      <div class="code-block">
+🔍 [useQuizSettings] 获取默认设置: {<br>
+  isLoggedIn: false,<br>
+  from: "服务器配置",<br>
+  finalSettings: {...}<br>
+}<br>
+💾 [GuessWordSettings] 用户点击保存设置: {...}<br>
+💾 [useLocalStorage] 保存到localStorage: {<br>
+  key: "quiz-settings_anonymous_[不同的deviceId]",<br>
+  value: {...}<br>
+}
+      </div>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤3: 验证未登录用户数据隔离</h3>
+    <div class="log success">
+      <strong>操作：</strong><br>
+      1. 在Chrome无痕窗口中刷新页面，检查设置保持<br>
+      2. 在Firefox窗口中刷新页面，检查设置保持<br>
+      3. 检查localStorage，应该看到：<br>
+      <br>
+      <strong>应该看到：</strong><br>
+      • Chrome: <code>device_id</code> = "device_xxx_xxx"（设备ID）<br>
+      • Chrome: <code>quiz-settings_anonymous_device_xxx_xxx</code> = { 设置A }<br>
+      • Firefox: <code>device_id</code> = "device_yyy_yyy"（不同的设备ID）<br>
+      • Firefox: <code>quiz-settings_anonymous_device_yyy_yyy</code> = { 设置B }<br>
+      <br>
+      <strong>✅ 验证通过：</strong><br>
+      ✓ 不同设备的未登录用户数据隔离<br>
+      ✓ 使用设备ID作为标识符<br>
+      ✓ 未登录用户使用服务器配置作为默认值
+    </div>
+  </div>
+
+  <h2>🧪 测试场景3: 登录前后数据迁移</h2>
+
+  <div class="test-step">
+    <h3>步骤1: 未登录时修改设置</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 不登录进入设置页面<br>
+      2. 修改设置并保存<br>
+      3. 观察localStorage中的key为 <code>anonymous_xxx</code>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤2: 登录后数据迁移</h3>
+    <div class="log">
+      <strong>操作：</strong><br>
+      1. 在同一浏览器中登录用户<br>
+      2. 进入设置页面<br>
+      3. 观察控制台日志和localStorage<br>
+      <br>
+      <strong>预期结果：</strong><br>
+      ✓ 使用服务器配置（app_config）作为默认值<br>
+      ✓ 登录后localStorage key变为 <code>user_{userId}</code><br>
+      ✓ 已登录用户的设置优先级高于未登录时的设置
+    </div>
+  </div>
+
+  <h2>📊 数据类型隔离验证</h2>
+
+  <div class="test-step">
+    <h3>需要验证的数据类型</h3>
+    <div class="log">
+      <strong>1. quiz-settings（答题设置）</strong><br>
+      • Key格式: <code>quiz-settings_user_{userId}</code><br>
+      • 数据: { questionType, answerType, selectionStrategy, collectionId, tts }<br>
+      <br>
+      <strong>2. quiz-stats（答题统计）</strong><br>
+      • Key格式: <code>quiz-stats_user_{userId}</code><br>
+      • 数据: { totalGames, totalCorrect, bestScore, averageScore, lastPlayed }<br>
+      <br>
+      <strong>3. learning-progress（学习进度）</strong><br>
+      • Key格式: <code>learning-progress_user_{userId}</code><br>
+      • 数据: { [collectionId]: { lastPosition, totalWords, lastUpdated } }
+    </div>
+  </div>
+
+  <h2>✅ 完成检查清单</h2>
+  <div class="log success">
+    <input type="checkbox"> 用户A和用户B的设置数据完全隔离<br>
+    <input type="checkbox"> localStorage key包含用户ID前缀（user_{userId}）<br>
+    <input type="checkbox"> 未登录用户使用设备ID隔离（anonymous_{deviceId}）<br>
+    <input type="checkbox"> 未登录用户可以使用服务器配置（app_config）作为默认值<br>
+    <input type="checkbox"> 游戏统计数据显示隔离（每个用户自己的统计）<br>
+    <input type="checkbox"> 学习进度数据隔离（每个用户自己的进度）<br>
+    <input type="checkbox"> 登录后数据不会混淆未登录时的数据<br>
+    <input type="checkbox"> 控制台显示正确的存储key<br>
+    <input type="checkbox"> 未登录用户不会同步到后端（跳过同步）
+  </div>
+
+  <h2>📚 关键技术实现</h2>
+
+  <div class="log info">
+    <strong>核心实现（useLocalStorage.ts）：</strong><br>
+    <div class="code-block">
+// 生成localStorage key，包含用户ID或匿名标识
+function getStorageKey(baseKey: string, userId?: string): string {
+  const prefix = userId ? `user_${userId}` : `anonymous_${getDeviceId()}`;
+  return `${baseKey}_${prefix}`;
+}
+
+// 获取设备唯一ID
+function getDeviceId(): string {
+  const KEY = 'device_id';
+  let deviceId = localStorage.getItem(KEY);
+
+  if (!deviceId) {
+    deviceId = `device_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    localStorage.setItem(KEY, deviceId);
+  }
+
+  return deviceId;
+}
+
+// 使用userId参数
+export function useLocalStorage&lt;T&gt;(key: string, initialValue: T, userId?: string) {
+  const storageKey = getStorageKey(key, userId);
+  // ...
+}
+    </div>
+  </div>
+
+  <div class="log info">
+    <strong>Hook更新（useQuizSettings等）：</strong><br>
+    <div class="code-block">
+export function useQuizSettings() {
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  const [settings, setSettings] = useLocalStorage&lt;Partial&lt;QuizSettings&gt;&gt;(
+    'quiz-settings',
+    defaultSettings,
+    userId  // 传递userId
+  );
+  // ...
+}
+    </div>
+  </div>
+
+</body>
+</html>

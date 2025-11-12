@@ -1,4 +1,5 @@
 import { useLocalStorage } from './useLocalStorage';
+import { useAuth } from './useAuth';
 
 // 学习进度接口
 export interface LearningProgress {
@@ -16,7 +17,16 @@ type ProgressMap = Record<string, LearningProgress>;
 
 // 学习进度Hook
 export function useLearningProgress() {
-  const [progressMap, setProgressMap] = useLocalStorage<ProgressMap>(LEARNING_PROGRESS_KEY, {});
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  const [progressMap, setProgressMap] = useLocalStorage<ProgressMap>(LEARNING_PROGRESS_KEY, {}, userId);
+
+  console.log('📊 [useLearningProgress] 初始化:', {
+    isLoggedIn: !!userId,
+    userId,
+    progressKeys: Object.keys(progressMap)
+  });
 
   // 获取指定教材的学习进度
   const getProgress = (collectionId: string): LearningProgress | null => {
