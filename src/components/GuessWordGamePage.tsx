@@ -12,15 +12,12 @@ import { TextToSpeechButton } from './TextToSpeechButton';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
-import { useLearningProgress } from '../hooks/useLearningProgress';
-import { wordAPI } from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 const GuessWordGamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { updateStats } = useQuizStats();
-  const { getOffset, advanceProgress } = useLearningProgress();
-  const [totalWords, setTotalWords] = useState<number>(0);
 
   // 从路由状态获取设置 - 只信任路由传递的设置
   const { settings: routeSettings, collectionId, questions: passedQuestions, isReplay } = location.state || {};
@@ -35,6 +32,7 @@ const GuessWordGamePage: React.FC = () => {
     retryCount,
     initializeQuiz,
     submitAnswer,
+    submitResults,
     nextQuestion,
     previousQuestion,
     getCurrentQuestion,
@@ -83,20 +81,41 @@ const GuessWordGamePage: React.FC = () => {
 
           // 直接使用传递过来的单词，不更新进度
           await initializeQuiz(finalSettings, collectionId, 0, passedQuestions);
-          setTotalWords(passedQuestions.length); // 临时设置，用于显示
           return;
         }
 
-        // 正常流程：从API获取单词
-        const response = await wordAPI.getCollectionById(collectionId!);
-        const totalWordCount = response.success && response.data ? response.data.word_count || 0 : 0;
-        setTotalWords(totalWordCount);
+        // 正常流程：使用新的RPC函数获取学习会话
+        console.log('[GamePage] 使用 get_my_study_session RPC 获取题目:', {
+          collectionId,
+          sessionSize: 10,
+          studyMode: finalSettings.selectionStrategy
+        });
 
-        // 获取学习进度偏移量
-        const offset = getOffset(collectionId!);
+        // 调用新的RPC函数获取学习会话
+        const { data: words, error } = await supabase
+          .rpc('get_my_study_session', {
+            p_collection_id: collectionId,
+            p_session_size: 10,
+            p_study_mode: finalSettings.selectionStrategy
+          });
 
-        // 初始化时传入offset
-        await initializeQuiz(finalSettings, collectionId, offset);
+        if (error) {
+          console.error('Failed to fetch study session:', error);
+          throw new Error(`获取学习会话失败: ${error.message}`);
+        }
+
+        if (!words || words.length === 0) {
+          throw new Error('没有可用的学习内容');
+        }
+
+        console.log('[GamePage] 获取到学习会话:', {
+          wordCount: words.length,
+          studyMode: finalSettings.selectionStrategy
+        });
+
+        // 直接使用RPC返回的单词数据初始化Quiz
+        // RPC已经处理了offset和随机化逻辑
+        await initializeQuiz(finalSettings, collectionId, 0, words);
       } catch (err) {
         console.error('Failed to initialize quiz:', err);
       } finally {
@@ -182,19 +201,22 @@ const GuessWordGamePage: React.FC = () => {
   };
 
   // 处理下一题
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     if (quizState.currentQuestionIndex >= quizState.questions.length - 1) {
       // 所有题目完成，显示结果
       const result = getResult();
       updateStats(result.correctAnswers, result.totalQuestions);
 
-      // 更新学习进度 - 只在非replay模式下更新
-      if (collectionId && totalWords > 0 && !isReplay) {
-        // 使用当前进度作为偏移量，完成本次的10题
-        const completedQuestions = result.totalQuestions;
+      // 提交答题结果到后端 - 只在非replay模式下提交
+      if (!isReplay) {
+        console.log('[GamePage] 提交答题结果到后端...', quizState.results);
+        const submitResult = await submitResults(quizState.results);
 
-        // 更新学习进度
-        advanceProgress(collectionId, completedQuestions, totalWords);
+        if (!submitResult.success) {
+          console.warn('[GamePage] 提交答题结果失败:', submitResult.error);
+        } else {
+          console.log('[GamePage] 答题结果提交成功');
+        }
       }
 
       navigate('/guess-word/result', {

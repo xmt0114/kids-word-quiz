@@ -70,11 +70,19 @@ export interface QuizSettings {
   tts?: TTSSettings;     // 语音朗读配置
 }
 
+// 答题结果类型
+export interface QuizAnswerResult {
+  wordId: number;
+  answer: string;
+  isCorrect: boolean;
+}
+
 export interface QuizState {
   settings: QuizSettings;
   currentQuestionIndex: number;
   questions: Word[];
   answers: (string | null)[];
+  results?: QuizAnswerResult[]; // 答题结果记录
   isCompleted: boolean;
   score: number;
 }

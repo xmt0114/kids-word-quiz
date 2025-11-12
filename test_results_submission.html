@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>答题结果提交功能测试指南</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; background: #f0f2f5; }
+    h1 { color: #1a365d; border-bottom: 3px solid #3182ce; padding-bottom: 10px; }
+    h2 { color: #2c5282; margin-top: 30px; }
+    .log { background: #f7fafc; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3182ce; }
+    .success { color: #22543d; }
+    .error { color: #742a2a; }
+    .warning { color: #744210; }
+    .info { color: #2c5282; }
+    code { background: #2d3748; color: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+    .code-block { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+    .highlight { background: #fef5e7; padding: 15px; border-left: 4px solid #f59e0b; margin: 15px 0; border-radius: 4px; }
+    .test-step { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h1>🎯 答题结果提交功能测试指南</h1>
+
+  <div class="highlight">
+    <strong>✨ 修复说明：</strong>
+    <ul>
+      <li><strong>问题</strong>：之前 <code>submitResults</code> 函数在异步调用时无法获取最新的 <code>quizState.results</code> 状态，导致闭包问题</li>
+      <li><strong>解决方案</strong>：将答题结果作为参数传递给 <code>submitResults</code> 函数，而不是从状态中读取</li>
+    </ul>
+  </div>
+
+  <h2>🔍 问题诊断</h2>
+  <div class="test-step">
+    <h3>步骤1: 打开浏览器开发者工具</h3>
+    <div class="log info">
+      按 <code>F12</code> 或右键选择"检查"打开开发者工具，然后切换到 <strong>Console</strong> 标签页
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤2: 开始答题</h3>
+    <div class="log">
+      1. 进入"猜单词"游戏<br>
+      2. 答完10道题<br>
+      3. 点击最后一题的"下一题"按钮<br>
+      4. 观察控制台日志
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤3: 检查控制台日志</h3>
+    <div class="log">
+      <strong>应该看到的日志：</strong><br>
+      <div class="code-block">
+[GamePage] 提交答题结果到后端... (10) [{<br>
+  wordId: 1,<br>
+  answer: "apple",<br>
+  isCorrect: true<br>
+}, ...]<br>
+[useQuiz] 提交答题结果到后端: 10<br>
+[useQuiz] 答题结果提交成功
+      </div>
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>步骤4: 检查网络请求</h3>
+    <div class="log">
+      1. 切换到开发者工具的 <strong>Network</strong> 标签页<br>
+      2. 筛选器中选择 <strong>RPC</strong> 或搜索 <code>record_session_results</code><br>
+      3. 应该能看到对 <code>record_session_results</code> RPC函数的请求<br>
+      4. 点击请求查看请求参数：
+      <div class="code-block">
+{<br>
+  "p_session_results": [<br>
+    {"word_id": 1, "is_correct": true},<br>
+    {"word_id": 2, "is_correct": false},<br>
+    ...<br>
+  ]<br>
+}
+      </div>
+    </div>
+  </div>
+
+  <h2>⚠️ 常见问题排查</h2>
+
+  <div class="test-step">
+    <h3>问题1: 没有看到提交日志</h3>
+    <div class="log warning">
+      <strong>可能原因：</strong><br>
+      • 处于"再玩一次"模式（isReplay=true）<br>
+      • 控制台日志被过滤<br>
+      <br>
+      <strong>解决方案：</strong><br>
+      • 确保不是点击"再玩一次"按钮进入的游戏<br>
+      • 在控制台中选择"All levels"或"Verbose"日志级别
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>问题2: 看到"没有答题结果需要提交"</h3>
+    <div class="log error">
+      <strong>可能原因：</strong><br>
+      • <code>quizState.results</code> 数组为空或未正确填充<br>
+      • 答题过程中发生状态更新错误<br>
+      <br>
+      <strong>解决方案：</strong><br>
+      • 检查控制台是否有其他错误日志<br>
+      • 确认每题都有提交答案
+    </div>
+  </div>
+
+  <div class="test-step">
+    <h3>问题3: 看到"提交答题结果失败"</h3>
+    <div class="log error">
+      <strong>可能原因：</strong><br>
+      • RPC函数调用失败<br>
+      • 网络连接问题<br>
+      • 权限不足<br>
+      <br>
+      <strong>解决方案：</strong><br>
+      • 查看错误消息详情<br>
+      • 检查网络请求的状态码<br>
+      • 确认用户已登录
+    </div>
+  </div>
+
+  <h2>📋 完整测试清单</h2>
+  <div class="log success">
+    <input type="checkbox"> 控制台显示 "[GamePage] 提交答题结果到后端..." 日志<br>
+    <input type="checkbox"> 控制台显示 "[useQuiz] 提交答题结果到后端: 10" 日志<br>
+    <input type="checkbox"> 控制台显示 "[useQuiz] 答题结果提交成功" 日志<br>
+    <input type="checkbox"> Network面板显示 record_session_results 请求<br>
+    <input type="checkbox"> 请求参数格式正确：[{word_id: x, is_correct: y}, ...]<br>
+    <input type="checkbox"> 请求返回成功（无error）<br>
+  </div>
+
+  <h2>💡 技术实现细节</h2>
+  <div class="log info">
+    <strong>修复前的问题：</strong><br>
+    • <code>submitResults</code> 函数依赖 <code>quizState.results</code><br>
+    • 异步调用时，闭包捕获的是旧的状态值<br>
+    • 导致提交空结果或错误结果<br>
+    <br>
+    <strong>修复后的方案：</strong><br>
+    • 将 <code>results</code> 作为参数传递<br>
+    • <code>submitResults(results: QuizAnswerResult[])</code><br>
+    • 避免闭包问题，确保数据是最新的
+  </div>
+
+  <h2>🔧 代码位置</h2>
+  <div class="log info">
+    <strong>修改的文件：</strong><br>
+    1. <code>src/hooks/useQuiz.ts</code> - submitResults 函数<br>
+    2. <code>src/components/GuessWordGamePage.tsx</code> - handleNextQuestion 函数<br>
+    3. <code>src/types/index.ts</code> - QuizAnswerResult 接口
+  </div>
+
+</body>
+</html>

@@ -1,11 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Word, QuizSettings, QuizState, QuizResult } from '../types';
-import { getRandomWords } from '../utils/dataUtils';
-import { wordAPI } from '../utils/api';
+import { Word, QuizSettings, QuizState, QuizResult, QuizAnswerResult } from '../types';
+import { supabase } from '../lib/supabase';
 
 const TOTAL_QUESTIONS = 10;
-const INITIALIZE_TIMEOUT = 10000; // 10秒超时
-const MAX_RETRIES = 3;
 
 export function useQuiz() {
   const [quizState, setQuizState] = useState<QuizState>({
@@ -24,57 +21,11 @@ export function useQuiz() {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // 带超时和重试的数据获取
-  const fetchWordsWithRetry = useCallback(async (
-    settings: QuizSettings,
-    collectionId?: string,
-    offset: number = 0,
-    retries: number = MAX_RETRIES
-  ): Promise<Word[]> => {
-    try {
-      // 创建超时Promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('请求超时')), INITIALIZE_TIMEOUT);
-      });
-
-      // 创建请求Promise
-      const requestPromise = wordAPI.getWords({
-        limit: TOTAL_QUESTIONS,
-        offset: offset, // 传递偏移量
-        collectionId: collectionId, // 传递教材ID
-        selectionStrategy: settings.selectionStrategy, // 传递选取策略
-      });
-
-      // 竞态处理：超时或请求完成
-      const response = await Promise.race([requestPromise, timeoutPromise]);
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error || '获取题目失败');
-      }
-
-      return response.data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '未知错误';
-
-      // 如果还有重试次数，则重试
-      if (retries > 0) {
-        console.warn(`获取题目失败，剩余重试次数: ${retries - 1}, 错误: ${errorMessage}`);
-        setRetryCount(MAX_RETRIES - retries + 1);
-
-        // 等待一段时间后重试
-        await new Promise(resolve => setTimeout(resolve, 1000 * (MAX_RETRIES - retries + 1)));
-        return fetchWordsWithRetry(settings, collectionId, offset, retries - 1);
-      }
-
-      throw new Error(`获取题目失败: ${errorMessage}`);
-    }
-  }, []);
-
   // 初始化题目
   const initializeQuiz = useCallback(async (
     settings: QuizSettings,
-    collectionId?: string,
-    offset: number = 0,
+    _collectionId?: string,
+    _offset: number = 0,
     questions?: Word[] // 可选的预加载题目
   ) => {
     setIsLoading(true);
@@ -82,59 +33,38 @@ export function useQuiz() {
     setRetryCount(0);
 
     try {
-      let questionsToUse: Word[];
+      // 验证预加载题目数据
+      if (!questions || questions.length === 0) {
+        throw new Error('没有提供题目数据');
+      }
 
-      // 如果提供了预加载题目，直接使用
-      if (questions && questions.length > 0) {
-        console.log('[useQuiz] 使用预加载题目:', questions.length);
-        questionsToUse = questions.slice(0, TOTAL_QUESTIONS);
-      } else {
-        // 否则从API获取题目
-        console.log('[useQuiz] 从API获取题目');
-        // 获取单词数据（带重试机制）
-        const wordsData = await fetchWordsWithRetry(settings, collectionId, offset);
+      const questionsToUse = questions.slice(0, TOTAL_QUESTIONS);
 
-        // 验证数据完整性
-        if (!Array.isArray(wordsData) || wordsData.length === 0) {
-          throw new Error('没有可用的题目数据');
-        }
+      // 验证题目数据完整性
+      const validWords = questionsToUse.filter((word: Word) => {
+        if (!word) return false;
 
-        // 根据选取策略选择题目
-        // 顺序选取：保持API返回的顺序（已按word字母排序）
-        // 随机选取：随机打乱
-        const shouldShuffle = settings.selectionStrategy !== 'sequential';
-        const selectedWords = getRandomWords(wordsData, TOTAL_QUESTIONS, undefined, shouldShuffle);
+        // 基本字段验证
+        if (!word.id) return false;
+        if (!word.word) return false;
+        if (!word.definition) return false;
+        if (!Array.isArray(word.options)) return false;
+        if (word.options.length < 3) return false;
+        if (!word.answer) return false;
 
-        // 验证选择的题目数据完整性
-        const validWords = selectedWords.filter(word => {
-          if (!word) return false;
+        return true;
+      });
 
-          // 基本字段验证
-          if (!word.id) return false;
-          if (!word.word) return false;
-          if (!word.definition) return false;
-          if (!Array.isArray(word.options)) return false;
-          if (word.options.length < 3) return false;
-          if (!word.answer) return false;
-
-          return true;
-        });
-
-        if (validWords.length === 0) {
-          throw new Error('没有有效的题目数据');
-        }
-
-        // 如果有效题目不足TOTAL_QUESTIONS，使用所有有效题目
-        questionsToUse = validWords.length >= TOTAL_QUESTIONS
-          ? validWords.slice(0, TOTAL_QUESTIONS)
-          : validWords;
+      if (validWords.length === 0) {
+        throw new Error('没有有效的题目数据');
       }
 
       setQuizState({
         settings,
         currentQuestionIndex: 0,
-        questions: questionsToUse,
-        answers: new Array(questionsToUse.length).fill(null),
+        questions: validWords,
+        answers: new Array(validWords.length).fill(null),
+        results: new Array(validWords.length).fill(null),
         isCompleted: false,
         score: 0,
       });
@@ -147,7 +77,44 @@ export function useQuiz() {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWordsWithRetry]);
+  }, []);
+
+  // 提交答题结果到后端
+  const submitResults = useCallback(async (results: QuizAnswerResult[] | null | undefined) => {
+    try {
+      if (!results || results.length === 0) {
+        console.warn('没有答题结果需要提交');
+        return { success: false, error: '没有答题结果' };
+      }
+
+      const resultsArray = results
+        .filter(result => result !== null)
+        .map(result => ({
+          word_id: result.wordId,
+          is_correct: result.isCorrect
+        }));
+
+      console.log('[useQuiz] 提交答题结果到后端:', resultsArray.length);
+
+      const { error } = await supabase.rpc('record_session_results', {
+        p_session_results: resultsArray
+      });
+
+      if (error) {
+        console.error('提交答题结果失败:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('[useQuiz] 答题结果提交成功');
+      return { success: true };
+    } catch (err) {
+      console.error('提交答题结果时发生错误:', err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : '未知错误'
+      };
+    }
+  }, []);
 
   // 提交答案（仅保存答案，不自动跳转）
   const submitAnswer = useCallback((answer: string) => {
@@ -158,7 +125,15 @@ export function useQuiz() {
       // 计算当前得分
       const currentWord = prev.questions[prev.currentQuestionIndex];
       const isCorrect = answer.toLowerCase().trim() === currentWord.answer.toLowerCase().trim();
-      
+
+      // 创建或更新答题结果记录
+      const newResults = [...(prev.results || [])];
+      newResults[prev.currentQuestionIndex] = {
+        wordId: currentWord.id,
+        answer: answer,
+        isCorrect: isCorrect
+      };
+
       let newScore = prev.score;
       if (isCorrect && !prev.answers[prev.currentQuestionIndex]) {
         newScore += 1;
@@ -167,6 +142,7 @@ export function useQuiz() {
       return {
         ...prev,
         answers: newAnswers,
+        results: newResults,
         score: newScore,
       };
     });
@@ -251,21 +227,22 @@ export function useQuiz() {
     isLoading,
     error,
     retryCount,
-    
+
     // 方法
     initializeQuiz,
     submitAnswer,
+    submitResults,
     nextQuestion,
     previousQuestion,
     restartQuiz,
     clearError,
-    
+
     // 计算属性
     getCurrentQuestion,
     getResult,
     getProgress,
     checkAnswer,
-    
+
     // 常量
     totalQuestions: TOTAL_QUESTIONS,
   };
