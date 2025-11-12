@@ -12,6 +12,7 @@ import { wordAPI } from '../utils/api';
 import { WordCollection } from '../types';
 import { toast, Toaster } from 'sonner';
 import { SupabaseWordAPI } from '../utils/supabaseApi';
+import { supabase } from '../lib/supabase';
 
 interface DataManagementPageProps {
   onBack?: () => void;
@@ -262,77 +263,70 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
 
     try {
-      // 准备数据
-      const preparedData = batchWords.map(wordData => ({
-        ...wordData,
-        collectionId: selectedCollectionId,
-        audioText: wordData.audioText || wordData.definition, // 默认使用定义作为音频文本
+      // 准备批量数据 - 转换为 RPC 期望的格式
+      const batchData = batchWords.map(wordData => ({
+        word: wordData.word,
+        definition: wordData.definition,
+        audio_text: wordData.audioText || wordData.definition,
+        difficulty: wordData.difficulty || 'easy',
+        answer: wordData.answer || '',
+        hint: wordData.hint || null,
+        // 可选字段（如果提供才添加）
+        ...(wordData.options && { options: JSON.stringify(wordData.options) }),
       }));
 
-      // 分批处理（Supabase 建议每批不超过 100 个单词）
-      const BATCH_SIZE = 100;
-      let totalSuccess = 0;
-      let totalErrors: string[] = [];
+      // 准备 RPC 参数 - 直接传递数组对象（Supabase V2 支持）
+      const batchParams = {
+        p_collection_id: selectedCollectionId,
+        p_words_batch: batchData  // 直接传递数组，不要JSON.stringify
+      };
 
-      for (let i = 0; i < preparedData.length; i += BATCH_SIZE) {
-        const batch = preparedData.slice(i, i + BATCH_SIZE);
-        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(preparedData.length / BATCH_SIZE);
+      console.log('[DataManagement] 批量添加单词:', batchParams);
 
-        // 显示进度
-        toast.loading(`正在插入第 ${batchNum}/${totalBatches} 批 (${batch.length} 个单词)...`, { id: 'batch-add' });
+      // 显示进度
+      toast.loading(`正在添加 ${batchData.length} 个单词...`, { id: 'batch-add' });
 
-        const response = await supabaseAPI.batchAddWords(batch);
+      // 调用 RPC
+      const { data: newWordsList, error } = await supabase.rpc('add_batch_words', batchParams);
 
-        if (response.success) {
-          totalSuccess += response.data?.count || 0;
-          // 记录部分失败的单词
-          if (response.data?.errors && response.data.errors.length > 0) {
-            totalErrors.push(`第${batchNum}批: ${response.data.errors.map(e => e.word).join(', ')}`);
+      if (error) {
+        console.error('RPC add_batch_words error:', error);
+        toast.dismiss('batch-add');
+        toast.error(`批量添加失败: ${error.message}`);
+        throw new Error(error.message);
+      } else {
+        console.log('[DataManagement] 批量添加成功:', newWordsList);
+        toast.dismiss('batch-add');
+
+        const successCount = newWordsList?.length || 0;
+        toast.success(`成功添加 ${successCount} 个词汇`);
+
+        // 重新加载词汇列表
+        if (selectedCollectionId) {
+          // 手动更新当前选中教材的 word_count
+          if (selectedCollection && successCount > 0) {
+            const newWordCount = selectedCollection.word_count + successCount;
+            setSelectedCollection({
+              ...selectedCollection,
+              word_count: newWordCount
+            });
+
+            // 批量添加后，如果当前是最后一页或增加了新页，刷新数据
+            const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+            if (currentPage === newTotalPages || newTotalPages > totalPages) {
+              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+            }
+          } else {
+            loadWords(selectedCollectionId);
           }
-        } else {
-          totalErrors.push(`第${batchNum}批完全失败: ${response.error}`);
+
+          // 重新加载教材列表（数据库触发器会自动更新 word_count）
+          loadCollections();
         }
-      }
-
-      // 隐藏进度提示
-      toast.dismiss('batch-add');
-
-      // 显示结果
-      if (totalSuccess > 0) {
-        toast.success(`成功添加 ${totalSuccess} 个词汇`);
-      }
-      if (totalErrors.length > 0) {
-        toast.error(`${totalErrors.length} 个批次有问题`, {
-          duration: 5000, // 显示5秒
-        });
-        console.error('批量添加错误详情:', totalErrors);
-      }
-
-      // 重新加载词汇列表
-      if (selectedCollectionId) {
-        // 手动更新当前选中教材的 word_count
-        if (selectedCollection && totalSuccess > 0) {
-          const newWordCount = selectedCollection.word_count + totalSuccess;
-          setSelectedCollection({
-            ...selectedCollection,
-            word_count: newWordCount
-          });
-
-          // 批量添加后，如果当前是最后一页或增加了新页，刷新数据
-          const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
-          if (currentPage === newTotalPages || newTotalPages > totalPages) {
-            loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
-          }
-        } else {
-          loadWords(selectedCollectionId);
-        }
-
-        // 重新加载教材列表（数据库触发器会自动更新 word_count）
-        loadCollections();
       }
     } catch (err) {
       console.error('批量添加失败:', err);
+      toast.dismiss('batch-add');
       toast.error('批量添加失败，请重试');
       throw err;
     }
@@ -473,12 +467,12 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     }
 
     try {
-      const wordData = {
-        ...data,
-        collectionId: selectedCollectionId,
-      };
-
       if (editingWord) {
+        // 编辑单词 - 仍使用原有 update API（因为没有 update RPC）
+        const wordData = {
+          ...data,
+          collectionId: selectedCollectionId,
+        };
         const response = await wordAPI.updateWord(editingWord.id, wordData);
         if (response.success) {
           toast.success('更新词汇成功');
@@ -488,8 +482,31 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
           throw new Error(response.error);
         }
       } else {
-        const response = await wordAPI.addWord(wordData);
-        if (response.success) {
+        // 添加单词 - 使用新的 RPC
+        const wordParams = {
+          // 必填参数（没有默认值）
+          p_collection_id: selectedCollectionId,
+          p_word: data.word,
+          p_definition: data.definition,
+          p_audio_text: data.audioText || data.definition,
+          p_difficulty: data.difficulty || 'easy',
+
+          // 可选参数（有默认值）
+          p_answer: data.answer || '',
+          p_hint: data.hint || null,
+          p_options: data.options ? JSON.stringify(data.options) : null,
+        };
+
+        console.log('[DataManagement] 添加单词:', wordParams);
+
+        const { data: newWord, error } = await supabase.rpc('add_single_word', wordParams);
+
+        if (error) {
+          console.error('RPC add_single_word error:', error);
+          toast.error(`添加失败: ${error.message}`);
+          throw new Error(error.message);
+        } else {
+          console.log('[DataManagement] 添加成功:', newWord);
           toast.success('添加词汇成功');
 
           // 手动更新当前选中教材的 word_count
@@ -501,10 +518,8 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             });
 
             // 添加后，如果当前页数据量不足，补充数据
-            // 新添加的单词会出现在最后一页，如果当前是最后一页，需要刷新
             const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
             if (currentPage === newTotalPages || newTotalPages > totalPages) {
-              // 重新加载当前页（可能显示新数据）
               loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
             }
           } else {
@@ -513,9 +528,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
 
           // 重新加载教材列表（数据库触发器会自动更新 word_count）
           loadCollections();
-        } else {
-          toast.error(response.error || '添加词汇失败');
-          throw new Error(response.error);
         }
       }
     } catch (err) {
