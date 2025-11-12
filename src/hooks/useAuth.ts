@@ -7,7 +7,7 @@ interface UserProfile {
   role: 'admin' | 'teacher' | 'parent' | 'student'
   display_name: string
   avatar_url?: string
-  settings?: any
+  settings?: any // JSONB 格式，可存储用户偏好，如 preferred_textbook_id
 }
 
 interface AuthContextType {
@@ -19,6 +19,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>
+  updatePreferredTextbook: (textbookId: string) => Promise<{ success: boolean; error?: string }>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -215,6 +216,54 @@ export function useAuthState() {
     }
   }
 
+  // 更新用户教材偏好 - 使用settings字段存储
+  const updatePreferredTextbook = async (textbookId: string) => {
+    if (!user) {
+      return { success: false, error: '未登录' }
+    }
+
+    try {
+      console.log('🔄 [useAuth] 更新用户教材偏好:', { userId: user.id, textbookId })
+
+      // 获取当前用户资料
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('settings')
+        .eq('id', user.id)
+        .single()
+
+      if (fetchError) {
+        console.error('❌ [useAuth] 获取用户资料失败:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+
+      // 更新 settings 字段，添加 preferred_textbook_id
+      const updatedSettings = {
+        ...(currentProfile.settings || {}),
+        preferred_textbook_id: textbookId
+      }
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ settings: updatedSettings })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ [useAuth] 更新教材偏好失败:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ [useAuth] 教材偏好更新成功:', data)
+      setProfile(data as UserProfile)
+      return { success: true }
+    } catch (error) {
+      console.error('❌ [useAuth] 更新教材偏好失败:', error)
+      return { success: false, error: '更新教材偏好失败' }
+    }
+  }
+
   return {
     user,
     profile,
@@ -223,6 +272,7 @@ export function useAuthState() {
     signUp,
     signIn,
     signOut,
-    updateProfile
+    updateProfile,
+    updatePreferredTextbook
   }
 }

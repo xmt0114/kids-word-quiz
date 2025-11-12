@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthProvider';
+import { ConfigProvider } from './components/ConfigProvider';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
@@ -37,24 +38,26 @@ const ProtectedDataManagement = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <UserHeader />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/" element={<HomePage />} />
-            <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
-            <Route path="/guess-word/game" element={<GuessWordGamePage />} />
-            <Route path="/guess-word/result" element={<GuessWordResultPage />} />
-            <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
-            <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+    <ConfigProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <UserHeader />
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
+              <Route path="/guess-word/game" element={<GuessWordGamePage />} />
+              <Route path="/guess-word/result" element={<GuessWordResultPage />} />
+              <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
+              <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </ConfigProvider>
   );
 }
 

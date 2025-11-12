@@ -1,9 +1,11 @@
 // Supabase API实现
-import { supabase, DEFAULT_COLLECTION_ID } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
+import { DEFAULT_COLLECTION_ID, GAME_CONFIG } from '../lib/config'
 import { ApiResponse, WordApiResponse, WordAPI, WordCollection } from './api'
 
-// 题目总数常量
-const TOTAL_QUESTIONS = 10;
+// 注意：游戏常量现在从 lib/config.ts 导入
+// 实际项目中，建议在组件中使用 useAppConfig hook 获取数据库配置
+const TOTAL_QUESTIONS = GAME_CONFIG.TOTAL_QUESTIONS;
 
 // 类型转换：Supabase数据 → 前端数据格式
 function transformWord(dbWord: any): any {

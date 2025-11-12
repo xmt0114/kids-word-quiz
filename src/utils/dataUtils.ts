@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../lib/config'
 // 数据验证工具
 export interface Word {
   id: number;
@@ -123,7 +124,7 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-export function generateOptions(correctAnswer: string, allWords: Word[], count: number = 3): string[] {
+export function generateOptions(correctAnswer: string, allWords: Word[], count: number = GAME_CONFIG.OPTION_COUNT): string[] {
   const wrongAnswers = allWords
     .filter(word => word.word !== correctAnswer)
     .map(word => word.word);

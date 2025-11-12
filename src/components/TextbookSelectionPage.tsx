@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { WordCollection } from '../types';
 import { wordAPI } from '../utils/api';
 import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useAuth } from '../hooks/useAuth';
 import { BookOpen, ArrowLeft, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -21,6 +22,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { setSettings } = useQuizSettings(); // 获取setSettings函数
+  const { updatePreferredTextbook, user } = useAuth(); // 获取更新教材偏好的函数
   const [collections, setCollections] = useState<WordCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(currentCollectionId || null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,8 +38,10 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   };
 
   // 处理确认选择
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedId) {
+      console.log('📚 [TextbookSelection] 用户选择教材:', selectedId);
+
       // 保存选择的教材ID到 localStorage
       localStorage.setItem('last-selected-textbook', selectedId);
 
@@ -46,6 +50,22 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
         ...prevSettings,
         collectionId: selectedId
       }));
+
+      // 如果用户已登录，同步更新到后端用户偏好
+      if (user) {
+        try {
+          console.log('🔄 [TextbookSelection] 同步用户教材偏好到后端...');
+          const result = await updatePreferredTextbook(selectedId);
+
+          if (result.success) {
+            console.log('✅ [TextbookSelection] 用户教材偏好已保存');
+          } else {
+            console.warn('⚠️ [TextbookSelection] 保存教材偏好失败:', result.error);
+          }
+        } catch (error) {
+          console.error('❌ [TextbookSelection] 同步教材偏好失败:', error);
+        }
+      }
 
       // 延迟跳转，确保状态更新完成
       setTimeout(() => {
