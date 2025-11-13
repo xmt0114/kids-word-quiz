@@ -4,7 +4,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { WordCollection } from '../types';
 import { wordAPI } from '../utils/api';
-import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useQuizSettings } from '../stores/appStore';
 import { BookOpen, ArrowLeft, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -40,8 +40,8 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
     if (selectedId) {
       console.log('📚 [TextbookSelection] 用户选择教材:', selectedId);
 
-      // 更新 quiz-settings 中的 collectionId（会自动同步到后端）
-      setSettings((prevSettings) => ({
+      // 更新 quiz-settings 中的 collectionId（服务器优先模式）
+      await setSettings((prevSettings) => ({
         ...prevSettings,
         collectionId: selectedId
       }));

@@ -1,6 +1,7 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { useAppStore } from '../stores/appStore'
 
 interface UserProfile {
   id: string
@@ -34,10 +35,16 @@ export function useAuth() {
 }
 
 export function useAuthState() {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  // 从 Zustand Store 读取认证状态（由 Gatekeeper 管理）
+  const {
+    session,
+    authProfile,
+    authLoading,
+    setAuthProfile
+  } = useAppStore();
+
+  // 从 session 中提取 user
+  const authUser = session?.user ?? null;
 
   // 将技术错误转换为用户友好的中文提示
   const getFriendlyError = (error: string) => {
@@ -61,78 +68,6 @@ export function useAuthState() {
     }
     return error
   }
-
-  // 获取用户资料
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        return null
-      }
-
-      return data as UserProfile
-    } catch (error) {
-      throw error
-    }
-  }
-
-  // 初始化时检查会话
-  useEffect(() => {
-    // 获取当前会话
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        if (session?.user) {
-          const userProfile = await fetchProfile(session.user.id)
-          setProfile(userProfile)
-        } else {
-          setProfile(null)
-        }
-      } catch (err) {
-        // Silent fail
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    getSession()
-
-    // 监听认证状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        // 异步处理profile获取
-        if (session?.user) {
-          fetchProfile(session.user.id)
-            .then(userProfile => {
-              setProfile(userProfile)
-              setLoading(false)
-            })
-            .catch(() => {
-              setProfile(null)
-              setLoading(false)
-            })
-        } else {
-          setProfile(null)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
 
   // 注册
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -188,12 +123,17 @@ export function useAuthState() {
 
   // 登出
   const signOut = async () => {
-    await supabase.auth.signOut()
+    console.log('🚪 [useAuth] 用户登出，清理本地数据...');
+    // **关键修复**：登出时直接清理本地用户数据
+    // 确保在 Supabase 清理 session 之前，先清理本地状态
+    useAppStore.getState().clearAllData();
+    await supabase.auth.signOut();
+    console.log('✅ [useAuth] 登出完成');
   }
 
   // 更新用户资料
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) {
+    if (!authUser) {
       return { success: false, error: '未登录' }
     }
 
@@ -201,7 +141,7 @@ export function useAuthState() {
       const { data, error } = await supabase
         .from('user_profiles')
         .update(updates)
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .select()
         .single()
 
@@ -209,7 +149,7 @@ export function useAuthState() {
         return { success: false, error: error.message }
       }
 
-      setProfile(data as UserProfile)
+      setAuthProfile(data as UserProfile)
       return { success: true }
     } catch (error) {
       console.error('Update profile error:', error)
@@ -219,18 +159,18 @@ export function useAuthState() {
 
   // 更新用户教材偏好 - 使用settings字段存储
   const updatePreferredTextbook = async (textbookId: string) => {
-    if (!user) {
+    if (!authUser) {
       return { success: false, error: '未登录' }
     }
 
     try {
-      console.log('🔄 [useAuth] 更新用户教材偏好:', { userId: user.id, textbookId })
+      console.log('🔄 [useAuth] 更新用户教材偏好:', { userId: authUser.id, textbookId })
 
       // 获取当前用户资料
       const { data: currentProfile, error: fetchError } = await supabase
         .from('user_profiles')
         .select('settings')
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .single()
 
       if (fetchError) {
@@ -247,7 +187,7 @@ export function useAuthState() {
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ settings: updatedSettings })
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .select()
         .single()
 
@@ -257,7 +197,7 @@ export function useAuthState() {
       }
 
       console.log('✅ [useAuth] 教材偏好更新成功:', data)
-      setProfile(data as UserProfile)
+      setAuthProfile(data as UserProfile)
       return { success: true }
     } catch (error) {
       console.error('❌ [useAuth] 更新教材偏好失败:', error)
@@ -267,18 +207,18 @@ export function useAuthState() {
 
   // 更新用户设置 - 通用方法
   const updateUserSettings = async (updates: any) => {
-    if (!user) {
+    if (!authUser) {
       return { success: false, error: '未登录' }
     }
 
     try {
-      console.log('🔄 [useAuth] 更新用户设置:', { userId: user.id, updates })
+      console.log('🔄 [useAuth] 更新用户设置:', { userId: authUser.id, updates })
 
       // 获取当前用户资料
       const { data: currentProfile, error: fetchError } = await supabase
         .from('user_profiles')
         .select('settings')
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .single()
 
       if (fetchError) {
@@ -295,7 +235,7 @@ export function useAuthState() {
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ settings: updatedSettings })
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .select()
         .single()
 
@@ -305,7 +245,7 @@ export function useAuthState() {
       }
 
       console.log('✅ [useAuth] 用户设置更新成功:', data)
-      setProfile(data as UserProfile)
+      setAuthProfile(data as UserProfile)
       return { success: true }
     } catch (error) {
       console.error('❌ [useAuth] 更新用户设置失败:', error)
@@ -314,10 +254,10 @@ export function useAuthState() {
   }
 
   return {
-    user,
-    profile,
+    user: authUser,
+    profile: authProfile,
     session,
-    loading,
+    loading: authLoading,
     signUp,
     signIn,
     signOut,

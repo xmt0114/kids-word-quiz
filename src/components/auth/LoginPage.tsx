@@ -34,15 +34,14 @@ export function LoginPage() {
     const result = await signIn(email, password)
 
     if (result.success) {
-      // 等待状态更新完成
-      setTimeout(() => {
-        navigate('/', { replace: true })
-      }, 100)
+      // 不再手动跳转，等待 useEffect 监听状态变化后自动跳转
+      console.log('✅ [LoginPage] 登录成功，等待状态更新...');
+      // 注意：这里不调用 setLoading(false)，让它保持 loading 状态
+      // 直到 Gatekeeper 完成状态更新并触发页面跳转
     } else {
       setError(result.error || '登录失败')
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (

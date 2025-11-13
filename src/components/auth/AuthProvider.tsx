@@ -6,10 +6,12 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const auth = useAuthState()
+  // 获取完整的认证状态和方法（由 useAuthState 提供）
+  // useAuthState 内部从 Zustand Store 读取状态
+  const authContextValue = useAuthState();
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={authContextValue}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Word, QuizSettings, QuizState, QuizResult, QuizAnswerResult } from '../types';
-import { supabase } from '../lib/supabase';
+import { useAppStore } from '../stores/appStore';
 
 const TOTAL_QUESTIONS = 10;
 
@@ -79,7 +79,7 @@ export function useQuiz() {
     }
   }, []);
 
-  // 提交答题结果到后端
+  // 提交答题结果到后端（使用 Zustand 管理）
   const submitResults = useCallback(async (results: QuizAnswerResult[] | null | undefined) => {
     try {
       if (!results || results.length === 0) {
@@ -90,23 +90,17 @@ export function useQuiz() {
       const resultsArray = results
         .filter(result => result !== null)
         .map(result => ({
-          word_id: result.wordId,
+          word_id: String(result.wordId), // 转换为字符串
           is_correct: result.isCorrect
         }));
 
       console.log('[useQuiz] 提交答题结果到后端:', resultsArray.length);
 
-      const { error } = await supabase.rpc('record_session_results', {
-        p_session_results: resultsArray
-      });
+      // 使用 Zustand 的 submitSessionResults 方法
+      const { submitSessionResults } = useAppStore.getState();
+      const result = await submitSessionResults(resultsArray);
 
-      if (error) {
-        console.error('提交答题结果失败:', error);
-        return { success: false, error: error.message };
-      }
-
-      console.log('[useQuiz] 答题结果提交成功');
-      return { success: true };
+      return result;
     } catch (err) {
       console.error('提交答题结果时发生错误:', err);
       return {

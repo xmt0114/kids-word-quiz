@@ -4,7 +4,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { Brain, Gamepad2, Trophy, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useQuizSettings } from '../stores/appStore';
 import { useAuth } from '../hooks/useAuth';
 import { QuizSettings } from '../types';
 import { LoginModal } from './auth/LoginModal';

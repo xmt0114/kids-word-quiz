@@ -5,7 +5,6 @@ import { Button } from './Button';
 import { StarExplosion } from './StarExplosion';
 import { Trophy, RotateCcw, Home, BookOpen, Target, Award } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useQuiz } from '../hooks/useQuiz';
 import { useAuth } from '../hooks/useAuth';
 
 interface QuizResult {

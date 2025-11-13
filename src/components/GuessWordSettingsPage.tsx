@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { QuizSettings, TTSSettings } from '../types';
-import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useQuizSettings } from '../stores/appStore';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
 import { useAuth } from '../hooks/useAuth';
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { supabase } from '../lib/supabase';
+import { useAppStore } from '../stores/appStore';
 import { LoginModal } from './auth/LoginModal';
 
 interface GuessWordSettingsPageProps {
@@ -25,9 +26,12 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const { user, profile } = useAuth();
   const isLoggedIn = !!(user && profile);
   const isAdmin = profile?.role === 'admin';
+
+  // 使用 Zustand 管理学习进度
+  const { userProgress, getProgress, dataLoading, refreshProgress } = useAppStore();
+
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
-  const [textbookProgress, setTextbookProgress] = useState<{ total_words: number; mastered_words: number; remaining_words: number } | null>(null);
   const [pendingSettings, setPendingSettings] = useState<Partial<QuizSettings> | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -80,25 +84,10 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         }
       });
 
-      // 获取学习进度（使用新的RPC函数）
-      supabase
-        .rpc('get_collection_progress', {
-          p_collection_id: collectionId
-        })
-        .then(({ data: progress, error }) => {
-          if (error) {
-            console.error('Failed to get collection progress:', error);
-            setTextbookProgress(null);
-            return;
-          }
-
-          if (progress) {
-            setTextbookProgress(progress);
-          }
-        });
+      // 获取学习进度（使用 Zustand 缓存）
+      getProgress(collectionId);
     } else {
       setTextbookInfo(null);
-      setTextbookProgress(null);
     }
   }, [selectedCollectionId, (pendingSettings || settings).collectionId]);
 
@@ -261,17 +250,8 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         alert(`重置失败: ${error.message}`);
       } else {
         console.log('[Settings] 学习进度重置成功');
-        // 刷新学习进度显示
-        const { data: progress, error: fetchError } = await supabase
-          .rpc('get_collection_progress', {
-            p_collection_id: collectionId
-          });
-
-        if (!fetchError && progress) {
-          setTextbookProgress(progress);
-        } else {
-          setTextbookProgress(null);
-        }
+        // 使用 Zustand 刷新学习进度缓存
+        await refreshProgress(collectionId);
         alert('学习进度已重置！');
       }
     } catch (err) {
@@ -282,11 +262,13 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     }
   };
 
-  const handleSaveSettings = () => {
-    // 保存待处理的设置
+  const handleSaveSettings = async () => {
+    // 【服务器优先】保存待处理的设置
     if (pendingSettings) {
-      setSettings(pendingSettings);
-      console.log('💾 [GuessWordSettings] 用户点击保存设置:', pendingSettings);
+      console.log('💾 [GuessWordSettings] 用户点击保存设置 (服务器优先):', pendingSettings);
+
+      // 调用 setSettings（现在是异步的，会先更新服务器再更新本地缓存）
+      await setSettings(pendingSettings);
     }
     navigate('/');
   };
@@ -385,13 +367,13 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                 <div className="flex items-center gap-md">
                   <TrendingUp size={20} className="text-blue-500" />
                   <div>
-                    {textbookProgress ? (
+                    {userProgress ? (
                       <>
                         <p className="text-small font-semibold text-text-primary">
-                          已掌握 {textbookProgress.mastered_words} 个单词
+                          已掌握 {userProgress.mastered_words} 个单词
                         </p>
                         <p className="text-xs text-text-tertiary">
-                          剩余 {textbookProgress.remaining_words} 个单词
+                          正在学习 {userProgress.learning_words} 个单词
                         </p>
                       </>
                     ) : (
@@ -400,15 +382,15 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-md">
-                  {textbookProgress && (
+                  {userProgress && (
                     <p className="text-xs text-text-tertiary">
-                      总词汇: {textbookProgress.total_words} 个
+                      总词汇: {userProgress.total_words} 个
                     </p>
                   )}
                   <Button
                     variant="secondary"
                     onClick={handleResetProgress}
-                    disabled={!textbookProgress || isResetting}
+                    disabled={!userProgress || isResetting}
                     className="flex items-center gap-xs"
                   >
                     <RotateCcw size={16} />

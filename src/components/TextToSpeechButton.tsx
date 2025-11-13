@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useQuizSettings } from '../hooks/useLocalStorage';
+import { useQuizSettings } from '../stores/appStore';
 
 interface TextToSpeechButtonProps {
   text?: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthProvider';
-import { ConfigProvider } from './components/ConfigProvider';
+import { Gatekeeper } from './components/Gatekeeper';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
@@ -38,8 +38,9 @@ const ProtectedDataManagement = () => {
 
 function App() {
   return (
-    <ConfigProvider>
-      <AuthProvider>
+    <AuthProvider>
+      {/* 守门人：数据加载的唯一触发器 */}
+      <Gatekeeper>
         <Router>
           <div className="min-h-screen bg-gray-50">
             <UserHeader />
@@ -56,8 +57,8 @@ function App() {
             </Routes>
           </div>
         </Router>
-      </AuthProvider>
-    </ConfigProvider>
+      </Gatekeeper>
+    </AuthProvider>
   );
 }
 
