@@ -1,7 +1,8 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthProvider';
 import { Gatekeeper } from './components/Gatekeeper';
+import { SetPasswordModal } from './components/SetPasswordModal';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { HomePage } from './components/HomePage';
@@ -60,6 +61,46 @@ const ProtectedInviteUser = () => {
 };
 
 function App() {
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(true);
+  const { user, profile, loading, checkPasswordSet } = useAuth();
+
+  // 检查用户是否需要设置密码
+  useEffect(() => {
+    const checkPassword = async () => {
+      if (!loading && user && profile) {
+        setCheckingPassword(true);
+        try {
+          const hasPassword = await checkPasswordSet();
+          console.log('🔐 [App] 密码检查结果:', hasPassword);
+          setNeedsPasswordSetup(!hasPassword);
+        } catch (error) {
+          console.error('检查密码失败:', error);
+          // 如果检查失败，暂时允许访问
+          setNeedsPasswordSetup(false);
+        } finally {
+          setCheckingPassword(false);
+        }
+      } else if (!loading) {
+        setCheckingPassword(false);
+      }
+    };
+
+    checkPassword();
+  }, [user, profile, loading, checkPasswordSet]);
+
+  // 如果正在加载认证或检查密码，显示加载状态
+  if (loading || checkingPassword) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-md"></div>
+          <p className="text-body text-text-secondary">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthProvider>
       {/* 守门人：数据加载的唯一触发器 */}
@@ -78,6 +119,11 @@ function App() {
               <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+
+            {/* 密码设置弹框 */}
+            <SetPasswordModal
+              isOpen={needsPasswordSetup}
+            />
           </div>
         </Router>
       </Gatekeeper>

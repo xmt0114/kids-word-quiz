@@ -21,6 +21,8 @@ interface AuthContextType {
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>
   updatePreferredTextbook: (textbookId: string) => Promise<{ success: boolean; error?: string }>
   updateUserSettings: (updates: any) => Promise<{ success: boolean; error?: string }>
+  setPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
+  checkPasswordSet: () => Promise<boolean>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -65,7 +67,7 @@ export function useAuthState() {
   // 登录
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
@@ -212,6 +214,59 @@ export function useAuthState() {
     }
   }
 
+  // 检查用户是否已设置密码
+  const checkPasswordSet = async (): Promise<boolean> => {
+    if (!authUser) {
+      return false;
+    }
+
+    try {
+      // 通过尝试获取用户信息来检查是否有密码
+      // 如果用户没有设置密码，identities 数组可能为空或只有邮箱身份
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data.user) {
+        return false;
+      }
+
+      // 检查是否有密码身份提供者
+      const hasPassword = data.user.identities?.some(
+        identity => identity.provider === 'email'
+      ) || false;
+
+      return hasPassword;
+    } catch (error) {
+      console.error('检查密码设置失败:', error);
+      return false;
+    }
+  };
+
+  // 设置密码
+  const setPassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!authUser) {
+      return { success: false, error: '用户未登录' };
+    }
+
+    try {
+      console.log('🔐 [useAuth] 开始设置用户密码...');
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        console.error('❌ [useAuth] 设置密码失败:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ [useAuth] 密码设置成功');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [useAuth] 设置密码异常:', error);
+      return { success: false, error: '设置密码失败，请重试' };
+    }
+  };
+
   return {
     user: authUser,
     profile: authProfile,
@@ -221,6 +276,8 @@ export function useAuthState() {
     signOut,
     updateProfile,
     updatePreferredTextbook,
-    updateUserSettings
+    updateUserSettings,
+    setPassword,
+    checkPasswordSet
   }
 }
