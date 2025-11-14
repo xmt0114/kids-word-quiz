@@ -60,7 +60,7 @@ const ProtectedInviteUser = () => {
   return <InviteUserPage />;
 };
 
-// 内部应用组件（在 AuthProvider 内部）
+// 内部应用组件（在 AuthProvider 内部，在 Gatekeeper 外部）
 function AppContent() {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
@@ -103,29 +103,27 @@ function AppContent() {
   }
 
   return (
-    <Gatekeeper>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <UserHeader />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<HomePage />} />
-            <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
-            <Route path="/guess-word/game" element={<GuessWordGamePage />} />
-            <Route path="/guess-word/result" element={<GuessWordResultPage />} />
-            <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
-            <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
-            <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <UserHeader />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
+          <Route path="/guess-word/game" element={<GuessWordGamePage />} />
+          <Route path="/guess-word/result" element={<GuessWordResultPage />} />
+          <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
+          <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
+          <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
-          {/* 密码设置弹框 */}
-          <SetPasswordModal
-            isOpen={needsPasswordSetup}
-          />
-        </div>
-      </Router>
-    </Gatekeeper>
+        {/* 密码设置弹框 */}
+        <SetPasswordModal
+          isOpen={needsPasswordSetup}
+        />
+      </div>
+    </Router>
   );
 }
 
@@ -133,7 +131,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Gatekeeper>
+        <AppContent />
+      </Gatekeeper>
     </AuthProvider>
   );
 }
