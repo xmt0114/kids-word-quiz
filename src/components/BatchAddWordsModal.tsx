@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Upload, Download, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { X, Download, CheckCircle, Loader, Search } from 'lucide-react';
 import { Button } from './Button';
-import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 interface BatchWordData {
   word: string;
@@ -13,24 +13,41 @@ interface BatchWordData {
   audioText?: string;
   errors?: string[];
   isValid?: boolean;
+  lineNumber?: number; // 添加行号信息
 }
 
 interface BatchAddWordsModalProps {
   isOpen: boolean;
   collectionId: string;
   onClose: () => void;
-  onSubmit: (words: BatchWordData[]) => Promise<void>;
+  onSubmit: (words: BatchWordData[], onProgress?: (progress: {
+    current: number;
+    total: number;
+    batchNumber: number;
+    totalBatches: number;
+  }) => void) => Promise<BatchWordData[]>;
 }
 
 const BatchAddWordsModal: React.FC<BatchAddWordsModalProps> = ({
   isOpen,
-  collectionId,
   onClose,
   onSubmit,
 }) => {
   const [csvText, setCsvText] = useState('');
-  const [batchWords, setBatchWords] = useState<BatchWordData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{
+    success: boolean;
+    message: string;
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
+  const [submitProgress, setSubmitProgress] = useState<{
+    current: number;
+    total: number;
+    batchNumber: number;
+    totalBatches: number;
+    failedWords: BatchWordData[];
+  } | null>(null);
   const [validationResults, setValidationResults] = useState<{
     total: number;
     valid: number;
@@ -62,27 +79,20 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
   // 解析CSV文本
   const parseCSV = (text: string): BatchWordData[] => {
-    console.log('原始CSV文本:', JSON.stringify(text));
-    
     // 更严格的空行过滤：移除所有空行和只包含空白字符的行
     const lines = text.split('\n').filter(line => {
       const trimmed = line.trim();
       return trimmed.length > 0; // 只保留非空行
     });
-    
-    console.log('过滤后的行数:', lines.length);
-    console.log('过滤后的行内容:', lines);
-    
+
     const words: BatchWordData[] = [];
 
     // 跳过表头，从第二行开始
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      console.log(`处理第${i + 1}行:`, line);
-      
+
       // 再次检查，确保行不为空
       if (!line) {
-        console.log(`第${i + 1}行为空，跳过`);
         continue; // 跳过空行
       }
 
@@ -91,7 +101,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         const parts: string[] = [];
         let current = '';
         let inQuotes = false;
-        
+
         for (let j = 0; j < line.length; j++) {
           const char = line[j];
           if (char === '"') {
@@ -105,10 +115,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         }
         parts.push(current.trim()); // 添加最后一部分
 
-        console.log(`第${i + 1}行解析结果:`, parts);
-
         if (parts.length < 5) {
-          console.log(`第${i + 1}行字段不足:`, parts.length);
           words.push({
             word: '',
             definition: '',
@@ -117,8 +124,9 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
             answer: '',
             hint: '',
             audioText: '',
-            errors: [`第${i + 1}行：字段不足，至少需要word,definition,options,answer,audioText`],
+            errors: [`字段不足，至少需要word,definition,options,answer,audioText`],
             isValid: false,
+            lineNumber: i + 1,
           });
           continue;
         }
@@ -139,8 +147,6 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         const cleanOptionsStr = optionsStr.replace(/^"|"$/g, ''); // 移除首尾引号
         const options = cleanOptionsStr.split(';').map(opt => opt.trim()).filter(opt => opt);
 
-        console.log(`第${i + 1}行解析的选项:`, options);
-
         const wordData: BatchWordData = {
           word: word?.trim() || '',
           definition: definition?.trim() || '',
@@ -151,9 +157,8 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
           audioText: audioText?.trim() || '',
           errors: [],
           isValid: true,
+          lineNumber: i + 1,
         };
-
-        console.log(`第${i + 1}行解析结果:`, wordData);
 
         // 验证单个单词
         const errors = validateWord(wordData);
@@ -162,7 +167,6 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
         words.push(wordData);
       } catch (error) {
-        console.error(`第${i + 1}行解析异常:`, error);
         words.push({
           word: '',
           definition: '',
@@ -171,13 +175,13 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
           answer: '',
           hint: '',
           audioText: '',
-          errors: [`第${i + 1}行：解析错误 - ${error instanceof Error ? error.message : '未知错误'}`],
+          errors: [`解析错误 - ${error instanceof Error ? error.message : '未知错误'}`],
           isValid: false,
+          lineNumber: i + 1,
         });
       }
     }
 
-    console.log('最终解析结果:', words);
     return words;
   };
 
@@ -208,50 +212,31 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
     if (!word.answer.trim()) {
       errors.push('答案不能为空');
-    } else if (!validOptions.includes(word.answer)) {
-      errors.push('答案必须是选项之一');
+    } else {
+      // 不区分大小写检查答案是否在选项中
+      const normalizedAnswer = word.answer.trim().toLowerCase();
+      const normalizedOptions = validOptions.map(opt => opt.toLowerCase());
+      if (!normalizedOptions.includes(normalizedAnswer)) {
+        errors.push('答案必须是选项之一');
+      }
     }
 
     return errors;
   };
 
-  // 验证所有单词
-  const validateAllWords = () => {
-    const validatedWords = batchWords.map(word => {
-      const errors = validateWord(word);
-      return {
-        ...word,
-        errors,
-        isValid: errors.length === 0,
-      };
-    });
 
-    setBatchWords(validatedWords);
-
-    const validCount = validatedWords.filter(w => w.isValid).length;
-    const invalidCount = validatedWords.length - validCount;
-
-    setValidationResults({
-      total: validatedWords.length,
-      valid: validCount,
-      invalid: invalidCount,
-      errors: validatedWords.flatMap(w => w.errors || []),
-    });
-  };
-
-  // 提交批量添加（包含解析逻辑）
-  const handleSubmit = async () => {
+  // 检查CSV格式（仅验证，不提交）
+  const handleCheckFormat = () => {
     if (!csvText.trim()) {
       alert('请输入CSV内容');
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      // 先解析CSV
+      // 解析CSV
       const cleanText = csvText.replace(/\n\s*\n/g, '\n').trim();
       const parsedWords = parseCSV(cleanText);
-      
+
       // 验证解析结果
       const validatedWords = parsedWords.map(word => {
         const errors = validateWord(word);
@@ -262,16 +247,79 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         };
       });
 
-      setBatchWords(validatedWords);
-
       const validCount = validatedWords.filter(w => w.isValid).length;
       const invalidCount = validatedWords.length - validCount;
+
+      // 生成错误信息（修复空单词和重复计算问题）
+      const errorList: string[] = [];
+      validatedWords.forEach(w => {
+        if (w.errors && w.errors.length > 0) {
+          const wordDisplay = w.word || `第${w.lineNumber}行`;
+          w.errors.forEach(err => {
+            errorList.push(`单词"${wordDisplay}": ${err}`);
+          });
+        }
+      });
 
       const results = {
         total: validatedWords.length,
         valid: validCount,
         invalid: invalidCount,
-        errors: validatedWords.flatMap(w => w.errors || []),
+        errors: errorList,
+      };
+
+      setValidationResults(results);
+      toast.success(`格式检查完成：共${validatedWords.length}个单词，其中${validCount}个有效，${invalidCount}个无效`);
+      toast.info('错误信息支持复制，便于查看');
+    } catch (error) {
+      console.error('格式检查失败:', error);
+      alert('格式检查失败，请重试');
+    }
+  };
+
+  // 提交批量添加（包含解析逻辑）
+  const handleSubmit = async () => {
+    if (!csvText.trim()) {
+      alert('请输入CSV内容');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitProgress(null);
+    try {
+      // 先解析CSV
+      const cleanText = csvText.replace(/\n\s*\n/g, '\n').trim();
+      const parsedWords = parseCSV(cleanText);
+
+      // 验证解析结果
+      const validatedWords = parsedWords.map(word => {
+        const errors = validateWord(word);
+        return {
+          ...word,
+          errors,
+          isValid: errors.length === 0,
+        };
+      });
+
+      const validCount = validatedWords.filter(w => w.isValid).length;
+      const invalidCount = validatedWords.length - validCount;
+
+      // 生成错误信息（修复空单词和重复计算问题）
+      const errorList: string[] = [];
+      validatedWords.forEach(w => {
+        if (w.errors && w.errors.length > 0) {
+          const wordDisplay = w.word || `第${w.lineNumber}行`;
+          w.errors.forEach(err => {
+            errorList.push(`单词"${wordDisplay}": ${err}`);
+          });
+        }
+      });
+
+      const results = {
+        total: validatedWords.length,
+        valid: validCount,
+        invalid: invalidCount,
+        errors: errorList,
       };
 
       setValidationResults(results);
@@ -281,21 +329,124 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         return;
       }
 
-      // 如果有有效词汇，直接提交
+      // 如果有有效词汇，提交并返回失败的单词
       const validWords = validatedWords.filter(word => word.isValid);
-      await onSubmit(validWords);
-      onClose();
-      
-      // 重置状态
-      setBatchWords([]);
-      setCsvText('');
-      setValidationResults(null);
+
+      // 初始化进度
+      setSubmitProgress({
+        current: 0,
+        total: validWords.length,
+        batchNumber: 0,
+        totalBatches: 0,
+        failedWords: [],
+      });
+
+      // 定义进度回调
+      const onProgress = (progress: {
+        current: number;
+        total: number;
+        batchNumber: number;
+        totalBatches: number;
+      }) => {
+        setSubmitProgress(prev => prev ? {
+          ...prev,
+          ...progress,
+        } : null);
+      };
+
+      // 调用onSubmit并获取失败的单词
+      const failedWords = await onSubmit(validWords, onProgress);
+
+      if (failedWords && failedWords.length > 0) {
+        // 有失败的单词，更新CSV文本保留失败单词
+        const failedCsvText = generateFailedWordsCsv(failedWords);
+        setCsvText(failedCsvText);
+
+        // 重新解析失败单词
+        const reParsedWords = parseCSV(failedCsvText);
+        const reValidatedWords = reParsedWords.map(word => ({
+          ...word,
+          errors: [`提交失败，请检查后重试`],
+          isValid: true,
+        }));
+
+        // 更新验证结果
+        const reResults = {
+          total: reValidatedWords.length,
+          valid: reValidatedWords.length,
+          invalid: 0,
+          errors: reValidatedWords.map(w => {
+            // 保留原有的验证错误，如果还有的话
+            if (w.errors && w.errors.length > 0 && !w.errors[0].includes('提交失败')) {
+              return `单词"${w.word}": ${w.errors[0]}`;
+            }
+            return `单词"${w.word}"提交失败`;
+          }),
+        };
+        setValidationResults(reResults);
+
+        setSubmitProgress({
+          current: validWords.length - failedWords.length,
+          total: validWords.length,
+          batchNumber: 0,
+          totalBatches: 0,
+          failedWords,
+        });
+
+        // 显示提交结果（不自动关闭）
+        setSubmitResult({
+          success: false,
+          message: `部分提交成功`,
+          successCount: validWords.length - failedWords.length,
+          failedCount: failedWords.length,
+        });
+      } else {
+        // 所有单词都成功提交（不自动关闭）
+        setSubmitResult({
+          success: true,
+          message: `所有单词提交成功！`,
+          successCount: validWords.length,
+          failedCount: 0,
+        });
+
+        // 不关闭模态框，让用户自己选择
+        // 用户可以点击"继续添加"或"关闭"
+      }
     } catch (error) {
       console.error('批量添加失败:', error);
       alert('批量添加失败，请重试');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // 关闭模态框并重置状态
+  const handleClose = () => {
+    setCsvText('');
+    setValidationResults(null);
+    setSubmitProgress(null);
+    setSubmitResult(null);
+    onClose();
+  };
+
+  // 继续添加更多单词
+  const handleContinueAdding = () => {
+    setCsvText('');
+    setValidationResults(null);
+    setSubmitProgress(null);
+    setSubmitResult(null);
+  };
+
+  // 生成失败单词的CSV文本
+  const generateFailedWordsCsv = (failedWords: BatchWordData[]): string => {
+    const header = 'word,definition,options,answer,hint,audioText\n';
+    const lines = failedWords.map(word => {
+      const optionsStr = word.options.join(';');
+      const hint = word.hint || '';
+      const audioText = word.audioText || word.definition;
+      return `"${word.word}","${word.definition}","${optionsStr}","${word.answer}","${hint}","${audioText}"`;
+    });
+    return header + lines.join('\n');
   };
 
   return (
@@ -353,6 +504,64 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
           />
         </div>
 
+        {/* 提交进度 */}
+        {isSubmitting && submitProgress && (
+          <div className="mb-lg">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-md">
+              <h4 className="font-bold mb-sm text-blue-800">提交进度</h4>
+              <div className="flex items-center gap-md mb-sm">
+                <div className="flex-1 bg-blue-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(submitProgress.current / submitProgress.total) * 100}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-small font-bold text-blue-700 whitespace-nowrap">
+                  {submitProgress.current} / {submitProgress.total}
+                </span>
+              </div>
+              <div className="text-small text-blue-600">
+                {submitProgress.batchNumber > 0 && (
+                  <span>正在提交第 {submitProgress.batchNumber} 批，共 {submitProgress.totalBatches} 批</span>
+                )}
+                {submitProgress.failedWords.length > 0 && (
+                  <span className="text-red-600 ml-md">
+                    失败: {submitProgress.failedWords.length} 个单词
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 提交结果 */}
+        {submitResult && (
+          <div className="mb-lg">
+            <div className={`border-2 rounded-lg p-md ${submitResult.success ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+              <div className="flex items-center gap-sm mb-sm">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${submitResult.success ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                  <CheckCircle size={20} className="text-white" />
+                </div>
+                <h4 className={`font-bold ${submitResult.success ? 'text-green-800' : 'text-yellow-800'}`}>
+                  {submitResult.message}
+                </h4>
+              </div>
+              <div className="text-small space-y-xs">
+                <div className={submitResult.success ? 'text-green-700' : 'text-yellow-700'}>
+                  <span className="font-bold">成功:</span> {submitResult.successCount} 个单词
+                </div>
+                {!submitResult.success && (
+                  <div className="text-red-700">
+                    <span className="font-bold">失败:</span> {submitResult.failedCount} 个单词（已保留在文本框中，请检查后重试）
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 验证结果 */}
         {validationResults && (
           <div className="mb-lg">
@@ -365,12 +574,30 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
               </div>
               {validationResults.errors.length > 0 && (
                 <div className="mt-sm">
-                  <h5 className="font-bold text-red-600 mb-xs">错误列表：</h5>
-                  <div className="text-small text-red-500 max-h-32 overflow-y-auto">
-                    {validationResults.errors.map((error, index) => (
-                      <div key={index}>• {error}</div>
-                    ))}
+                  <div className="flex items-center justify-between mb-xs">
+                    <h5 className="font-bold text-red-600">错误详情（可复制）：</h5>
+                    <button
+                      onClick={() => {
+                        const errorText = validationResults.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n');
+                        navigator.clipboard.writeText(errorText).then(() => {
+                          toast.success('错误信息已复制到剪贴板');
+                        });
+                      }}
+                      className="text-xs px-xs py-xs bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                    >
+                      复制全部
+                    </button>
                   </div>
+                  <pre
+                    className="text-small text-red-700 bg-red-50 p-xs rounded border-l-2 border-red-500 max-h-40 overflow-y-auto whitespace-pre-wrap break-words select-text"
+                    style={{
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#ef4444 #f3f4f6',
+                      userSelect: 'text',
+                    }}
+                  >
+                    {validationResults.errors.map((error, index) => `${index + 1}. ${error}`).join('\n')}
+                  </pre>
                 </div>
               )}
             </div>
@@ -379,26 +606,50 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
 
         {/* 按钮 */}
         <div className="flex gap-md justify-end pt-md border-t border-gray-200">
-          <Button variant="secondary" onClick={onClose}>
-            取消
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || !csvText.trim()}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader size={16} className="mr-xs animate-spin" />
-                提交中...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={16} className="mr-xs" />
-                提交
-              </>
-            )}
-          </Button>
+          {submitResult ? (
+            // 提交完成后的按钮
+            <>
+              <Button variant="secondary" onClick={handleContinueAdding}>
+                继续添加
+              </Button>
+              <Button variant="primary" onClick={handleClose}>
+                关闭
+              </Button>
+            </>
+          ) : (
+            // 提交前的按钮
+            <>
+              <Button variant="secondary" onClick={onClose}>
+                取消
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleCheckFormat}
+                disabled={!csvText.trim()}
+                className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
+              >
+                <Search size={16} className="mr-xs" />
+                检查格式
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !csvText.trim()}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader size={16} className="mr-xs animate-spin" />
+                    提交中...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} className="mr-xs" />
+                    提交
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

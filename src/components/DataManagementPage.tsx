@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -28,6 +28,58 @@ interface WordData {
   answer: string;
   hint: string;
 }
+
+// 优化的单词行组件（memo化以避免不必要的重新渲染）
+const WordRow = memo<{
+  word: WordData;
+  selectedWordIds: number[];
+  onToggleSelection: (id: number) => void;
+  onEdit: (word: WordData) => void;
+  onDelete: (word: WordData) => void;
+}>(({ word, selectedWordIds, onToggleSelection, onEdit, onDelete }) => {
+  return (
+    <tr className={cn(
+      "border-b border-gray-100 hover:bg-gray-50 transition-colors",
+      selectedWordIds.includes(word.id) && "bg-blue-50"
+    )}>
+      <td className="py-md px-md">
+        <input
+          type="checkbox"
+          checked={selectedWordIds.includes(word.id)}
+          onChange={() => onToggleSelection(word.id)}
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+        />
+      </td>
+      <td className="py-md px-md">
+        <span className="font-bold text-text-primary">{word.word}</span>
+      </td>
+      <td className="py-md px-md text-text-secondary">
+        <span className="line-clamp-2">{word.definition}</span>
+      </td>
+      <td className="py-md px-md text-text-secondary">
+        {word.options?.length || 0} 个选项
+      </td>
+      <td className="py-md px-md">
+        <div className="flex items-center justify-center gap-sm">
+          <button
+            className="p-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+            onClick={() => onEdit(word)}
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            className="p-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+            onClick={() => onDelete(word)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+WordRow.displayName = 'WordRow';
 
 const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   const navigate = useNavigate();
@@ -106,7 +158,6 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     setError(null);
     try {
       const offset = (page - 1) * limit;
-      console.log('[DataManagement] loadWords:', { collectionId, page, limit, offset, sortBy, sortOrder });
       const response = await wordAPI.getWords({
         collectionId,
         limit,
@@ -129,29 +180,26 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const WORDS_PER_PAGE = 20;
+  const [wordsPerPage, setWordsPerPage] = useState(20);
 
   // 计算总页数（使用word_count字段）
   const calculateTotalPages = () => {
     if (!selectedCollection) return 1;
     const wordCount = selectedCollection.word_count;
-    const pages = Math.ceil(wordCount / WORDS_PER_PAGE);
+    const pages = Math.ceil(wordCount / wordsPerPage);
     const newTotalPages = Math.max(pages, 1); // 至少1页
     setTotalPages(newTotalPages);
 
     // 如果当前页超出范围，调整到最后一页
     if (currentPage > newTotalPages) {
       setCurrentPage(newTotalPages);
-      console.log('[DataManagement] 调整当前页:', { oldPage: currentPage, newPage: newTotalPages });
     }
-
-    console.log('[DataManagement] 估算分页:', { wordCount, pages, currentPage, newTotalPages });
   };
 
   // 当教材变化时，更新总页数
   useEffect(() => {
     calculateTotalPages();
-  }, [selectedCollectionId, selectedCollection?.word_count]);
+  }, [selectedCollectionId, selectedCollection?.word_count, wordsPerPage]);
 
   // 当选择教材或排序变化时，重置到第一页
   useEffect(() => {
@@ -161,9 +209,15 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
   // 加载词汇（带分页）
   useEffect(() => {
     if (selectedCollectionId && activeTab === 'words') {
-      loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+      loadWords(selectedCollectionId, currentPage, wordsPerPage);
     }
-  }, [selectedCollectionId, activeTab, currentPage, sortBy, sortOrder]);
+  }, [selectedCollectionId, activeTab, currentPage, wordsPerPage, sortBy, sortOrder]);
+
+  // 处理每页显示个数变化
+  const handleWordsPerPageChange = (newWordsPerPage: number) => {
+    setWordsPerPage(newWordsPerPage);
+    setCurrentPage(1); // 重置到第一页
+  };
 
   const handleCollectionSelect = async (collection: WordCollection) => {
     setSelectedCollectionId(collection.id);
@@ -256,79 +310,211 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
     setIsBatchAddModalOpen(true);
   };
 
-  const handleBatchSubmitWords = async (batchWords: any[]) => {
+  const handleBatchSubmitWords = async (
+    batchWords: any[],
+    onProgress?: (progress: {
+      current: number;
+      total: number;
+      batchNumber: number;
+      totalBatches: number;
+    }) => void
+  ): Promise<any[]> => {
     if (!selectedCollectionId) {
       toast.error('请先选择教材');
       throw new Error('未选择教材');
     }
 
+    const MAX_BATCH_SIZE = 200; // 每批最大单词数
+    const failedWordIndices: number[] = []; // 记录失败单词的原始索引
+    let submittedCount = 0; // 已提交单词计数
+
     try {
-      // 准备批量数据 - 转换为 RPC 期望的格式
-      const batchData = batchWords.map(wordData => ({
-        word: wordData.word,
-        definition: wordData.definition,
-        audio_text: wordData.audioText || wordData.definition,
-        difficulty: wordData.difficulty || 'easy',
-        answer: wordData.answer || '',
-        hint: wordData.hint || null,
-        // 可选字段（如果提供才添加）
-        ...(wordData.options && { options: JSON.stringify(wordData.options) }),
-      }));
+      // 将单词切分为多个批次，每批不超过200个，保持原始顺序
+      const chunks: { words: any[]; startIndex: number }[] = [];
+      for (let i = 0; i < batchWords.length; i += MAX_BATCH_SIZE) {
+        chunks.push({
+          words: batchWords.slice(i, i + MAX_BATCH_SIZE),
+          startIndex: i,
+        });
+      }
 
-      // 准备 RPC 参数 - 直接传递数组对象（Supabase V2 支持）
-      const batchParams = {
-        p_collection_id: selectedCollectionId,
-        p_words_batch: batchData  // 直接传递数组，不要JSON.stringify
-      };
+      // 通知总批次数
+      if (onProgress) {
+        onProgress({
+          current: submittedCount,
+          total: batchWords.length,
+          batchNumber: 0,
+          totalBatches: chunks.length,
+        });
+      }
 
-      console.log('[DataManagement] 批量添加单词:', batchParams);
+      // 逐批提交
+      for (let batchIndex = 0; batchIndex < chunks.length; batchIndex++) {
+        const { words: batchData, startIndex } = chunks[batchIndex];
 
-      // 显示进度
-      toast.loading(`正在添加 ${batchData.length} 个单词...`, { id: 'batch-add' });
+        // 更新批次进度
+        if (onProgress) {
+          onProgress({
+            current: submittedCount,
+            total: batchWords.length,
+            batchNumber: batchIndex + 1,
+            totalBatches: chunks.length,
+          });
+        }
 
-      // 调用 RPC
-      const { data: newWordsList, error } = await supabase.rpc('add_batch_words', batchParams);
+        // 准备批量数据 - 转换为 RPC 期望的格式
+        const preparedData = batchData.map((wordData: any) => ({
+          word: wordData.word,
+          definition: wordData.definition,
+          audio_text: wordData.audioText || wordData.definition,
+          difficulty: wordData.difficulty || 'easy',
+          answer: wordData.answer || '',
+          hint: wordData.hint || null,
+          // 可选字段（如果提供才添加）
+          ...(wordData.options && { options: wordData.options }),
+        }));
 
-      if (error) {
-        console.error('RPC add_batch_words error:', error);
-        toast.dismiss('batch-add');
-        toast.error(`批量添加失败: ${error.message}`);
-        throw new Error(error.message);
-      } else {
-        console.log('[DataManagement] 批量添加成功:', newWordsList);
-        toast.dismiss('batch-add');
+        // 准备 RPC 参数
+        const batchParams = {
+          p_collection_id: selectedCollectionId,
+          p_words_batch: preparedData
+        };
 
-        const successCount = newWordsList?.length || 0;
-        toast.success(`成功添加 ${successCount} 个词汇`);
+        // 显示进度
+        toast.loading(`正在提交第 ${batchIndex + 1}/${chunks.length} 批 (${batchData.length} 个单词)...`, { id: 'batch-add' });
 
-        // 重新加载词汇列表
-        if (selectedCollectionId) {
-          // 手动更新当前选中教材的 word_count
-          if (selectedCollection && successCount > 0) {
-            const newWordCount = selectedCollection.word_count + successCount;
-            setSelectedCollection({
-              ...selectedCollection,
-              word_count: newWordCount
-            });
+        let success = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 1; // 最多重试1次
 
-            // 批量添加后，如果当前是最后一页或增加了新页，刷新数据
-            const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
-            if (currentPage === newTotalPages || newTotalPages > totalPages) {
-              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+        // 简单重试机制
+        while (!success && retryCount <= MAX_RETRIES) {
+          try {
+            const { data: newWordsList, error } = await supabase.rpc('add_batch_words', batchParams);
+
+            if (error) {
+              if (retryCount === MAX_RETRIES) {
+                // 重试次数用完，一旦失败就停止后续提交
+
+                // 将当前失败批次的索引加入失败列表（保持顺序）
+                for (let i = 0; i < batchData.length; i++) {
+                  failedWordIndices.push(startIndex + i);
+                }
+
+                // 将所有后续未提交的批次索引也加入失败列表（保持顺序）
+                for (let i = batchIndex + 1; i < chunks.length; i++) {
+                  const futureChunk = chunks[i];
+                  for (let j = 0; j < futureChunk.words.length; j++) {
+                    failedWordIndices.push(futureChunk.startIndex + j);
+                  }
+                }
+
+                toast.error(`第 ${batchIndex + 1} 批提交失败 (已重试 ${MAX_RETRIES} 次)，共 ${batchData.length} 个单词，已停止后续提交`);
+                success = true;
+
+                // 按原始顺序返回失败单词
+                const failedWords = failedWordIndices
+                  .sort((a, b) => a - b)
+                  .map(idx => batchWords[idx]);
+                return failedWords;
+              } else {
+                retryCount++;
+                toast.error(`第 ${batchIndex + 1} 批提交失败，5秒后重试... (${retryCount}/${MAX_RETRIES})`);
+                // 等待5秒后重试
+                await new Promise(resolve => setTimeout(resolve, 5000));
+              }
+            } else {
+              const successCount = newWordsList?.length || 0;
+              toast.success(`第 ${batchIndex + 1} 批提交成功 (${successCount}/${batchData.length})`);
+              submittedCount += successCount; // 更新已提交计数
+              success = true;
             }
-          } else {
-            loadWords(selectedCollectionId);
-          }
+          } catch (err) {
+            if (retryCount === MAX_RETRIES) {
+              // 将当前失败批次的索引加入失败列表（保持顺序）
+              for (let i = 0; i < batchData.length; i++) {
+                failedWordIndices.push(startIndex + i);
+              }
+              // 将所有后续未提交的批次索引也加入失败列表（保持顺序）
+              for (let i = batchIndex + 1; i < chunks.length; i++) {
+                const futureChunk = chunks[i];
+                for (let j = 0; j < futureChunk.words.length; j++) {
+                  failedWordIndices.push(futureChunk.startIndex + j);
+                }
+              }
+              toast.error(`第 ${batchIndex + 1} 批提交异常 (已重试 ${MAX_RETRIES} 次)，共 ${batchData.length} 个单词，已停止后续提交`);
+              success = true;
 
-          // 重新加载教材列表（数据库触发器会自动更新 word_count）
-          loadCollections();
+              // 按原始顺序返回失败单词
+              const failedWords = failedWordIndices
+                .sort((a, b) => a - b)
+                .map(idx => batchWords[idx]);
+              return failedWords;
+            } else {
+              retryCount++;
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+          }
+        }
+
+        // 更新最终进度
+        if (onProgress) {
+          onProgress({
+            current: submittedCount,
+            total: batchWords.length,
+            batchNumber: batchIndex + 1,
+            totalBatches: chunks.length,
+          });
+        }
+
+        // 批次间短暂延迟，避免请求过于频繁
+        if (batchIndex < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
+
+      toast.dismiss('batch-add');
+
+      // 汇总结果
+      const totalSuccess = submittedCount;
+      const failedCount = batchWords.length - totalSuccess;
+      if (failedCount === 0) {
+        toast.success(`所有单词提交成功！共 ${totalSuccess} 个`);
+      } else {
+        toast.warning(`提交完成！成功: ${totalSuccess}，失败: ${failedCount} (已保留在文本框中)`);
+      }
+
+      // 重新加载词汇列表
+      if (selectedCollectionId) {
+        if (selectedCollection) {
+          const newWordCount = selectedCollection.word_count + totalSuccess;
+          setSelectedCollection({
+            ...selectedCollection,
+            word_count: newWordCount
+          });
+
+          // 批量添加后，如果当前是最后一页或增加了新页，刷新数据
+          const newTotalPages = Math.ceil(newWordCount / wordsPerPage);
+          if (currentPage === newTotalPages || newTotalPages > totalPages) {
+            loadWords(selectedCollectionId, currentPage, wordsPerPage);
+          }
+        } else {
+          loadWords(selectedCollectionId);
+        }
+
+        // 重新加载教材列表（数据库触发器会自动更新 word_count）
+        loadCollections();
+      }
+
+      // 返回空数组（所有单词都成功）
+      return [];
     } catch (err) {
-      console.error('批量添加失败:', err);
       toast.dismiss('batch-add');
       toast.error('批量添加失败，请重试');
-      throw err;
+      // 如果发生严重错误，按原始顺序返回所有单词
+      return batchWords.map((word, index) => ({ ...word, _originalIndex: index }))
+        .sort((a, b) => a._originalIndex - b._originalIndex)
+        .map(({ _originalIndex, ...word }) => word);
     }
   };
 
@@ -358,18 +544,17 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                 });
 
                 // 更新总页数
-                const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+                const newTotalPages = Math.ceil(newWordCount / wordsPerPage);
                 setTotalPages(newTotalPages);
 
                 // 检查当前页是否需要调整
                 if (currentPage > newTotalPages) {
                   setCurrentPage(newTotalPages);
-                  console.log('[DataManagement] 删除后调整页码:', { oldPage: currentPage, newPage: newTotalPages });
                 }
               }
 
               // 重新加载词汇列表
-              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+              loadWords(selectedCollectionId, currentPage, wordsPerPage);
               // 重新加载教材列表（数据库触发器会自动更新 word_count）
               loadCollections();
             }
@@ -416,18 +601,17 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                 });
 
                 // 更新总页数并同步到状态
-                const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+                const newTotalPages = Math.ceil(newWordCount / wordsPerPage);
                 setTotalPages(newTotalPages);
 
                 // 检查当前页是否需要调整
                 if (currentPage > newTotalPages) {
                   setCurrentPage(newTotalPages);
-                  console.log('[DataManagement] 批量删除后调整页码:', { oldPage: currentPage, newPage: newTotalPages });
                 }
               }
 
               // 重新加载词汇列表
-              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+              loadWords(selectedCollectionId, currentPage, wordsPerPage);
               // 重新加载教材列表（数据库触发器会自动更新 word_count）
               loadCollections();
             }
@@ -494,19 +678,15 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
           // 可选参数（有默认值）
           p_answer: data.answer || '',
           p_hint: data.hint || null,
-          p_options: data.options ? JSON.stringify(data.options) : null,
+          p_options: data.options || null,
         };
 
-        console.log('[DataManagement] 添加单词:', wordParams);
-
-        const { data: newWord, error } = await supabase.rpc('add_single_word', wordParams);
+        const { data: _newWord, error } = await supabase.rpc('add_single_word', wordParams);
 
         if (error) {
-          console.error('RPC add_single_word error:', error);
           toast.error(`添加失败: ${error.message}`);
           throw new Error(error.message);
         } else {
-          console.log('[DataManagement] 添加成功:', newWord);
           toast.success('添加词汇成功');
 
           // 手动更新当前选中教材的 word_count
@@ -518,9 +698,9 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
             });
 
             // 添加后，如果当前页数据量不足，补充数据
-            const newTotalPages = Math.ceil(newWordCount / WORDS_PER_PAGE);
+            const newTotalPages = Math.ceil(newWordCount / wordsPerPage);
             if (currentPage === newTotalPages || newTotalPages > totalPages) {
-              loadWords(selectedCollectionId, currentPage, WORDS_PER_PAGE);
+              loadWords(selectedCollectionId, currentPage, wordsPerPage);
             }
           } else {
             loadWords(selectedCollectionId);
@@ -748,22 +928,37 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                 </div>
 
                 {/* Sort Options */}
-                <div className="flex items-center gap-sm">
-                  <span className="text-small font-bold text-text-secondary">排序:</span>
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [newSortBy, newSortOrder] = e.target.value.split('-') as ['word' | 'created_at', 'asc' | 'desc'];
-                      setSortBy(newSortBy);
-                      setSortOrder(newSortOrder);
-                    }}
-                    className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
-                  >
-                    <option value="word-asc">单词 A-Z</option>
-                    <option value="word-desc">单词 Z-A</option>
-                    <option value="created_at-asc">添加时间 旧→新</option>
-                    <option value="created_at-desc">添加时间 新→旧</option>
-                  </select>
+                <div className="flex items-center gap-md">
+                  <div className="flex items-center gap-sm">
+                    <span className="text-small font-bold text-text-secondary">排序:</span>
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [newSortBy, newSortOrder] = e.target.value.split('-') as ['word' | 'created_at', 'asc' | 'desc'];
+                        setSortBy(newSortBy);
+                        setSortOrder(newSortOrder);
+                      }}
+                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="word-asc">单词 A-Z</option>
+                      <option value="word-desc">单词 Z-A</option>
+                      <option value="created_at-asc">添加时间 旧→新</option>
+                      <option value="created_at-desc">添加时间 新→旧</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-sm">
+                    <span className="text-small font-bold text-text-secondary">每页:</span>
+                    <select
+                      value={wordsPerPage}
+                      onChange={(e) => handleWordsPerPageChange(Number(e.target.value))}
+                      className="px-md py-sm bg-white border-2 border-gray-200 rounded-lg text-small font-bold text-text-primary focus:border-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value={10}>10条</option>
+                      <option value={20}>20条</option>
+                      <option value={50}>50条</option>
+                      <option value={100}>100条</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -833,44 +1028,14 @@ const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }) => {
                 </thead>
                 <tbody>
                   {words.map((word) => (
-                    <tr key={word.id} className={cn(
-                      "border-b border-gray-100 hover:bg-gray-50 transition-colors",
-                      selectedWordIds.includes(word.id) && "bg-blue-50"
-                    )}>
-                      <td className="py-md px-md">
-                        <input
-                          type="checkbox"
-                          checked={selectedWordIds.includes(word.id)}
-                          onChange={() => toggleWordSelection(word.id)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
-                        />
-                      </td>
-                      <td className="py-md px-md">
-                        <span className="font-bold text-text-primary">{word.word}</span>
-                      </td>
-                      <td className="py-md px-md text-text-secondary">
-                        <span className="line-clamp-2">{word.definition}</span>
-                      </td>
-                      <td className="py-md px-md text-text-secondary">
-                        {word.options?.length || 0} 个选项
-                      </td>
-                      <td className="py-md px-md">
-                        <div className="flex items-center justify-center gap-sm">
-                          <button
-                            className="p-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                            onClick={() => handleEditWord(word)}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            className="p-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                            onClick={() => handleDeleteWord(word)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                    <WordRow
+                      key={word.id}
+                      word={word}
+                      selectedWordIds={selectedWordIds}
+                      onToggleSelection={toggleWordSelection}
+                      onEdit={handleEditWord}
+                      onDelete={handleDeleteWord}
+                    />
                   ))}
                 </tbody>
               </table>
