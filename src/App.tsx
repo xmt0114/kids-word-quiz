@@ -60,7 +60,8 @@ const ProtectedInviteUser = () => {
   return <InviteUserPage />;
 };
 
-function App() {
+// 内部应用组件（在 AuthProvider 内部）
+function AppContent() {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
   const { user, profile, loading, checkPasswordSet } = useAuth();
@@ -102,31 +103,37 @@ function App() {
   }
 
   return (
-    <AuthProvider>
-      {/* 守门人：数据加载的唯一触发器 */}
-      <Gatekeeper>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <UserHeader />
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<HomePage />} />
-              <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
-              <Route path="/guess-word/game" element={<GuessWordGamePage />} />
-              <Route path="/guess-word/result" element={<GuessWordResultPage />} />
-              <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
-              <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
-              <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+    <Gatekeeper>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <UserHeader />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
+            <Route path="/guess-word/game" element={<GuessWordGamePage />} />
+            <Route path="/guess-word/result" element={<GuessWordResultPage />} />
+            <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
+            <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
+            <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
 
-            {/* 密码设置弹框 */}
-            <SetPasswordModal
-              isOpen={needsPasswordSetup}
-            />
-          </div>
-        </Router>
-      </Gatekeeper>
+          {/* 密码设置弹框 */}
+          <SetPasswordModal
+            isOpen={needsPasswordSetup}
+          />
+        </div>
+      </Router>
+    </Gatekeeper>
+  );
+}
+
+// 根组件
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   );
 }
