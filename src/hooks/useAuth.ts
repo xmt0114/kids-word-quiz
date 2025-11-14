@@ -229,10 +229,17 @@ export function useAuthState() {
         return false;
       }
 
-      // 检查是否有密码身份提供者
+      // 检查是否有密码身份提供者（password provider）
+      // 通过邀请链接登录的用户只有 email provider，没有 password provider
       const hasPassword = data.user.identities?.some(
-        identity => identity.provider === 'email'
+        identity => identity.provider === 'password'
       ) || false;
+
+      console.log('🔍 [useAuth] 身份提供者检查:', {
+        userId: data.user.id,
+        identities: data.user.identities?.map(i => ({ provider: i.provider, id: i.id })),
+        hasPassword
+      });
 
       return hasPassword;
     } catch (error) {
