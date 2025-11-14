@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../Button'
 import { Card } from '../Card'
+import { supabase } from '../../lib/supabase'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
   const { signIn, user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -41,6 +43,33 @@ export function LoginPage() {
     } else {
       setError(result.error || '登录失败')
       setLoading(false)
+    }
+  }
+
+  // 发送重置密码邮件
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('请先输入邮箱地址')
+      return
+    }
+
+    setResetLoading(true)
+    setError('')
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      })
+
+      if (error) {
+        setError(error.message || '发送重置邮件失败')
+      } else {
+        alert('重置密码邮件已发送，请检查您的邮箱')
+      }
+    } catch (err) {
+      setError('发送重置邮件失败，请重试')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -83,9 +112,19 @@ export function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-body font-semibold text-text-primary mb-sm">
-                  密码
-                </label>
+                <div className="flex justify-between items-center mb-sm">
+                  <label htmlFor="password" className="block text-body font-semibold text-text-primary">
+                    密码
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={resetLoading || !email}
+                    className="text-small text-primary-600 hover:text-primary-700 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  >
+                    {resetLoading ? '发送中...' : '忘记密码？'}
+                  </button>
+                </div>
                 <input
                   id="password"
                   name="password"

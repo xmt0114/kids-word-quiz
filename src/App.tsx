@@ -64,11 +64,25 @@ const ProtectedInviteUser = () => {
 function AppContent() {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const { user, profile, loading, checkPasswordSet } = useAuth();
 
-  // 检查用户是否需要设置密码
+  // 检查用户是否需要设置密码或重置密码
   useEffect(() => {
     const checkPassword = async () => {
+      // 检查 URL 是否包含重置密码参数
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const type = urlParams.get('type');
+
+      if (token && type === 'recovery') {
+        console.log('🔑 [App] 检测到密码重置请求');
+        setNeedsPasswordReset(true);
+        setCheckingPassword(false);
+        return;
+      }
+
+      // 普通密码设置检查
       if (!loading && user && profile) {
         setCheckingPassword(true);
         try {
@@ -94,6 +108,14 @@ function AppContent() {
   const handlePasswordSetupSuccess = () => {
     console.log('✅ [App] 密码设置成功，关闭弹框');
     setNeedsPasswordSetup(false);
+  };
+
+  // 处理密码重置成功的回调
+  const handlePasswordResetSuccess = () => {
+    console.log('✅ [App] 密码重置成功，关闭弹框');
+    setNeedsPasswordReset(false);
+    // 重置成功后清理 URL 参数
+    window.history.replaceState({}, '', window.location.pathname);
   };
 
   // 如果正在加载认证或检查密码，显示加载状态
@@ -128,6 +150,14 @@ function AppContent() {
         <SetPasswordModal
           isOpen={needsPasswordSetup}
           onSuccess={handlePasswordSetupSuccess}
+          mode="setup"
+        />
+
+        {/* 密码重置弹框 */}
+        <SetPasswordModal
+          isOpen={needsPasswordReset}
+          onSuccess={handlePasswordResetSuccess}
+          mode="reset"
         />
       </div>
     </Router>

@@ -6,16 +6,23 @@ import { Lock, Eye, EyeOff } from 'lucide-react';
 interface SetPasswordModalProps {
   isOpen: boolean;
   onSuccess?: () => void;
+  mode?: 'setup' | 'reset';
 }
 
-export function SetPasswordModal({ isOpen, onSuccess }: SetPasswordModalProps) {
+export function SetPasswordModal({ isOpen, onSuccess, mode = 'setup' }: SetPasswordModalProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const { setPassword: updatePassword, user, profile, setAuthProfile } = useAuth();
+  const { setPassword: updatePassword, profile, setAuthProfile } = useAuth();
+
+  const isResetMode = mode === 'reset';
+  const title = isResetMode ? '重置密码' : '设置登录密码';
+  const description = isResetMode
+    ? '请设置您的新密码'
+    : '您好！您需要设置一个登录密码，以便下次能够正常登录。';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,12 +101,14 @@ export function SetPasswordModal({ isOpen, onSuccess }: SetPasswordModalProps) {
 
         <div className="text-center mb-lg">
           <h3 className="text-h3 font-bold text-text-primary mb-sm">
-            {success ? '设置成功' : '设置登录密码'}
+            {success ? '设置成功' : title}
           </h3>
           <p className="text-body text-text-secondary">
             {success
-              ? '密码设置成功！您现在可以使用邮箱和密码登录了。'
-              : '您好！您需要设置一个登录密码，以便下次能够正常登录。'
+              ? isResetMode
+                ? '密码重置成功！您现在可以使用新密码登录了。'
+                : '密码设置成功！您现在可以使用邮箱和密码登录了。'
+              : description
             }
           </p>
         </div>
