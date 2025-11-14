@@ -221,24 +221,48 @@ export function useAuthState() {
     }
 
     try {
-      // 通过尝试获取用户信息来检查是否有密码
-      // 如果用户没有设置密码，identities 数组可能为空或只有邮箱身份
-      const { data, error } = await supabase.auth.getUser();
+      // 检查用户会话和身份信息
+      const { data: { user }, error } = await supabase.auth.getUser();
 
-      if (error || !data.user) {
+      if (error || !user) {
         return false;
       }
 
-      // 检查是否有密码身份提供者（password provider）
-      // 通过邀请链接登录的用户只有 email provider，没有 password provider
-      const hasPassword = data.user.identities?.some(
-        identity => identity.provider === 'password'
-      ) || false;
+      // 获取详细的会话信息，检查登录方式
+      const { data: sessionData } = await supabase.auth.getSession();
 
-      console.log('🔍 [useAuth] 身份提供者检查:', {
-        userId: data.user.id,
-        identities: data.user.identities?.map(i => ({ provider: i.provider, id: i.id })),
-        hasPassword
+      const identities = user.identities || [];
+
+      // 如果用户有 email provider，则认为已设置密码（邮箱+密码登录）
+      // 通过邀请链接登录的用户也会有 email provider，但会有特殊标记
+      const hasEmailProvider = identities.some(
+        identity => identity.provider === 'email'
+      );
+
+      // 进一步的检查：如果有 email provider 且用户已经登录过（last_sign_in_at 存在）
+      // 或者有 password provider，则认为已设置密码
+      const hasPasswordProvider = identities.some(
+        identity => identity.provider === 'password'
+      );
+
+      // 判断逻辑：
+      // 1. 如果有 password provider → 已设置密码 ✅
+      // 2. 如果有 email provider 且 last_sign_in_at 存在 → 已设置密码 ✅
+      // 3. 如果只有 email provider 且 last_sign_in_at 与 created_at 接近 → 未设置密码（通过邀请链接）
+      const hasPassword = Boolean(hasPasswordProvider) ||
+        (hasEmailProvider && Boolean(user.last_sign_in_at));
+
+      // 调试信息
+      console.log('🔍 [useAuth] 密码检查详情:', {
+        userId: user.id,
+        email: user.email,
+        createdAt: user.created_at,
+        lastSignInAt: user.last_sign_in_at,
+        identities: identities.map(i => ({ provider: i.provider, id: i.id })),
+        hasPasswordProvider,
+        hasEmailProvider,
+        hasPassword,
+        sessionProvider: sessionData?.session?.provider_token ? 'oauth' : 'password'
       });
 
       return hasPassword;
