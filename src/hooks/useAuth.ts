@@ -9,6 +9,7 @@ interface UserProfile {
   display_name: string
   avatar_url?: string
   settings?: any // JSONB 格式，可存储用户偏好，如 preferred_textbook_id
+  has_password_set?: boolean // 是否已设置密码
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   updateUserSettings: (updates: any) => Promise<{ success: boolean; error?: string }>
   setPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
   checkPasswordSet: () => Promise<boolean>
+  setAuthProfile: (profile: UserProfile | null) => void
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -216,56 +218,20 @@ export function useAuthState() {
 
   // 检查用户是否已设置密码
   const checkPasswordSet = async (): Promise<boolean> => {
-    if (!authUser) {
+    if (!authUser || !authProfile) {
       return false;
     }
 
     try {
-      // 检查用户会话和身份信息
-      const { data: { user }, error } = await supabase.auth.getUser();
-
-      if (error || !user) {
-        return false;
-      }
-
-      // 获取详细的会话信息，检查登录方式
-      const { data: sessionData } = await supabase.auth.getSession();
-
-      const identities = user.identities || [];
-
-      // 如果用户有 email provider，则认为已设置密码（邮箱+密码登录）
-      // 通过邀请链接登录的用户也会有 email provider，但会有特殊标记
-      const hasEmailProvider = identities.some(
-        identity => identity.provider === 'email'
-      );
-
-      // 进一步的检查：如果有 email provider 且用户已经登录过（last_sign_in_at 存在）
-      // 或者有 password provider，则认为已设置密码
-      const hasPasswordProvider = identities.some(
-        identity => identity.provider === 'password'
-      );
-
-      // 判断逻辑：
-      // 1. 如果有 password provider → 已设置密码 ✅
-      // 2. 如果有 email provider 且 last_sign_in_at 存在 → 已设置密码 ✅
-      // 3. 如果只有 email provider 且 last_sign_in_at 与 created_at 接近 → 未设置密码（通过邀请链接）
-      const hasPassword = Boolean(hasPasswordProvider) ||
-        (hasEmailProvider && Boolean(user.last_sign_in_at));
-
-      // 调试信息
-      console.log('🔍 [useAuth] 密码检查详情:', {
-        userId: user.id,
-        email: user.email,
-        createdAt: user.created_at,
-        lastSignInAt: user.last_sign_in_at,
-        identities: identities.map(i => ({ provider: i.provider, id: i.id })),
-        hasPasswordProvider,
-        hasEmailProvider,
-        hasPassword,
-        sessionProvider: sessionData?.session?.provider_token ? 'oauth' : 'password'
+      // 从 authProfile 中直接读取 has_password_set 字段
+      const hasPasswordSet = Boolean(authProfile.has_password_set);
+      console.log('🔍 [useAuth] 密码检查结果:', {
+        userId: authUser.id,
+        email: authUser.email,
+        has_password_set: hasPasswordSet
       });
 
-      return hasPassword;
+      return hasPasswordSet;
     } catch (error) {
       console.error('检查密码设置失败:', error);
       return false;
@@ -281,16 +247,31 @@ export function useAuthState() {
     try {
       console.log('🔐 [useAuth] 开始设置用户密码...');
 
-      const { error } = await supabase.auth.updateUser({
+      // 步骤 1: 更新 Supabase Auth 的密码
+      const { error: authError } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (error) {
-        console.error('❌ [useAuth] 设置密码失败:', error);
-        return { success: false, error: error.message };
+      if (authError) {
+        console.error('❌ [useAuth] 设置密码失败:', authError);
+        return { success: false, error: authError.message };
       }
 
-      console.log('✅ [useAuth] 密码设置成功');
+      console.log('✅ [useAuth] Supabase Auth 密码设置成功');
+
+      // 步骤 2: 更新 user_profiles 表中的 has_password_set 字段
+      const { error: dbError } = await supabase
+        .from('user_profiles')
+        .update({ has_password_set: true })
+        .eq('id', authUser.id);
+
+      if (dbError) {
+        console.error('❌ [useAuth] 更新 has_password_set 失败:', dbError);
+        // 即使数据库更新失败，密码也已设置成功，只记录错误日志
+      } else {
+        console.log('✅ [useAuth] has_password_set 更新成功');
+      }
+
       return { success: true };
     } catch (error) {
       console.error('❌ [useAuth] 设置密码异常:', error);
@@ -309,6 +290,7 @@ export function useAuthState() {
     updatePreferredTextbook,
     updateUserSettings,
     setPassword,
-    checkPasswordSet
+    checkPasswordSet,
+    setAuthProfile
   }
 }

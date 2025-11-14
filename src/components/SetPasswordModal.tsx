@@ -5,19 +5,22 @@ import { Lock, Eye, EyeOff } from 'lucide-react';
 
 interface SetPasswordModalProps {
   isOpen: boolean;
+  onSuccess?: () => void;
 }
 
-export function SetPasswordModal({ isOpen }: SetPasswordModalProps) {
+export function SetPasswordModal({ isOpen, onSuccess }: SetPasswordModalProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { setPassword: updatePassword } = useAuth();
+  const [success, setSuccess] = useState(false);
+  const { setPassword: updatePassword, user, profile, setAuthProfile } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
 
     // 密码验证
     if (password.length < 6) {
@@ -36,13 +39,40 @@ export function SetPasswordModal({ isOpen }: SetPasswordModalProps) {
       const result = await updatePassword(password);
 
       if (result.success) {
-        // 密码设置成功，清空表单
+        // 密码设置成功，更新本地 profile 状态
+        if (profile) {
+          setAuthProfile({
+            ...profile,
+            has_password_set: true
+          });
+        }
+
+        // 设置成功状态
+        setSuccess(true);
+
+        // 清空表单
         setPassword('');
         setConfirmPassword('');
         setError('');
-        alert('密码设置成功！您现在可以使用邮箱和密码登录了。');
+
+        // 延迟关闭弹框，给用户时间看到成功提示
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          }
+          setSuccess(false);
+        }, 1500);
       } else {
-        setError(result.error || '设置密码失败');
+        // 处理英文错误信息
+        let errorMsg = result.error || '设置密码失败';
+        if (errorMsg.includes('Password should be at least')) {
+          errorMsg = '密码至少需要6个字符';
+        } else if (errorMsg.includes('New password should be different')) {
+          errorMsg = '新密码不能与当前密码相同';
+        } else if (errorMsg.includes('same password as current')) {
+          errorMsg = '新密码不能与当前密码相同';
+        }
+        setError(errorMsg);
       }
     } catch (err) {
       setError('设置密码失败，请重试');
@@ -64,14 +94,18 @@ export function SetPasswordModal({ isOpen }: SetPasswordModalProps) {
 
         <div className="text-center mb-lg">
           <h3 className="text-h3 font-bold text-text-primary mb-sm">
-            设置登录密码
+            {success ? '设置成功' : '设置登录密码'}
           </h3>
           <p className="text-body text-text-secondary">
-            您好！您需要设置一个登录密码，以便下次能够正常登录。
+            {success
+              ? '密码设置成功！您现在可以使用邮箱和密码登录了。'
+              : '您好！您需要设置一个登录密码，以便下次能够正常登录。'
+            }
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-lg">
+        {!success ? (
+          <form onSubmit={handleSubmit} className="space-y-lg">
           {error && (
             <div className="rounded-sm bg-red-50 p-md text-center">
               <p className="text-small text-red-600">{error}</p>
@@ -138,7 +172,16 @@ export function SetPasswordModal({ isOpen }: SetPasswordModalProps) {
               设置密码后，您将可以使用邮箱和密码登录系统
             </p>
           </div>
-        </form>
+          </form>
+        ) : (
+          <div className="text-center py-lg">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-md">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

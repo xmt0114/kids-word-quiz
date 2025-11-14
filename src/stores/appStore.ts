@@ -26,6 +26,7 @@ export interface UserProfile {
   display_name: string
   avatar_url?: string
   settings?: any // JSONB 格式，可存储用户偏好
+  has_password_set?: boolean // 是否已设置密码
 }
 
 // 应用状态接口

@@ -90,6 +90,12 @@ function AppContent() {
     checkPassword();
   }, [user, profile, loading, checkPasswordSet]);
 
+  // 处理密码设置成功的回调
+  const handlePasswordSetupSuccess = () => {
+    console.log('✅ [App] 密码设置成功，关闭弹框');
+    setNeedsPasswordSetup(false);
+  };
+
   // 如果正在加载认证或检查密码，显示加载状态
   if (loading || checkingPassword) {
     return (
@@ -121,6 +127,7 @@ function AppContent() {
         {/* 密码设置弹框 */}
         <SetPasswordModal
           isOpen={needsPasswordSetup}
+          onSuccess={handlePasswordSetupSuccess}
         />
       </div>
     </Router>
