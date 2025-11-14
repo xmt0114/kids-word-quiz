@@ -16,7 +16,6 @@ interface AuthContextType {
   profile: UserProfile | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>
@@ -51,9 +50,6 @@ export function useAuthState() {
     if (error.includes('Invalid login credentials')) {
       return '邮箱或密码错误，请检查后重试'
     }
-    if (error.includes('User already registered')) {
-      return '该邮箱已被注册，请直接登录'
-    }
     if (error.includes('Email not confirmed')) {
       return '请先验证您的邮箱后再登录'
     }
@@ -63,44 +59,7 @@ export function useAuthState() {
     if (error.includes('Unable to validate email address')) {
       return '邮箱格式不正确，请检查后重试'
     }
-    if (error.includes('Signup is disabled')) {
-      return '注册功能暂时关闭，请联系管理员'
-    }
     return error
-  }
-
-  // 注册
-  const signUp = async (email: string, password: string, displayName: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password
-      })
-
-      if (error) {
-        return { success: false, error: getFriendlyError(error.message) }
-      }
-
-      // 如果注册成功且有用户信息，创建用户资料
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: data.user.id,
-            role: 'student', // 默认角色
-            display_name: displayName,
-            settings: {}
-          })
-
-        if (profileError) {
-          return { success: false, error: '该邮箱已被注册，请直接登录' }
-        }
-      }
-
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: '注册失败，请重试' }
-    }
   }
 
   // 登录
@@ -258,7 +217,6 @@ export function useAuthState() {
     profile: authProfile,
     session,
     loading: authLoading,
-    signUp,
     signIn,
     signOut,
     updateProfile,

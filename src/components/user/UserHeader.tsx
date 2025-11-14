@@ -1,7 +1,7 @@
 import { useAuth } from '../../hooks/useAuth'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../Button'
-import { LogIn, UserPlus, User, LogOut } from 'lucide-react'
+import { LogIn, User, LogOut, Mail, Database } from 'lucide-react'
 
 export function UserHeader() {
   const { user, profile, signOut } = useAuth()
@@ -36,6 +36,30 @@ export function UserHeader() {
             {user && profile ? (
               // 已登录状态
               <>
+                {/* 管理员专用菜单 */}
+                {profile.role === 'admin' && (
+                  <div className="flex items-center space-x-2 mr-4">
+                    <Link to="/guess-word/data">
+                      <Button
+                        variant="secondary"
+                        className="flex items-center gap-1 !py-2 !px-3 text-xs"
+                      >
+                        <Database size={14} />
+                        数据管理
+                      </Button>
+                    </Link>
+                    <Link to="/guess-word/invite">
+                      <Button
+                        variant="secondary"
+                        className="flex items-center gap-1 !py-2 !px-3 text-xs"
+                      >
+                        <Mail size={14} />
+                        邀请用户
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+
                 <div className="flex items-center space-x-2">
                   <User size={16} className="text-gray-600" />
                   <span className="text-sm text-gray-700">
@@ -64,14 +88,6 @@ export function UserHeader() {
                   >
                     <LogIn size={16} />
                     登录
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button
-                    className="flex items-center gap-2 !py-2 !px-4"
-                  >
-                    <UserPlus size={16} />
-                    注册
                   </Button>
                 </Link>
               </>

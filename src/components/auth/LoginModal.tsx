@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../Button'
-import { Card } from '../Card'
 import { X } from 'lucide-react'
 
 interface LoginModalProps {
@@ -17,7 +15,6 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { signIn } = useAuth()
-  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,17 +105,7 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
 
             <div className="text-center">
               <p className="text-small text-text-tertiary">
-                还没有账户？{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigate('/register')
-                    onClose()
-                  }}
-                  className="font-semibold text-primary-500 hover:text-primary-600 transition-colors"
-                >
-                  立即注册
-                </button>
+                需要账户请联系管理员获取邀请
               </p>
             </div>
           </div>

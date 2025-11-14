@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../Button'
 import { Card } from '../Card'
@@ -112,13 +112,7 @@ export function LoginPage() {
 
             <div className="text-center pt-md">
               <p className="text-small text-text-tertiary">
-                还没有账户？{' '}
-                <Link
-                  to="/register"
-                  className="font-semibold text-primary-500 hover:text-primary-600 transition-colors"
-                >
-                  立即注册
-                </Link>
+                需要账户请联系管理员获取邀请
               </p>
             </div>
           </form>
