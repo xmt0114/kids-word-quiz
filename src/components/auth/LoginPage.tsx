@@ -11,6 +11,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
   const { signIn, user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -57,6 +58,34 @@ export function LoginPage() {
     setError('')
 
     try {
+      // 首先检查用户是否存在（通过 user_profiles 表查询）
+      const { data: users, error: userError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (userError || !users) {
+        // 用户不存在，返回错误
+        setError('该邮箱地址未注册')
+        setResetLoading(false)
+        return
+      }
+
+      const userId = users.id
+
+      // 更新用户的 has_password_set 字段（表示用户已设置过密码）
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ has_password_set: true })
+        .eq('id', userId)
+
+      if (updateError) {
+        console.warn('更新 has_password_set 字段失败:', updateError)
+        // 即使更新失败，也继续发送邮件
+      }
+
+      // 发送重置密码邮件
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin
       })
@@ -64,7 +93,12 @@ export function LoginPage() {
       if (error) {
         setError(error.message || '发送重置邮件失败')
       } else {
-        alert('重置密码邮件已发送，请检查您的邮箱')
+        // 显示成功状态
+        setResetSuccess(true)
+        // 3秒后自动隐藏成功提示
+        setTimeout(() => {
+          setResetSuccess(false)
+        }, 3000)
       }
     } catch (err) {
       setError('发送重置邮件失败，请重试')
@@ -90,6 +124,14 @@ export function LoginPage() {
             {error && (
               <div className="rounded-sm bg-red-50 p-md text-center">
                 <p className="text-small text-red-600">{error}</p>
+              </div>
+            )}
+
+            {resetSuccess && (
+              <div className="rounded-sm bg-green-50 p-md text-center">
+                <p className="text-small text-green-600">
+                  ✓ 重置密码邮件已发送，请检查您的邮箱
+                </p>
               </div>
             )}
 
