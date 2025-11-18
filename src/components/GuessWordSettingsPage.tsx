@@ -9,7 +9,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
-import { supabase } from '../lib/supabase';
 import { useAppStore } from '../stores/appStore';
 import { LoginModal } from './auth/LoginModal';
 
@@ -241,13 +240,9 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     try {
       console.log('[Settings] 开始重置学习进度:', collectionId);
 
-      const { error } = await supabase.rpc('reset_collection_progress', {
-        p_collection_id: collectionId
-      });
-
-      if (error) {
-        console.error('重置学习进度失败:', error);
-        alert(`重置失败: ${error.message}`);
+      const resp = await wordAPI.resetCollectionProgress?.(collectionId);
+      if (!resp || !resp.success) {
+        alert(`重置失败${resp?.error ? `: ${resp.error}` : ''}`);
       } else {
         console.log('[Settings] 学习进度重置成功');
         // 使用 Zustand 刷新学习进度缓存

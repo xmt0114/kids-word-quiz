@@ -648,4 +648,69 @@ export class SupabaseWordAPI implements WordAPI {
       }
     }
   }
+
+  async getStudySession(params: {
+    collectionId: string;
+    sessionSize: number;
+    studyMode: 'sequential' | 'random';
+  }): Promise<ApiResponse<any[]>> {
+    try {
+      const { data, error } = await supabase.rpc('get_my_study_session', {
+        p_collection_id: params.collectionId,
+        p_session_size: params.sessionSize,
+        p_study_mode: params.studyMode,
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      const words = (data || []).map(transformWord)
+      return { success: true, data: words }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
+
+  async recordSessionResults(results: Array<{ word_id: string; is_correct: boolean }>): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await supabase.rpc('record_session_results', {
+        p_session_results: results,
+      })
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
+
+  async getCollectionProgress(collectionId: string): Promise<ApiResponse<any>> {
+    try {
+      const { data, error } = await supabase.rpc('get_collection_progress', {
+        p_collection_id: collectionId,
+      })
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true, data }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
+
+  async resetCollectionProgress(collectionId: string): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await supabase.rpc('reset_collection_progress', {
+        p_collection_id: collectionId,
+      })
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
 }

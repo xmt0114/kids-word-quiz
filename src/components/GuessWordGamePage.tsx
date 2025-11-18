@@ -12,7 +12,7 @@ import { TextToSpeechButton } from './TextToSpeechButton';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
-import { supabase } from '../lib/supabase';
+import { wordAPI } from '../utils/api';
 
 const GuessWordGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,19 +92,18 @@ const GuessWordGamePage: React.FC = () => {
         });
 
         // 调用新的RPC函数获取学习会话
-        const { data: words, error } = await supabase
-          .rpc('get_my_study_session', {
-            p_collection_id: collectionId,
-            p_session_size: 10,
-            p_study_mode: finalSettings.selectionStrategy
-          });
+        const sessionResp = await (wordAPI.getStudySession?.({
+          collectionId,
+          sessionSize: 10,
+          studyMode: finalSettings.selectionStrategy,
+        }))
 
-        if (error) {
-          console.error('Failed to fetch study session:', error);
-          throw new Error(`获取学习会话失败: ${error.message}`);
+        if (!sessionResp || !sessionResp.success) {
+          throw new Error(`获取学习会话失败${sessionResp?.error ? `: ${sessionResp.error}` : ''}`);
         }
 
-        if (!words || words.length === 0) {
+        const words = sessionResp.data || [];
+        if (words.length === 0) {
           throw new Error('没有可用的学习内容');
         }
 

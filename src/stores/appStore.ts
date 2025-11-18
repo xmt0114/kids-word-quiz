@@ -3,6 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { QuizSettings } from '../types';
 import { useMemo } from 'react';
 import { useAuth, useAuthState } from '../hooks/useAuth';
+import { wordAPI } from '../utils/api';
 
 // ==================== 类型定义 ====================
 
@@ -203,24 +204,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       // 动态导入 supabase
-      const { supabase } = await import('../lib/supabase');
-
-      const { data, error } = await supabase
-        .rpc('get_collection_progress', {
-          p_collection_id: collectionId
-        });
-
-      if (error) {
-        console.error('❌ [AppStore] 获取学习进度失败:', error);
+      const resp = await wordAPI.getCollectionProgress?.(collectionId);
+      if (!resp || !resp.success) {
         return null;
       }
-
+      const data = resp.data as any;
       if (data) {
-        console.log('✅ [AppStore] 学习进度获取成功:', data);
         set({ userProgress: data });
         return data;
       }
-
+      
       return null;
     } catch (error) {
       console.error('❌ [AppStore] 获取学习进度异常:', error);
@@ -245,19 +238,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       // 动态导入 supabase
-      const { supabase } = await import('../lib/supabase');
-
-      // 步骤1: 提交到服务器
-      const { error } = await supabase.rpc('record_session_results', {
-        p_session_results: results
-      });
-
-      if (error) {
-        console.error('❌ [AppStore] 提交学习结果失败:', error);
-        return { success: false, error: error.message };
+      const resp = await wordAPI.recordSessionResults?.(results);
+      if (!resp || !resp.success) {
+        return { success: false, error: resp?.error };
       }
-
-      console.log('✅ [AppStore] 学习结果提交成功');
 
       // 步骤2: 刷新本地进度缓存
       // 获取当前用户设置中的 collection_id
@@ -266,10 +250,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       if (collectionId) {
         console.log('🔄 [AppStore] 刷新本地进度缓存...');
-        const updatedProgress = await get().getProgress(collectionId);
-        if (updatedProgress) {
-          console.log('✅ [AppStore] 本地进度缓存已更新');
-        }
+        await get().getProgress(collectionId);
       }
 
       return { success: true };

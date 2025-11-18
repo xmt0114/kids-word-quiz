@@ -64,6 +64,18 @@ export interface WordAPI {
     correct: boolean;
     message: string;
   }>>;
+
+  getStudySession?(params: {
+    collectionId: string;
+    sessionSize: number;
+    studyMode: 'sequential' | 'random';
+  }): Promise<ApiResponse<any[]>>;
+
+  recordSessionResults?(results: Array<{ word_id: string; is_correct: boolean }>): Promise<ApiResponse<void>>;
+
+  getCollectionProgress?(collectionId: string): Promise<ApiResponse<any>>;
+
+  resetCollectionProgress?(collectionId: string): Promise<ApiResponse<void>>;
 }
 
 // 本地数据API实现
