@@ -46,7 +46,6 @@ export interface WordCollection {
   theme: string | null;
   is_public: boolean;
   word_count: number;
-  word_count: number;
   created_at: string;
   game_id?: string;
 }
