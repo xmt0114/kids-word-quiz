@@ -2,6 +2,7 @@
 import { supabase } from '../lib/supabase'
 import { DEFAULT_COLLECTION_ID, GAME_CONFIG } from '../lib/config'
 import { ApiResponse, WordApiResponse, WordAPI, WordCollection } from './api'
+import { Game } from '../types'
 
 // 注意：游戏常量现在从 lib/config.ts 导入
 // 实际项目中，建议在组件中使用 useAppConfig hook 获取数据库配置
@@ -39,14 +40,20 @@ function transformCollection(dbCollection: any): WordCollection {
 
 // Supabase Word API 实现
 export class SupabaseWordAPI implements WordAPI {
-  // 获取教材列表
-  async getCollections(): Promise<ApiResponse<WordCollection[]>> {
+  // 获取教材列表 (可选: 按游戏ID过滤)
+  async getCollections(gameId?: string): Promise<ApiResponse<WordCollection[]>> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('word_collections')
         .select('*')
         .eq('is_public', true)
         .order('created_at', { ascending: false })
+
+      if (gameId) {
+        query = query.eq('game_id', gameId)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         console.error('Supabase getCollections error:', error)
@@ -71,6 +78,151 @@ export class SupabaseWordAPI implements WordAPI {
       }
     }
   }
+
+  // 获取游戏列表
+  async getGames(): Promise<ApiResponse<any[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Supabase getGames error:', error)
+        return {
+          success: false,
+          error: `获取游戏列表失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: data || [],
+        message: `获取到${(data || []).length}个游戏`
+      }
+    } catch (error) {
+      console.error('Unexpected error in getGames:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 创建游戏
+  async createGame(game: Omit<Game, 'id' | 'created_at'>): Promise<ApiResponse<Game>> {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .insert(game)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase createGame error:', error)
+        return {
+          success: false,
+          error: `创建游戏失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: data,
+        message: '创建游戏成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in createGame:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  // 更新游戏
+  async updateGame(id: string, game: Partial<Game>): Promise<ApiResponse<Game>> {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .update(game)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase updateGame error:', error)
+        return {
+          success: false,
+          error: `更新游戏失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: data,
+        message: '更新游戏成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in updateGame:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  } // <-- Added missing brace here
+  // 删除游戏
+  async deleteGame(id: string): Promise<ApiResponse<void>> {
+    try {
+      // 检查是否有教材关联
+      const { data: collections, error: checkError } = await supabase
+        .from('word_collections')
+        .select('id')
+        .eq('game_id', id)
+        .limit(1)
+
+      if (checkError) {
+        console.error('Supabase check collections error:', checkError)
+        return {
+          success: false,
+          error: `检查游戏关联教材失败: ${checkError.message}`
+        }
+      }
+
+      if (collections && collections.length > 0) {
+        return {
+          success: false,
+          error: '该游戏下还有教材，请先删除所有教材'
+        }
+      }
+
+      const { error } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Supabase deleteGame error:', error)
+        return {
+          success: false,
+          error: `删除游戏失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        message: '删除游戏成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in deleteGame:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
 
   // 获取指定教材信息
   async getCollectionById(collectionId: string): Promise<ApiResponse<WordCollection>> {
@@ -333,9 +485,9 @@ export class SupabaseWordAPI implements WordAPI {
       const expectedCount = words.length
       const errors = successCount < expectedCount
         ? words.slice(successCount).map(word => ({
-            word: word.word,
-            error: '插入失败（可能因为重复或其他约束）'
-          }))
+          word: word.word,
+          error: '插入失败（可能因为重复或其他约束）'
+        }))
         : []
 
       return {
@@ -461,11 +613,12 @@ export class SupabaseWordAPI implements WordAPI {
     grade_level?: string;
     theme?: string;
     is_public?: boolean;
+    game_id?: string; // Added game_id
   }): Promise<ApiResponse<WordCollection>> {
     try {
       // 为匿名用户设置一个固定的UUID作为created_by
       const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000'
-      
+
       const { data, error } = await supabase
         .from('word_collections')
         .insert({
@@ -477,7 +630,8 @@ export class SupabaseWordAPI implements WordAPI {
           theme: collectionData.theme || null,
           is_public: collectionData.is_public !== undefined ? collectionData.is_public : true,
           word_count: 0,
-          created_by: ANONYMOUS_USER_ID
+          created_by: ANONYMOUS_USER_ID,
+          game_id: collectionData.game_id || null // Added game_id
         })
         .select()
         .single()
@@ -513,6 +667,7 @@ export class SupabaseWordAPI implements WordAPI {
     grade_level?: string;
     theme?: string;
     is_public?: boolean;
+    game_id?: string;
   }): Promise<ApiResponse<WordCollection>> {
     try {
       const updateData: any = {}
@@ -523,6 +678,7 @@ export class SupabaseWordAPI implements WordAPI {
       if (collectionData.grade_level !== undefined) updateData.grade_level = collectionData.grade_level
       if (collectionData.theme !== undefined) updateData.theme = collectionData.theme
       if (collectionData.is_public !== undefined) updateData.is_public = collectionData.is_public
+      if (collectionData.game_id !== undefined) updateData.game_id = collectionData.game_id
 
       const { data, error } = await supabase
         .from('word_collections')

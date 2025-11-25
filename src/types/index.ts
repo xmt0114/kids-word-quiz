@@ -46,7 +46,19 @@ export interface WordCollection {
   theme: string | null;
   is_public: boolean;
   word_count: number;
+  word_count: number;
   created_at: string;
+  game_id?: string;
+}
+
+export interface Game {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  type: 'guess_word' | 'fill_blank';
+  default_config: QuizSettings;
+  is_active: boolean;
 }
 
 // 词汇选取策略类型
@@ -162,7 +174,7 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export interface WordApiResponse extends ApiResponse<any> {}
+export interface WordApiResponse extends ApiResponse<any> { }
 
 // 动画类型
 export interface AnimationConfig {

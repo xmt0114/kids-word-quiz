@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { WordCollection } from '../types';
@@ -12,15 +12,19 @@ interface TextbookSelectionPageProps {
   onSelectTextbook?: (collectionId: string) => void;
   onBack?: () => void;
   currentCollectionId?: string;
+  gameId?: string;
 }
 
 const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   onSelectTextbook,
   onBack,
-  currentCollectionId
+  currentCollectionId,
+  gameId
 }) => {
   const navigate = useNavigate();
-  const { setSettings } = useQuizSettings(); // 获取setSettings函数（自动同步到后端）
+  const location = useLocation();
+  const effectiveGameId = gameId || location.state?.gameId;
+  const { setSettings } = useQuizSettings(effectiveGameId); // 获取setSettings函数（自动同步到后端）
   const [collections, setCollections] = useState<WordCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(currentCollectionId || null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,11 +68,11 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   const loadCollections = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       if (wordAPI.getCollections) {
-        const response = await wordAPI.getCollections();
-        
+        const response = await wordAPI.getCollections(effectiveGameId);
+
         if (response.success && response.data) {
           setCollections(response.data);
         } else {
@@ -149,14 +153,14 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mb-xl">
               {collections.map((collection) => {
                 const isSelected = selectedId === collection.id;
-                
+
                 return (
                   <Card
                     key={collection.id}
                     className={cn(
                       'cursor-pointer transition-all duration-normal border-4',
-                      isSelected 
-                        ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg' 
+                      isSelected
+                        ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
                         : 'border-gray-200 hover:border-primary-300 hover:scale-102'
                     )}
                     onClick={() => handleSelect(collection.id)}
@@ -190,7 +194,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
                         )}>
                           {collection.textbook_type || '自定义教材'}
                         </span>
-                        
+
                         {/* 年级标签 */}
                         {collection.grade_level && (
                           <span className="px-sm py-xs rounded-full bg-gray-200 text-text-primary text-sm font-semibold">

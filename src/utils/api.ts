@@ -8,9 +8,11 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export interface WordApiResponse extends ApiResponse<any> {}
+export interface WordApiResponse extends ApiResponse<any> { }
 
 // 词汇集合（教材）类型
+import { Game } from '../types';
+
 export interface WordCollection {
   id: string;
   name: string;
@@ -38,9 +40,9 @@ export const API_CONFIG = {
 
 // API接口定义
 export interface WordAPI {
-  getCollections?(): Promise<ApiResponse<WordCollection[]>>;
+  getCollections?(gameId?: string): Promise<ApiResponse<WordCollection[]>>;
   getCollectionById?(collectionId: string): Promise<ApiResponse<WordCollection>>;
-  
+
   getWords(filters?: {
     limit?: number;
     offset?: number;
@@ -49,9 +51,9 @@ export interface WordAPI {
     sortBy?: 'word' | 'created_at';
     sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse>;
-  
+
   getWordById(id: number): Promise<WordApiResponse>;
-  
+
   addWord(word: any): Promise<WordApiResponse>;
 
   batchAddWords?(words: any[]): Promise<ApiResponse<{ count: number }>>;
@@ -59,7 +61,7 @@ export interface WordAPI {
   updateWord(id: number, word: any): Promise<WordApiResponse>;
 
   deleteWord(id: number): Promise<WordApiResponse>;
-  
+
   validateAnswer(wordId: number, answer: string): Promise<ApiResponse<{
     correct: boolean;
     message: string;
@@ -75,17 +77,27 @@ export interface WordAPI {
 
   getCollectionProgress?(collectionId: string): Promise<ApiResponse<any>>;
 
+  getCollectionProgress?(collectionId: string): Promise<ApiResponse<any>>;
+
   resetCollectionProgress?(collectionId: string): Promise<ApiResponse<void>>;
+
+  getGames?(): Promise<ApiResponse<Game[]>>;
+
+  createGame?(game: Omit<Game, 'id' | 'created_at'>): Promise<ApiResponse<Game>>;
+
+  updateGame?(id: string, game: Partial<Game>): Promise<ApiResponse<Game>>;
+
+  deleteGame?(id: string): Promise<ApiResponse<void>>;
 }
 
 // 本地数据API实现
 class LocalWordAPI implements WordAPI {
   private data: any = null;
-  
+
   constructor() {
     this.loadData();
   }
-  
+
   private async loadData() {
     try {
       const response = await fetch('/data/words.json');
@@ -95,63 +107,63 @@ class LocalWordAPI implements WordAPI {
       this.data = { words: [], questionTypes: [], answerTypes: [], difficultyLevels: [] };
     }
   }
-  
+
   async getWords(filters?: {
     difficulty?: string;
     limit?: number;
     offset?: number;
   }): Promise<WordApiResponse> {
     await this.ensureDataLoaded();
-    
+
     let words = [...this.data.words];
-    
+
     if (filters?.difficulty) {
       words = words.filter((word: any) => word.difficulty === filters.difficulty);
     }
-    
+
     if (filters?.offset) {
       words = words.slice(filters.offset);
     }
-    
+
     if (filters?.limit) {
       words = words.slice(0, filters.limit);
     }
-    
+
     return {
       success: true,
       data: words,
       message: `获取到${words.length}个单词`
     };
   }
-  
+
   async getWordById(id: number): Promise<WordApiResponse> {
     await this.ensureDataLoaded();
-    
+
     const word = this.data.words.find((w: any) => w.id === id);
-    
+
     if (!word) {
       return {
         success: false,
         error: `未找到ID为${id}的单词`
       };
     }
-    
+
     return {
       success: true,
       data: word,
       message: '获取单词成功'
     };
   }
-  
+
   async addWord(word: any): Promise<WordApiResponse> {
     await this.ensureDataLoaded();
-    
+
     // 设置音频文本默认值：默认与定义相同
     const wordWithDefaults = {
       ...word,
       audioText: word.audioText || word.definition
     };
-    
+
     // 验证数据
     const errors = this.validateWord(wordWithDefaults);
     if (errors.length > 0) {
@@ -160,43 +172,43 @@ class LocalWordAPI implements WordAPI {
         error: `数据验证失败: ${errors.join(', ')}`
       };
     }
-    
+
     // 添加新单词
     const newWord = {
       ...wordWithDefaults,
       id: Math.max(...this.data.words.map((w: any) => w.id)) + 1
     };
-    
+
     this.data.words.push(newWord);
-    
+
     // TODO: 在真实后端中，这里应该保存到数据库
     // 在本地模式下，数据只在内存中，重启后会丢失
-    
+
     return {
       success: true,
       data: newWord,
       message: '添加单词成功'
     };
   }
-  
+
   async updateWord(id: number, word: any): Promise<WordApiResponse> {
     await this.ensureDataLoaded();
-    
+
     const index = this.data.words.findIndex((w: any) => w.id === id);
-    
+
     if (index === -1) {
       return {
         success: false,
         error: `未找到ID为${id}的单词`
       };
     }
-    
+
     // 设置音频文本默认值：默认与定义相同
     const wordWithDefaults = {
       ...word,
       audioText: word.audioText || word.definition
     };
-    
+
     // 验证数据
     const errors = this.validateWord({ ...wordWithDefaults, id });
     if (errors.length > 0) {
@@ -205,53 +217,53 @@ class LocalWordAPI implements WordAPI {
         error: `数据验证失败: ${errors.join(', ')}`
       };
     }
-    
+
     this.data.words[index] = { ...wordWithDefaults, id };
-    
+
     return {
       success: true,
       data: this.data.words[index],
       message: '更新单词成功'
     };
   }
-  
+
   async deleteWord(id: number): Promise<WordApiResponse> {
     await this.ensureDataLoaded();
-    
+
     const index = this.data.words.findIndex((w: any) => w.id === id);
-    
+
     if (index === -1) {
       return {
         success: false,
         error: `未找到ID为${id}的单词`
       };
     }
-    
+
     this.data.words.splice(index, 1);
-    
+
     return {
       success: true,
       message: '删除单词成功'
     };
   }
-  
+
   async validateAnswer(wordId: number, answer: string): Promise<ApiResponse<{
     correct: boolean;
     message: string;
   }>> {
     await this.ensureDataLoaded();
-    
+
     const word = this.data.words.find((w: any) => w.id === wordId);
-    
+
     if (!word) {
       return {
         success: false,
         error: `未找到ID为${wordId}的单词`
       };
     }
-    
+
     const isCorrect = answer.toLowerCase().trim() === word.answer.toLowerCase().trim();
-    
+
     return {
       success: true,
       data: {
@@ -260,16 +272,16 @@ class LocalWordAPI implements WordAPI {
       }
     };
   }
-  
+
   private async ensureDataLoaded() {
     if (!this.data) {
       await this.loadData();
     }
   }
-  
+
   private validateWord(word: any): string[] {
     const errors: string[] = [];
-    
+
     if (!word.word) errors.push('单词不能为空');
     if (!word.definition) errors.push('定义不能为空');
     if (!['easy', 'medium', 'hard'].includes(word.difficulty)) {
@@ -282,7 +294,7 @@ class LocalWordAPI implements WordAPI {
     if (word.options && !word.options.includes(word.answer)) {
       errors.push('答案必须在选项列表中');
     }
-    
+
     return errors;
   }
 }
@@ -290,11 +302,11 @@ class LocalWordAPI implements WordAPI {
 // 后端API实现（预留）
 class BackendWordAPI implements WordAPI {
   private baseURL: string;
-  
+
   constructor(baseURL: string) {
     this.baseURL = baseURL;
   }
-  
+
   async getWords(filters?: {
     difficulty?: string;
     limit?: number;
@@ -305,20 +317,20 @@ class BackendWordAPI implements WordAPI {
       if (filters?.difficulty) params.append('difficulty', filters.difficulty);
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.offset) params.append('offset', filters.offset.toString());
-      
+
       const response = await fetch(`${this.baseURL}/words?${params}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '获取单词失败');
       }
-      
+
       return {
         success: true,
         data: data.words,
@@ -331,7 +343,7 @@ class BackendWordAPI implements WordAPI {
       };
     }
   }
-  
+
   async getWordById(id: number): Promise<WordApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}/words/${id}`, {
@@ -340,13 +352,13 @@ class BackendWordAPI implements WordAPI {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '获取单词失败');
       }
-      
+
       return {
         success: true,
         data: data.word,
@@ -359,7 +371,7 @@ class BackendWordAPI implements WordAPI {
       };
     }
   }
-  
+
   async addWord(word: any): Promise<WordApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}/words`, {
@@ -369,13 +381,13 @@ class BackendWordAPI implements WordAPI {
         },
         body: JSON.stringify(word),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '添加单词失败');
       }
-      
+
       return {
         success: true,
         data: data.word,
@@ -388,7 +400,7 @@ class BackendWordAPI implements WordAPI {
       };
     }
   }
-  
+
   async updateWord(id: number, word: any): Promise<WordApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}/words/${id}`, {
@@ -398,13 +410,13 @@ class BackendWordAPI implements WordAPI {
         },
         body: JSON.stringify(word),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '更新单词失败');
       }
-      
+
       return {
         success: true,
         data: data.word,
@@ -417,7 +429,7 @@ class BackendWordAPI implements WordAPI {
       };
     }
   }
-  
+
   async deleteWord(id: number): Promise<WordApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}/words/${id}`, {
@@ -426,13 +438,13 @@ class BackendWordAPI implements WordAPI {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '删除单词失败');
       }
-      
+
       return {
         success: true,
         message: '删除单词成功'
@@ -444,7 +456,7 @@ class BackendWordAPI implements WordAPI {
       };
     }
   }
-  
+
   async validateAnswer(wordId: number, answer: string): Promise<ApiResponse<{
     correct: boolean;
     message: string;
@@ -457,13 +469,13 @@ class BackendWordAPI implements WordAPI {
         },
         body: JSON.stringify({ answer }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || '验证答案失败');
       }
-      
+
       return {
         success: true,
         data: {
@@ -485,7 +497,7 @@ import { SupabaseWordAPI } from './supabaseApi';
 
 export const wordAPI: WordAPI = API_CONFIG.DATA_SOURCE === 'supabase'
   ? new SupabaseWordAPI()
-  : API_CONFIG.DATA_SOURCE === 'backend' 
+  : API_CONFIG.DATA_SOURCE === 'backend'
     ? new BackendWordAPI(API_CONFIG.BASE_URL)
     : new LocalWordAPI();
 

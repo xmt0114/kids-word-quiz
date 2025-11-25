@@ -2,67 +2,131 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
-import { Brain, Gamepad2, Trophy, Zap, Target, Headphones, Clock, BarChart3, Settings } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useQuizSettings } from '../stores/appStore';
+import { useAppStore } from '../stores/appStore';
 import { useAuth } from '../hooks/useAuth';
-import { QuizSettings } from '../types';
+import { QuizSettings, Game } from '../types';
 import { LoginModal } from './auth/LoginModal';
+import { wordAPI } from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { settings } = useQuizSettings();
   const { user, profile } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [games, setGames] = useState<Game[]>([]);
+  const [loadingGames, setLoadingGames] = useState(true);
+
+  // 加载游戏列表
+  useEffect(() => {
+    const loadGames = async () => {
+      setLoadingGames(true);
+      try {
+        if (wordAPI.getGames) {
+          const response = await wordAPI.getGames();
+          if (response.success && response.data) {
+            setGames(response.data);
+          }
+        } else {
+          // Fallback for local dev if API not ready
+          setGames([
+            {
+              id: 'guess-word',
+              title: '猜单词',
+              description: '根据提示猜测单词，支持看图、听音等多种模式',
+              icon: 'Brain',
+              type: 'guess_word',
+              default_config: { questionType: 'text', answerType: 'choice' } as any,
+              is_active: true
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to load games:', error);
+      } finally {
+        setLoadingGames(false);
+      }
+    };
+
+    loadGames();
+  }, []);
 
   // 监听用户状态变化，登录后自动执行pendingAction
   useEffect(() => {
     if (user && profile && pendingAction) {
-      if (pendingAction === 'guess-word') {
-        const finalSettings: QuizSettings = {
-          questionType: settings.questionType || 'text',
-          answerType: settings.answerType || 'choice',
-          selectionStrategy: settings.selectionStrategy || 'sequential',
-          collectionId: settings.collectionId || '11111111-1111-1111-1111-111111111111'
-        };
-
-        navigate('/guess-word/game', {
-          state: {
-            settings: finalSettings,
-            collectionId: finalSettings.collectionId
-          }
-        });
+      // 找到对应的游戏
+      const game = games.find(g => g.id === pendingAction);
+      if (game) {
+        handleStartGame(game);
       }
       setPendingAction(null);
     }
-  }, [user, profile, pendingAction, settings, navigate]);
+  }, [user, profile, pendingAction, games]);
 
   // 开始游戏函数 - 检查登录状态
-  const handleStartGame = (gameId: string) => {
+  const handleStartGame = async (game: Game) => {
     if (!user || !profile) {
       // 用户未登录，弹出登录弹框
-      setPendingAction(gameId);
+      setPendingAction(game.id);
       setIsLoginModalOpen(true);
       return;
     }
 
-    // 用户已登录，正常开始游戏
-    if (gameId === 'guess-word') {
-      const finalSettings: QuizSettings = {
-        questionType: settings.questionType || 'text',
-        answerType: settings.answerType || 'choice',
-        selectionStrategy: settings.selectionStrategy || 'sequential',
-        collectionId: settings.collectionId || '11111111-1111-1111-1111-111111111111'
-      };
+    // 获取用户设置
+    const store = useAppStore.getState();
+    let userSettings = store.userSettings?.[game.id];
 
-      navigate('/guess-word/game', {
-        state: {
-          settings: finalSettings,
-          collectionId: finalSettings.collectionId
-        }
-      });
+    // 兼容旧版扁平化设置 (针对猜单词游戏)
+    if (!userSettings && (game.id === 'guess-word' || game.id === 'guess_word') && store.userSettings?.questionType) {
+      console.log('Using legacy flat settings for game:', game.id);
+      userSettings = store.userSettings;
     }
+
+    // 合并默认设置
+    const finalSettings: QuizSettings = {
+      ...game.default_config,
+      ...(userSettings || {})
+    };
+
+    // 确保有 collectionId
+    if (!finalSettings.collectionId) {
+      // 尝试自动获取该游戏的教材列表
+      try {
+        // 显示加载状态（可选，这里为了流畅体验暂时不做全屏loading）
+        const response = await wordAPI.getCollections?.(game.id);
+        if (response?.success && response.data && response.data.length > 0) {
+          // 智能选择：默认使用第一个教材
+          const defaultCollection = response.data[0];
+          console.log('Smart Start: Auto-selecting collection', defaultCollection.name);
+
+          finalSettings.collectionId = defaultCollection.id;
+
+          // 跳转到通用游戏页面
+          navigate(`/games/${game.id}/play`, {
+            state: {
+              settings: finalSettings,
+              collectionId: finalSettings.collectionId
+            }
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Smart Start failed:', err);
+      }
+
+      // 如果没有选择教材且自动获取失败，跳转到设置页面
+      navigate(`/games/${game.id}/settings`);
+      return;
+    }
+
+    // 跳转到通用游戏页面
+    navigate(`/games/${game.id}/play`, {
+      state: {
+        settings: finalSettings,
+        collectionId: finalSettings.collectionId
+      }
+    });
   };
 
   // 登录弹框关闭回调
@@ -71,51 +135,63 @@ const HomePage: React.FC = () => {
     setPendingAction(null);
   };
 
-  // 游戏列表数据
-  const games = [
-    {
-      id: 'guess-word',
-      name: '猜单词',
-      description: '通过定义猜测单词，提升词汇量',
-      icon: Brain,
-      color: 'from-blue-400 to-blue-600',
-      bgColor: 'from-blue-50 to-blue-100',
-      borderColor: 'border-blue-200',
-      features: ['选择题', '填空题', '音频答题', '多种难度'],
-      settingsLink: '/guess-word/settings',
-      gameLink: '/guess-word/game',
-      difficulty: '初级到高级',
-      estimatedTime: '5-15分钟'
-    },
-    {
-      id: 'word-match',
-      name: '单词配对',
-      description: '将单词与定义进行匹配训练',
-      icon: Target,
-      color: 'from-green-400 to-green-600',
-      bgColor: 'from-green-50 to-green-100',
-      borderColor: 'border-green-200',
-      features: ['快速配对', '记忆训练', '时间挑战'],
-      link: '#',
-      difficulty: '中级',
-      estimatedTime: '3-10分钟',
-      comingSoon: true
-    },
-    {
-      id: 'audio-quiz',
-      name: '听力挑战',
-      description: '通过听力识别和拼写单词',
-      icon: Headphones,
-      color: 'from-purple-400 to-purple-600',
-      bgColor: 'from-purple-50 to-purple-100',
-      borderColor: 'border-purple-200',
-      features: ['听力识别', '拼写练习', '发音对比'],
-      link: '#',
-      difficulty: '中级到高级',
-      estimatedTime: '5-20分钟',
-      comingSoon: true
+  // 辅助函数：获取图标组件
+  const getIconComponent = (iconName: string) => {
+    // @ts-ignore
+    return LucideIcons[iconName] || LucideIcons.Gamepad2;
+  };
+
+  // 辅助函数：获取颜色样式
+  const getGameStyles = (gameId: string) => {
+    // 预定义一组配色方案
+    const colorSchemes = [
+      {
+        color: 'from-blue-400 to-blue-600',
+        bgColor: 'from-blue-50 to-blue-100',
+        borderColor: 'border-blue-200',
+        iconBg: 'bg-blue-100 text-blue-600'
+      },
+      {
+        color: 'from-green-400 to-green-600',
+        bgColor: 'from-green-50 to-green-100',
+        borderColor: 'border-green-200',
+        iconBg: 'bg-green-100 text-green-600'
+      },
+      {
+        color: 'from-purple-400 to-purple-600',
+        bgColor: 'from-purple-50 to-purple-100',
+        borderColor: 'border-purple-200',
+        iconBg: 'bg-purple-100 text-purple-600'
+      },
+      {
+        color: 'from-orange-400 to-orange-600',
+        bgColor: 'from-orange-50 to-orange-100',
+        borderColor: 'border-orange-200',
+        iconBg: 'bg-orange-100 text-orange-600'
+      },
+      {
+        color: 'from-pink-400 to-pink-600',
+        bgColor: 'from-pink-50 to-pink-100',
+        borderColor: 'border-pink-200',
+        iconBg: 'bg-pink-100 text-pink-600'
+      },
+      {
+        color: 'from-teal-400 to-teal-600',
+        bgColor: 'from-teal-50 to-teal-100',
+        borderColor: 'border-teal-200',
+        iconBg: 'bg-teal-100 text-teal-600'
+      }
+    ];
+
+    // 根据 gameId 的哈希值选择配色
+    let hash = 0;
+    for (let i = 0; i < gameId.length; i++) {
+      hash = gameId.charCodeAt(i) + ((hash << 5) - hash);
     }
-  ];
+    const index = Math.abs(hash) % colorSchemes.length;
+
+    return colorSchemes[index];
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
@@ -128,7 +204,7 @@ const HomePage: React.FC = () => {
           <p className="text-h2 text-text-secondary font-semibold">
             选择你喜欢的游戏开始学习
           </p>
-          
+
           {/* 装饰元素 */}
           <div className="relative mt-lg">
             <div className="absolute -top-4 -left-8 w-16 h-16 bg-accent-500 rounded-full opacity-20 animate-float" />
@@ -140,122 +216,119 @@ const HomePage: React.FC = () => {
 
       {/* 游戏列表 */}
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-          {games.map((game) => {
-            const Icon = game.icon;
-            const isComingSoon = game.comingSoon;
-            
-            return (
-              <Card
-                key={game.id}
-                className={cn(
-                  'relative overflow-hidden transition-all duration-normal hover:scale-105',
-                  game.borderColor,
-                  isComingSoon ? 'opacity-75' : 'hover:shadow-xl'
-                )}
-              >
-                {/* 背景渐变 */}
-                <div className={cn(
-                  'absolute inset-0 opacity-10',
-                  game.bgColor
-                )} />
-                
-                {/* 即将推出标签 */}
-                {isComingSoon && (
-                  <div className="absolute top-4 right-4 z-10">
-                    <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">
-                      即将推出
-                    </span>
-                  </div>
-                )}
+        {loadingGames ? (
+          <div className="flex justify-center py-2xl">
+            <LucideIcons.Loader size={48} className="text-primary-500 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+            {games.map((game) => {
+              const Icon = getIconComponent(game.icon);
+              const styles = getGameStyles(game.id);
 
-                <div className="relative p-lg">
-                  {/* 游戏图标 */}
-                  <div className="text-center mb-md">
-                    <div className={cn(
-                      'w-20 h-20 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
-                      game.color
-                    )}>
-                      <Icon size={40} className="text-white" />
-                    </div>
-                    <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                      {game.name}
-                    </h3>
-                    <p className="text-body text-text-secondary">
-                      {game.description}
-                    </p>
-                  </div>
+              return (
+                <Card
+                  key={game.id}
+                  className={cn(
+                    'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group',
+                    styles.borderColor
+                  )}
+                >
+                  {/* 背景渐变 */}
+                  <div className={cn(
+                    'absolute inset-0 opacity-10 transition-opacity group-hover:opacity-20',
+                    styles.bgColor
+                  )} />
 
-                  {/* 游戏特性 */}
-                  <div className="mb-md">
-                    <div className="flex flex-wrap gap-xs justify-center">
-                      {game.features.map((feature, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
-                        >
-                          {feature}
-                        </span>
-                      ))}
+                  <div className="relative p-lg">
+                    {/* 游戏图标 */}
+                    <div className="text-center mb-md">
+                      <div className={cn(
+                        'w-20 h-20 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center shadow-md transform transition-transform group-hover:scale-110',
+                        styles.color
+                      )}>
+                        <Icon size={40} className="text-white" />
+                      </div>
+                      <h3 className="text-h3 font-bold text-text-primary mb-sm">
+                        {game.title}
+                      </h3>
+                      <p className="text-body text-text-secondary line-clamp-2 h-12">
+                        {game.description}
+                      </p>
                     </div>
-                  </div>
 
-                  {/* 游戏信息 */}
-                  <div className="flex justify-between items-center mb-md text-small text-text-tertiary">
-                    <div className="flex items-center gap-xs">
-                      <BarChart3 size={16} />
-                      <span>{game.difficulty}</span>
+                    {/* 游戏信息 */}
+                    <div className="flex justify-between items-center mb-md text-small text-text-tertiary">
+                      <div className="flex items-center gap-xs">
+                        <LucideIcons.BarChart3 size={16} />
+                        <span>初级到高级</span>
+                      </div>
+                      <div className="flex items-center gap-xs">
+                        <LucideIcons.Clock size={16} />
+                        <span>5-15分钟</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-xs">
-                      <Clock size={16} />
-                      <span>{game.estimatedTime}</span>
-                    </div>
-                  </div>
 
-                  {/* 操作按钮 */}
-                  <div className="text-center">
-                    {isComingSoon ? (
-                      <Button
-                        variant="secondary"
-                        disabled
-                        className="w-full"
-                      >
-                        <Zap size={16} className="mr-xs" />
-                        敬请期待
-                      </Button>
-                    ) : (
+                    {/* 操作按钮 */}
+                    <div className="text-center">
                       <div className="flex items-center justify-center gap-sm">
                         <Button
                           size="default"
-                          className="flex items-center gap-xs"
-                          onClick={() => handleStartGame(game.id)}
+                          className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
+                          onClick={() => handleStartGame(game)}
                         >
-                          <Gamepad2 size={16} />
+                          <LucideIcons.Gamepad2 size={16} />
                           开始游戏
                         </Button>
-                        <Link to={game.settingsLink}>
+                        <Link to={`/games/${game.id}/settings`}>
                           <Button
                             variant="secondary"
                             size="default"
-                            className="flex items-center justify-center !w-16 !h-12 p-0"
+                            className="flex items-center justify-center !w-12 !h-12 p-0 rounded-full hover:bg-gray-100"
+                            title="游戏设置"
                           >
-                            <Settings size={40} style={{ width: '40px', height: '40px' }} />
+                            <LucideIcons.Settings size={24} className="text-gray-600" />
                           </Button>
                         </Link>
                       </div>
-                    )}
+                    </div>
                   </div>
+                </Card>
+              );
+            })}
+
+            {/* 占位符：即将推出的游戏 */}
+            <Card className="relative overflow-hidden opacity-75 border-gray-200">
+              <div className="absolute inset-0 bg-gray-50 opacity-10" />
+              <div className="absolute top-4 right-4 z-10">
+                <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">
+                  即将推出
+                </span>
+              </div>
+              <div className="relative p-lg text-center">
+                <div className="w-20 h-20 mx-auto mb-md rounded-full bg-gray-200 flex items-center justify-center">
+                  <LucideIcons.Target size={40} className="text-gray-400" />
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+                <h3 className="text-h3 font-bold text-text-primary mb-sm">
+                  更多游戏
+                </h3>
+                <p className="text-body text-text-secondary mb-lg">
+                  敬请期待更多精彩游戏模式
+                </p>
+                <Button variant="secondary" disabled className="w-full">
+                  <LucideIcons.Zap size={16} className="mr-xs" />
+                  敬请期待
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* 底部信息 */}
         <div className="text-center mt-xl">
           <Card className="p-lg bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
             <div className="flex items-center justify-center gap-sm mb-sm">
-              <Trophy size={24} className="text-yellow-500" />
+              <LucideIcons.Trophy size={24} className="text-yellow-500" />
               <h3 className="text-h3 font-bold text-text-primary">学习成就系统</h3>
             </div>
             <p className="text-body text-text-secondary">

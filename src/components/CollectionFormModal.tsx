@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '../lib/utils';
+import { Game } from '../types';
 
 interface CollectionFormData {
   name: string;
@@ -11,6 +12,7 @@ interface CollectionFormData {
   grade_level: string;
   theme: string;
   is_public: boolean;
+  game_id: string;
 }
 
 interface CollectionFormModalProps {
@@ -18,6 +20,7 @@ interface CollectionFormModalProps {
   collection?: any; // 编辑时传入现有数据
   onClose: () => void;
   onSubmit: (data: CollectionFormData) => Promise<void>;
+  games?: Game[];
 }
 
 const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
@@ -25,6 +28,7 @@ const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
   collection,
   onClose,
   onSubmit,
+  games = [],
 }) => {
   const [formData, setFormData] = useState<CollectionFormData>({
     name: '',
@@ -34,6 +38,7 @@ const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
     grade_level: '',
     theme: '',
     is_public: true,
+    game_id: games.length > 0 ? games[0].id : '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +55,7 @@ const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
         grade_level: collection.grade_level || '',
         theme: collection.theme || '',
         is_public: collection.is_public !== undefined ? collection.is_public : true,
+        game_id: collection.game_id || (games.length > 0 ? games[0].id : ''),
       });
     } else {
       setFormData({
@@ -60,10 +66,11 @@ const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
         grade_level: '',
         theme: '',
         is_public: true,
+        game_id: games.length > 0 ? games[0].id : '',
       });
     }
     setErrors({});
-  }, [collection]);
+  }, [collection, games]);
 
   if (!isOpen) return null;
 
@@ -165,6 +172,24 @@ const CollectionFormModal: React.FC<CollectionFormModalProps> = ({
             {errors.description && (
               <p className="text-small text-red-500 mt-xs">{errors.description}</p>
             )}
+          </div>
+
+          {/* 所属游戏 */}
+          <div>
+            <label className="block text-body font-bold text-text-primary mb-sm">
+              所属游戏
+            </label>
+            <select
+              value={formData.game_id}
+              onChange={(e) => setFormData({ ...formData, game_id: e.target.value })}
+              className="w-full px-md py-sm border-2 border-gray-300 focus:border-primary-500 rounded-lg text-body outline-none transition-colors"
+            >
+              {games.map((game) => (
+                <option key={game.id} value={game.id}>
+                  {game.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* 分类 */}

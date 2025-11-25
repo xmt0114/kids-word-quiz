@@ -40,7 +40,7 @@ interface AppState {
   // ==================== Data 状态（只管数据） ====================
   dataLoading: boolean; // 数据加载状态（默认为 false）
   guestConfig: GuestConfig | null;
-  userSettings: Partial<QuizSettings> | null;
+  userSettings: any | null;
   userProgress: UserProgress | null;
 
   // ==================== Actions - 同步（只设置状态） ====================
@@ -55,7 +55,7 @@ interface AppState {
   clearAllData: () => Promise<void>; // 只设置 session: null, userSettings: null...
 
   // Actions - 服务器优先的缓存更新
-  updateSettings: (settings: Partial<QuizSettings>) => Promise<void>;
+  updateSettings: (settings: any) => Promise<void>;
   updateProgress: (progress: UserProgress) => void;
 
   // Actions - 学习进度管理
@@ -173,7 +173,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   /**
    * 更新用户设置（服务器优先策略）
    */
-  updateSettings: async (newSettings: Partial<QuizSettings>) => {
+  updateSettings: async (newSettings: any) => {
     console.log('💾 [AppStore] 更新本地缓存（服务器优先模式）:', newSettings);
 
     const currentSettings = get().userSettings || {};
@@ -213,7 +213,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ userProgress: data });
         return data;
       }
-      
+
       return null;
     } catch (error) {
       console.error('❌ [AppStore] 获取学习进度异常:', error);
@@ -337,7 +337,7 @@ export const appStoreSelectors = {
         shuffleWords: true,
         defaultTimeLimit: 300,
       },
-      default_collection_id: '11111111-1111-1111-1111-111111111111',
+      default_collection_id: '',
       tts_defaults: {
         lang: 'en-US',
         rate: 0.8,
@@ -458,7 +458,7 @@ export { useAppStore as default };
  * 专门用于答题设置的 Hook
  * 从 Zustand Store 读取设置，优先级：userSettings > guestConfig > 默认值
  */
-export const useQuizSettings = () => {
+export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: Partial<QuizSettings>) => {
   const { user } = useAuth();
   const { profile, updateUserSettings } = useAuthState();
 
@@ -468,22 +468,31 @@ export const useQuizSettings = () => {
 
   // 合并获取完整设置
   const settings = useMemo(() => {
-    // 如果有用户设置，优先使用用户设置
-    if (userSettings) {
-      console.log('📖 [useQuizSettings] 从用户设置读取:', userSettings);
-      return userSettings;
+    // 1. 尝试获取特定游戏的设置
+    if (userSettings && userSettings[gameId]) {
+      console.log(`📖 [useQuizSettings] 从用户设置读取 [${gameId}]:`, userSettings[gameId]);
+      return userSettings[gameId] as QuizSettings;
     }
 
-    // 否则使用游客配置
+    // 2. 兼容旧数据（如果 userSettings 是扁平结构且 gameId 为 guess_word）
+    if (gameId === 'guess_word' && userSettings && userSettings.questionType) {
+      console.log('📖 [useQuizSettings] 从旧版用户设置读取:', userSettings);
+      return userSettings as QuizSettings;
+    }
+
+    // 3. 否则使用游客配置或默认值
     if (guestConfig) {
-      const guessWordSettings = guestConfig.guess_word_settings || {};
+      // 尝试从 guestConfig 获取特定游戏的默认配置
+      // 假设 guestConfig 中有 games 配置，或者使用 guess_word_settings 作为默认
+      // 优先使用传入的 defaultConfig (来自 GameSettingsPage 的 gameInfo)
+      const gameConfig = defaultConfig || guestConfig.games?.[gameId]?.default_config || guestConfig.guess_word_settings || {};
       const ttsDefaults = guestConfig.tts_defaults || {};
-      const defaultCollectionId = guestConfig.default_collection_id || '11111111-1111-1111-1111-111111111111';
+      const defaultCollectionId = guestConfig.default_collection_id || '';
 
       const mergedSettings = {
-        questionType: guessWordSettings.questionType || 'text',
-        answerType: guessWordSettings.answerType || 'choice',
-        selectionStrategy: guessWordSettings.learningStrategy || 'sequential',
+        questionType: gameConfig.questionType || 'text',
+        answerType: gameConfig.answerType || 'choice',
+        selectionStrategy: gameConfig.learningStrategy || 'sequential',
         collectionId: defaultCollectionId,
         tts: {
           lang: ttsDefaults.lang || 'en-US',
@@ -494,17 +503,35 @@ export const useQuizSettings = () => {
         },
       };
 
-      console.log('📖 [useQuizSettings] 从游客配置读取:', mergedSettings);
-      return mergedSettings;
+      console.log(`📖 [useQuizSettings] 从游客配置/默认配置读取 [${gameId}]:`, mergedSettings);
+      return mergedSettings as QuizSettings;
     }
 
-    // 兜底：内置默认值
+    // 4. 兜底：内置默认值
     console.log('📖 [useQuizSettings] 使用内置默认值');
+    // 如果有传入 defaultConfig，优先使用
+    if (defaultConfig) {
+      return {
+        questionType: defaultConfig.questionType || 'text',
+        answerType: defaultConfig.answerType || 'choice',
+        selectionStrategy: defaultConfig.selectionStrategy || 'sequential',
+        collectionId: defaultConfig.collectionId || '',
+        tts: {
+          lang: 'en-US',
+          rate: 0.8,
+          pitch: 1.0,
+          volume: 1.0,
+          voiceName: 'default',
+          ...defaultConfig.tts
+        },
+      } as QuizSettings;
+    }
+
     return {
       questionType: 'text' as const,
       answerType: 'choice' as const,
       selectionStrategy: 'sequential' as const,
-      collectionId: '11111111-1111-1111-1111-111111111111',
+      collectionId: '',
       tts: {
         lang: 'en-US',
         rate: 0.8,
@@ -513,7 +540,7 @@ export const useQuizSettings = () => {
         voiceName: 'default',
       },
     };
-  }, [userSettings, guestConfig]);
+  }, [userSettings, guestConfig, gameId, defaultConfig]);
 
   // 【服务器优先】更新设置的函数
   const setSettings = async (newSettings: Partial<QuizSettings> | ((prev: Partial<QuizSettings>) => Partial<QuizSettings>)) => {
@@ -522,14 +549,18 @@ export const useQuizSettings = () => {
       ? newSettings(settings)
       : { ...settings, ...newSettings };
 
-    console.log('🔄 [useQuizSettings] 准备更新设置 (服务器优先):', computedSettings);
+    console.log(`🔄 [useQuizSettings] 准备更新设置 [${gameId}] (服务器优先):`, computedSettings);
 
     // 如果用户已登录，先同步到服务器
     if (user && profile) {
       try {
+        // 构造更新对象：{ [gameId]: computedSettings }
+        const updates = { [gameId]: computedSettings };
+
         // 步骤1: 更新服务器
         console.log('📡 [useQuizSettings] 步骤1: 更新服务器...');
-        const result = await updateUserSettings({ quiz_settings: computedSettings });
+        // updateUserSettings 会执行深度合并
+        const result = await updateUserSettings(updates);
 
         if (!result.success) {
           console.error('❌ [useQuizSettings] 服务器更新失败:', result.error);
@@ -541,7 +572,7 @@ export const useQuizSettings = () => {
 
         // 步骤2: 更新本地缓存
         console.log('💾 [useQuizSettings] 步骤2: 更新本地缓存...');
-        useAppStore.getState().updateSettings(computedSettings);
+        useAppStore.getState().updateSettings(updates);
         console.log('✅ [useQuizSettings] 步骤2完成: 本地缓存已更新');
 
         return { success: true };
@@ -552,8 +583,11 @@ export const useQuizSettings = () => {
       }
     } else {
       // 游客模式：只更新本地缓存（不支持持久化）
+      // 注意：游客模式下我们也模拟这种结构，或者只更新当前游戏的临时配置
+      // 为了简单起见，我们更新本地 store 的 userSettings（虽然它叫 userSettings，但在游客模式下也可以用作临时存储）
       console.log('⚠️ [useQuizSettings] 游客模式，仅更新本地缓存（不持久化）');
-      useAppStore.getState().updateSettings(computedSettings);
+      const updates = { [gameId]: computedSettings };
+      useAppStore.getState().updateSettings(updates);
       return { success: true };
     }
   };

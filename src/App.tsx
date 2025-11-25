@@ -13,6 +13,8 @@ import { DataManagementPage } from './components/DataManagementPage';
 import { InviteUserPage } from './components/InviteUserPage';
 import { TextbookSelectionPage } from './components/TextbookSelectionPage';
 import { UserHeader } from './components/user/UserHeader';
+import { GameSettingsPage } from './components/GameSettingsPage';
+import { UniversalGamePage } from './components/UniversalGamePage';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -143,6 +145,8 @@ function AppContent() {
           <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
           <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
           <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
+          <Route path="/games/:gameId/settings" element={<GameSettingsPage />} />
+          <Route path="/games/:gameId/play" element={<UniversalGamePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
