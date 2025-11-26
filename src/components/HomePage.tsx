@@ -37,6 +37,7 @@ const HomePage: React.FC = () => {
               description: '根据提示猜测单词，支持看图、听音等多种模式',
               icon: 'Brain',
               type: 'guess_word',
+              language: 'en',
               default_config: { questionType: 'text', answerType: 'choice' } as any,
               is_active: true
             }
