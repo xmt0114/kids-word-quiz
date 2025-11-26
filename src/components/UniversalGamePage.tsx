@@ -6,9 +6,10 @@ import { OptionButton } from './OptionButton';
 import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
-import { QuizSettings } from '../types';
+import { QuizSettings, Game } from '../types';
 import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
+import { PinyinText } from './PinyinText';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
@@ -47,8 +48,30 @@ const UniversalGamePage: React.FC = () => {
     const [isCorrect, setIsCorrect] = useState(false);
     const [showStarExplosion, setShowStarExplosion] = useState(false);
     const [viewportHeight, setViewportHeight] = useState(0);
-    const questionTextRef = useRef<HTMLParagraphElement>(null);
+    // const questionTextRef = useRef<HTMLParagraphElement>(null); // Removed unused ref
     const [isInitializing, setIsInitializing] = useState(false);
+    const [gameInfo, setGameInfo] = useState<Game | null>(null);
+
+    // 加载游戏信息以获取语言设置
+    useEffect(() => {
+        const loadGameInfo = async () => {
+            if (!gameId) return;
+            try {
+                if (wordAPI.getGames) {
+                    const response = await wordAPI.getGames();
+                    if (response.success && response.data) {
+                        const game = response.data.find(g => g.id === gameId);
+                        if (game) {
+                            setGameInfo(game);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load game info:', error);
+            }
+        };
+        loadGameInfo();
+    }, [gameId]);
 
     // 获取教材信息并初始化游戏
     useEffect(() => {
@@ -73,8 +96,12 @@ const UniversalGamePage: React.FC = () => {
                     questionType: routeSettings.questionType || 'text',
                     answerType: routeSettings.answerType || 'choice',
                     selectionStrategy: routeSettings.selectionStrategy || 'sequential',
+                    showPinyin: routeSettings.showPinyin, // Fix: Pass showPinyin setting
+                    tts: routeSettings.tts, // Fix: Pass TTS settings
                     collectionId
                 };
+
+                console.log('🎮 [UniversalGamePage] 初始化游戏设置:', finalSettings);
 
                 // 如果是重新学习（使用相同单词）
                 if (isReplay && passedQuestions && passedQuestions.length > 0) {
@@ -389,16 +416,22 @@ const UniversalGamePage: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="bg-yellow-50 border-2 border-gray-200 rounded-lg p-lg mb-md relative">
-                                    <p
-                                        ref={questionTextRef}
-                                        className="text-h3 text-text-primary leading-relaxed pr-12"
-                                    >
-                                        {currentWord.definition}
-                                    </p>
+                                    <div className="pr-12">
+                                        <PinyinText
+                                            text={currentWord.definition}
+                                            showPinyin={quizState.settings.showPinyin}
+                                            size="xl"
+                                            className={cn(
+                                                "text-h2 leading-relaxed block",
+                                                gameInfo?.language === 'zh' ? "font-serif" : "font-sans"
+                                            )}
+                                        />
+                                    </div>
                                     <div className="absolute top-4 right-4">
                                         <TextToSpeechButton
-                                            textRef={questionTextRef}
+                                            text={currentWord.definition}
                                             size="small"
+                                            ttsSettings={quizState.settings.tts}
                                         />
                                     </div>
                                 </div>
@@ -419,7 +452,17 @@ const UniversalGamePage: React.FC = () => {
                                     {currentWord.options.map((option, index) => (
                                         <OptionButton
                                             key={index}
-                                            option={option}
+                                            option={
+                                                <PinyinText
+                                                    text={option}
+                                                    showPinyin={quizState.settings.showPinyin}
+                                                    size="medium"
+                                                    className={cn(
+                                                        "text-4xl", // Significantly increased font size for options
+                                                        gameInfo?.language === 'zh' ? "font-serif" : "font-sans"
+                                                    )}
+                                                />
+                                            }
                                             isSelected={selectedAnswer === option}
                                             isCorrect={showResult && option === currentWord.answer}
                                             isWrong={showResult && selectedAnswer === option && option !== currentWord.answer}
@@ -428,6 +471,7 @@ const UniversalGamePage: React.FC = () => {
                                         />
                                     ))}
                                 </div>
+
                             ) : (
                                 // 填空题
                                 <div className="space-y-md">
@@ -513,8 +557,8 @@ const UniversalGamePage: React.FC = () => {
                         </div>
                     </div>
                 </Card>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

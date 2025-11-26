@@ -3,18 +3,22 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuizSettings } from '../stores/appStore';
 
+import { TTSSettings } from '../types';
+
 interface TextToSpeechButtonProps {
   text?: string;
   className?: string;
   size?: 'small' | 'medium' | 'large';
   textRef?: React.RefObject<HTMLElement>;
+  ttsSettings?: TTSSettings;
 }
 
 const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
   text,
   className,
   size = 'medium',
-  textRef
+  textRef,
+  ttsSettings: propTtsSettings
 }) => {
   const { settings } = useQuizSettings();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -28,7 +32,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       // 检查是否支持Speech Synthesis API
       const supported = 'speechSynthesis' in window;
       setIsSupported(supported);
-      
+
       if (!supported) {
         console.log('🔇 浏览器不支持语音合成功能');
         return;
@@ -37,10 +41,10 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       // 检查语音列表是否可用
       const checkVoices = () => {
         const voices = window.speechSynthesis.getVoices();
-        const hasEnglishVoices = voices.some(voice => 
+        const hasEnglishVoices = voices.some(voice =>
           voice.lang.startsWith('en') || voice.lang.startsWith('EN')
         );
-        
+
         if (voices.length > 0 && hasEnglishVoices) {
           setIsVoicesLoaded(true);
           console.log('✅ 语音朗读功能可用，找到', voices.length, '个语音引擎');
@@ -112,19 +116,28 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-        // 获取TTS设置（使用默认值或设置中的值）
-        const ttsSettings = settings.tts || {
+        // 获取TTS设置（优先使用传入的prop,否则使用store中的设置）
+        const ttsSettings = propTtsSettings || settings.tts || {
           lang: 'en-US',
           rate: 0.8,
           pitch: 1.0,
           volume: 1.0,
         };
 
+        console.log('🔊 [TextToSpeechButton] 应用TTS设置:', ttsSettings);
+
         // 设置语音参数
         utterance.lang = ttsSettings.lang;
         utterance.rate = ttsSettings.rate;
         utterance.pitch = ttsSettings.pitch;
         utterance.volume = ttsSettings.volume;
+
+        console.log('🔊 [TextToSpeechButton] Utterance参数:', {
+          lang: utterance.lang,
+          rate: utterance.rate,
+          pitch: utterance.pitch,
+          volume: utterance.volume
+        });
 
         // 如果指定了语音名称，尝试设置
         if (ttsSettings.voiceName) {

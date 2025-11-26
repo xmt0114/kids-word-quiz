@@ -159,7 +159,9 @@ export async function fetchUserData() {
     throw profileResult.error;
   }
 
-  const userSettings = profileResult.data?.settings?.quiz_settings || {};
+  // 直接使用 settings，不要查找 quiz_settings 子字段
+  // 数据库中的 settings 字段结构是: { [gameId]: QuizSettings }
+  const userSettings = profileResult.data?.settings || {};
 
   console.log('✅ [Gatekeeper] 用户数据拉取完成:', {
     profile: profileResult.data,

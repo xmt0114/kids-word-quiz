@@ -35,9 +35,11 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
         description: '',
         icon: 'Brain',
         type: 'guess_word' as 'guess_word' | 'fill_blank',
+        language: 'en' as 'en' | 'zh',
         default_config: {
             questionType: 'text' as 'text' | 'audio',
-            answerType: 'choice' as 'choice' | 'fill'
+            answerType: 'choice' as 'choice' | 'fill',
+            showPinyin: false
         },
         is_active: true
     });
@@ -53,9 +55,11 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                     description: initialData.description,
                     icon: initialData.icon,
                     type: initialData.type,
+                    language: initialData.language || 'en',
                     default_config: {
                         questionType: (initialData.default_config?.questionType as 'text' | 'audio') || 'text',
-                        answerType: (initialData.default_config?.answerType as 'choice' | 'fill') || 'choice'
+                        answerType: (initialData.default_config?.answerType as 'choice' | 'fill') || 'choice',
+                        showPinyin: initialData.default_config?.showPinyin || false
                     },
                     is_active: initialData.is_active
                 });
@@ -66,9 +70,11 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                     description: '',
                     icon: 'Brain',
                     type: 'guess_word' as 'guess_word' | 'fill_blank',
+                    language: 'en',
                     default_config: {
                         questionType: 'text',
-                        answerType: 'choice'
+                        answerType: 'choice',
+                        showPinyin: false
                     },
                     is_active: true
                 });
@@ -134,6 +140,20 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="例如：高级拼写挑战"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                游戏语言
+                            </label>
+                            <select
+                                value={formData.language}
+                                onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'zh' })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="en">英语 (English)</option>
+                                <option value="zh">中文 (Chinese)</option>
+                            </select>
                         </div>
 
                         <div>
@@ -215,6 +235,23 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                                 </select>
                             </div>
                         </div>
+
+                        {formData.language === 'zh' && (
+                            <div className="mt-4">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.default_config.showPinyin}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            default_config: { ...formData.default_config, showPinyin: e.target.checked }
+                                        })}
+                                        className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                                    />
+                                    默认显示拼音
+                                </label>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">

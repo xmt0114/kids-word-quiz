@@ -18,7 +18,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
     'bg-background-secondary',
     'border-4 border-gray-200',
     'rounded-md',
-    'text-h1 font-bold text-text-primary',
+    'font-bold text-text-primary', // Removed text-h1 to allow custom font sizes
     'transition-all duration-fast',
     'focus:outline-none focus:ring-4 focus:ring-primary-500 focus:ring-opacity-50',
     'active:scale-95',
@@ -71,7 +71,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
       disabled={disabled}
       aria-pressed={isSelected}
     >
-      <span className="flex items-center gap-sm text-h1">
+      <span className="flex items-center gap-sm"> {/* Removed text-h1 to allow custom font sizes */}
         {option}
         {isCorrect && <CheckCircle size={24} />}
         {isWrong && <XCircle size={24} />}

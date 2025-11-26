@@ -174,7 +174,8 @@ export const useAppStore = create<AppState>((set, get) => ({
    * 更新用户设置（服务器优先策略）
    */
   updateSettings: async (newSettings: any) => {
-    console.log('💾 [AppStore] 更新本地缓存（服务器优先模式）:', newSettings);
+    console.log('💾 [AppStore.updateSettings] 收到更新请求:', newSettings);
+    console.log('💾 [AppStore.updateSettings] 当前 userSettings:', get().userSettings);
 
     const currentSettings = get().userSettings || {};
     const mergedSettings = {
@@ -182,8 +183,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       ...newSettings,
     };
 
+    console.log('💾 [AppStore.updateSettings] 合并后的设置:', mergedSettings);
     set({ userSettings: mergedSettings });
-    console.log('✅ [AppStore] 本地缓存已更新');
+    console.log('✅ [AppStore.updateSettings] 本地缓存已更新');
   },
 
   /**
@@ -340,7 +342,7 @@ export const appStoreSelectors = {
       default_collection_id: '',
       tts_defaults: {
         lang: 'en-US',
-        rate: 0.8,
+        rate: 1.0,
         pitch: 1.0,
         volume: 1.0,
         voiceName: 'default',
@@ -468,6 +470,13 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
 
   // 合并获取完整设置
   const settings = useMemo(() => {
+    console.log(`🔍 [useQuizSettings] 开始读取设置 [${gameId}]`, {
+      hasUserSettings: !!userSettings,
+      userSettingsKeys: userSettings ? Object.keys(userSettings) : [],
+      hasGuestConfig: !!guestConfig,
+      hasDefaultConfig: !!defaultConfig
+    });
+
     // 1. 尝试获取特定游戏的设置
     if (userSettings && userSettings[gameId]) {
       console.log(`📖 [useQuizSettings] 从用户设置读取 [${gameId}]:`, userSettings[gameId]);
@@ -489,6 +498,10 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
       const ttsDefaults = guestConfig.tts_defaults || {};
       const defaultCollectionId = guestConfig.default_collection_id || '';
 
+      // 根据游戏语言设置默认语速：中文1.0（正常），英文0.8（稍慢）
+      const gameLang = gameConfig.language || 'en';
+      const defaultRate = gameLang === 'zh' ? 1.0 : 0.8;
+
       const mergedSettings = {
         questionType: gameConfig.questionType || 'text',
         answerType: gameConfig.answerType || 'choice',
@@ -496,11 +509,12 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
         collectionId: defaultCollectionId,
         tts: {
           lang: ttsDefaults.lang || 'en-US',
-          rate: ttsDefaults.rate || 0.8,
+          rate: ttsDefaults.rate !== undefined ? ttsDefaults.rate : defaultRate,
           pitch: ttsDefaults.pitch || 1.0,
           volume: ttsDefaults.volume || 1.0,
           voiceName: ttsDefaults.voiceName || 'default',
         },
+        showPinyin: gameConfig.showPinyin || false,
       };
 
       console.log(`📖 [useQuizSettings] 从游客配置/默认配置读取 [${gameId}]:`, mergedSettings);
@@ -524,6 +538,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
           voiceName: 'default',
           ...defaultConfig.tts
         },
+        showPinyin: defaultConfig.showPinyin || false,
       } as QuizSettings;
     }
 
@@ -539,6 +554,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
         volume: 1.0,
         voiceName: 'default',
       },
+      showPinyin: false,
     };
   }, [userSettings, guestConfig, gameId, defaultConfig]);
 

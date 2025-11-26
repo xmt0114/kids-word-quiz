@@ -67,6 +67,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                     description: '根据提示猜测单词',
                                     icon: 'Brain',
                                     type: 'guess_word',
+                                    language: 'en',
                                     default_config: { questionType: 'text', answerType: 'choice' } as any,
                                     is_active: true
                                 });
@@ -268,14 +269,24 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         // 等待一小段时间确保之前的语音完全停止
         setTimeout(() => {
             // 测试朗读功能
-            const testText = "This is a test of the text-to-speech feature.";
-            const utterance = new SpeechSynthesisUtterance(testText);
             const ttsSettings = (pendingSettings || settings).tts || {
                 lang: 'en-US',
                 rate: 0.8,
                 pitch: 1.0,
                 volume: 1.0,
             };
+
+            // 根据语言选择测试文本
+            // 优先使用当前选择的语音语言，如果没有则使用游戏语言
+            const currentLang = ttsSettings.lang || gameInfo?.language || 'en';
+            const isChinese = currentLang.toLowerCase().startsWith('zh') ||
+                (gameInfo?.language === 'zh' && (!ttsSettings.lang || ttsSettings.lang === 'en-US'));
+
+            const testText = isChinese
+                ? "这是一个语音合成功能的测试。"
+                : "This is a test of the text-to-speech feature.";
+
+            const utterance = new SpeechSynthesisUtterance(testText);
 
             // 设置基础参数
             utterance.lang = ttsSettings.lang;
@@ -675,7 +686,17 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                 >
                                     <option value="">默认语音（系统自动选择）</option>
                                     {voices
-                                        .filter(voice => voice.lang.startsWith('en') || voice.lang.startsWith('zh'))
+                                        .filter(voice => {
+                                            // 默认只显示英语语音，除非明确是中文游戏
+                                            const gameLang = gameInfo?.language || 'en';
+                                            const voiceLang = voice.lang.toLowerCase();
+
+                                            if (gameLang === 'zh') {
+                                                return voiceLang.startsWith('zh') || voiceLang.includes('chinese');
+                                            } else {
+                                                return voiceLang.startsWith('en') || voiceLang.includes('english');
+                                            }
+                                        })
                                         .map((voice) => (
                                             <option key={voice.name} value={voice.name}>
                                                 {voice.displayName}
@@ -700,7 +721,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                 })()}
                                 {/* 显示当前语言 */}
                                 <p className="text-small text-text-tertiary mt-xs">
-                                    语言：{(pendingSettings || settings).tts?.lang || 'en-US'}
+                                    语言：{(pendingSettings || settings).tts?.lang || gameInfo?.language || 'en-US'}
                                 </p>
                             </div>
 
@@ -716,17 +737,17 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                 </div>
                                 <input
                                     type="range"
-                                    min="0.5"
+                                    min="0"
                                     max="2.0"
                                     step="0.1"
-                                    value={(pendingSettings || settings).tts?.rate || 0.8}
+                                    value={(pendingSettings || settings).tts?.rate || 1.0}
                                     onChange={(e) => handleTtsSettingChange('rate', parseFloat(e.target.value))}
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                 />
                                 <div className="flex justify-between text-xs text-text-tertiary mt-xs">
-                                    <span>慢</span>
-                                    <span>正常</span>
-                                    <span>快</span>
+                                    <span>0x</span>
+                                    <span>1.0x (正常)</span>
+                                    <span>2.0x</span>
                                 </div>
                             </div>
 
@@ -742,7 +763,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                 </div>
                                 <input
                                     type="range"
-                                    min="0.5"
+                                    min="0"
                                     max="2.0"
                                     step="0.1"
                                     value={(pendingSettings || settings).tts?.pitch || 1.0}
@@ -750,9 +771,9 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                 />
                                 <div className="flex justify-between text-xs text-text-tertiary mt-xs">
-                                    <span>低</span>
-                                    <span>正常</span>
-                                    <span>高</span>
+                                    <span>0x</span>
+                                    <span>1.0x (正常)</span>
+                                    <span>2.0x</span>
                                 </div>
                             </div>
 
@@ -776,11 +797,13 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                 />
                                 <div className="flex justify-between text-xs text-text-tertiary mt-xs">
-                                    <span>小</span>
-                                    <span>正常</span>
-                                    <span>大</span>
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
                                 </div>
                             </div>
+
+
 
                             {/* 测试按钮 */}
                             <div className="pt-md border-t border-gray-200">
@@ -796,6 +819,35 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                         </div>
                     </Card>
                 </section>
+
+                {/* 拼音设置 (仅中文游戏显示) */}
+                {gameInfo?.language === 'zh' && (
+                    <section>
+                        <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
+                            显示设置
+                        </h2>
+                        <Card className="p-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-h3 font-bold text-text-primary mb-xs">显示拼音</h3>
+                                    <p className="text-body text-text-secondary">在汉字上方显示拼音注音</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={(pendingSettings || settings).showPinyin || false}
+                                        onChange={(e) => setPendingSettings(prev => ({
+                                            ...(prev || settings),
+                                            showPinyin: e.target.checked
+                                        }))}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                </label>
+                            </div>
+                        </Card>
+                    </section>
+                )}
 
                 {/* 保存设置按钮 */}
                 <section className="text-center mt-xl">

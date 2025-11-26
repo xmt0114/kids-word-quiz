@@ -56,6 +56,7 @@ export interface Game {
   description: string;
   icon: string;
   type: 'guess_word' | 'fill_blank';
+  language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;
 }
@@ -79,6 +80,7 @@ export interface QuizSettings {
   collectionId?: string; // 选择的教材ID
   selectionStrategy?: WordSelectionStrategy; // 词汇选取策略
   tts?: TTSSettings;     // 语音朗读配置
+  showPinyin?: boolean;  // 是否显示拼音（仅中文有效）
 }
 
 // 答题结果类型
@@ -129,13 +131,13 @@ export interface AudioButtonProps {
   className?: string;
   showTooltip?: boolean;
 }
-
+// 选项按钮属性
 export interface OptionButtonProps {
-  option: string;
+  option: React.ReactNode;
   isSelected?: boolean;
   isCorrect?: boolean;
   isWrong?: boolean;
-  onClick: () => void;
+  onClick?: () => void;
   disabled?: boolean;
 }
 

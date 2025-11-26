@@ -175,7 +175,7 @@ export function useAuthState() {
     }
 
     try {
-      console.log('🔄 [useAuth] 更新用户设置:', { userId: authUser.id, updates })
+      console.log('🔄 [useAuth.updateUserSettings] 更新用户设置:', { userId: authUser.id, updates })
 
       // 获取当前用户资料
       const { data: currentProfile, error: fetchError } = await supabase
@@ -185,15 +185,19 @@ export function useAuthState() {
         .single()
 
       if (fetchError) {
-        console.error('❌ [useAuth] 获取用户资料失败:', fetchError)
+        console.error('❌ [useAuth.updateUserSettings] 获取用户资料失败:', fetchError)
         return { success: false, error: fetchError.message }
       }
+
+      console.log('📖 [useAuth.updateUserSettings] 当前数据库设置:', currentProfile.settings);
 
       // 深度合并设置
       const updatedSettings = {
         ...(currentProfile.settings || {}),
         ...updates
       }
+
+      console.log('💾 [useAuth.updateUserSettings] 合并后的设置:', updatedSettings);
 
       const { data, error } = await supabase
         .from('user_profiles')
@@ -203,15 +207,22 @@ export function useAuthState() {
         .single()
 
       if (error) {
-        console.error('❌ [useAuth] 更新用户设置失败:', error)
+        console.error('❌ [useAuth.updateUserSettings] 更新用户设置失败:', error)
         return { success: false, error: error.message }
       }
 
-      console.log('✅ [useAuth] 用户设置更新成功:', data)
+      console.log('✅ [useAuth.updateUserSettings] 数据库更新成功:', data.settings)
       setAuthProfile(data as UserProfile)
+
+      // 同步更新 Zustand store 中的 userSettings
+      const { useAppStore } = await import('../stores/appStore')
+      console.log('🔄 [useAuth.updateUserSettings] 准备同步 Zustand store...');
+      useAppStore.getState().updateSettings(updatedSettings)
+      console.log('✅ [useAuth.updateUserSettings] Zustand store 已同步更新')
+
       return { success: true }
     } catch (error) {
-      console.error('❌ [useAuth] 更新用户设置失败:', error)
+      console.error('❌ [useAuth.updateUserSettings] 更新失败:', error)
       return { success: false, error: '更新用户设置失败' }
     }
   }
