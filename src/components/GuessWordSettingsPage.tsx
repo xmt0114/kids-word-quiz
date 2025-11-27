@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore } from '../stores/appStore';
 import { LoginModal } from './auth/LoginModal';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface GuessWordSettingsPageProps {
   selectedCollectionId?: string;
@@ -33,6 +34,8 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
   const [pendingSettings, setPendingSettings] = useState<Partial<QuizSettings> | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetResult, setResetResult] = useState<{ show: boolean; success: boolean; message: string }>({ show: false, success: true, message: '' });
 
   // 页面加载时检查登录状态
   useEffect(() => {
@@ -227,31 +230,49 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     }, 100);
   };
 
-  // 处理重置学习进度
-  const handleResetProgress = async () => {
+  // 处理重置学习进度 - 显示确认弹框
+  const handleResetProgress = () => {
     const collectionId = selectedCollectionId || (pendingSettings || settings).collectionId;
     if (!collectionId) return;
 
-    if (!confirm('确定要重置学习进度吗？此操作不可撤销。')) {
-      return;
-    }
+    setShowResetConfirm(true);
+  };
 
+  // 确认重置学习进度
+  const confirmResetProgress = async () => {
+    const collectionId = selectedCollectionId || (pendingSettings || settings).collectionId;
+    if (!collectionId) return;
+
+    setShowResetConfirm(false);
     setIsResetting(true);
+
     try {
       console.log('[Settings] 开始重置学习进度:', collectionId);
 
       const resp = await wordAPI.resetCollectionProgress?.(collectionId);
       if (!resp || !resp.success) {
-        alert(`重置失败${resp?.error ? `: ${resp.error}` : ''}`);
+        setResetResult({
+          show: true,
+          success: false,
+          message: `重置失败${resp?.error ? `: ${resp.error}` : ''}`
+        });
       } else {
         console.log('[Settings] 学习进度重置成功');
         // 使用 Zustand 刷新学习进度缓存
         await refreshProgress(collectionId);
-        alert('学习进度已重置！');
+        setResetResult({
+          show: true,
+          success: true,
+          message: '学习进度已重置!'
+        });
       }
     } catch (err) {
       console.error('重置学习进度时发生错误:', err);
-      alert('重置进度时发生错误，请稍后重试');
+      setResetResult({
+        show: true,
+        success: false,
+        message: '重置进度时发生错误,请稍后重试'
+      });
     } finally {
       setIsResetting(false);
     }
@@ -314,7 +335,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         <p className="text-h2 text-text-secondary font-semibold">
           配置你的游戏参数
         </p>
-        
+
         {/* 装饰元素 */}
         <div className="relative mt-lg">
           <div className="absolute -top-4 -left-8 w-16 h-16 bg-accent-500 rounded-full opacity-20 animate-float" />
@@ -409,14 +430,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
             {questionTypes.map((type) => {
               const Icon = type.icon;
               const isSelected = (pendingSettings || settings).questionType === type.id;
-              
+
               return (
                 <Card
                   key={type.id}
                   className={cn(
                     'cursor-pointer transition-all duration-normal border-4',
-                    isSelected 
-                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg' 
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
                       : 'border-gray-200 hover:border-primary-300 hover:scale-102'
                   )}
                   onClick={() => handleQuestionTypeSelect(type.id)}
@@ -450,14 +471,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
             {answerTypes.map((type) => {
               const Icon = type.icon;
               const isSelected = (pendingSettings || settings).answerType === type.id;
-              
+
               return (
                 <Card
                   key={type.id}
                   className={cn(
                     'cursor-pointer transition-all duration-normal border-4',
-                    isSelected 
-                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg' 
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
                       : 'border-gray-200 hover:border-primary-300 hover:scale-102'
                   )}
                   onClick={() => handleAnswerTypeSelect(type.id)}
@@ -725,6 +746,30 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
         isOpen={showLoginModal}
         onClose={handleCloseLoginModal}
         action="访问设置"
+      />
+
+      {/* 重置确认弹框 */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="重置学习进度"
+        message="确定要重置学习进度吗?此操作不可撤销,将清除所有学习记录。"
+        confirmText="确认重置"
+        cancelText="取消"
+        variant="danger"
+        onConfirm={confirmResetProgress}
+        onCancel={() => setShowResetConfirm(false)}
+      />
+
+      {/* 重置结果弹框 */}
+      <ConfirmDialog
+        isOpen={resetResult.show}
+        title={resetResult.success ? "重置成功" : "重置失败"}
+        message={resetResult.message}
+        confirmText="确定"
+        cancelText=""
+        variant={resetResult.success ? "info" : "danger"}
+        onConfirm={() => setResetResult({ show: false, success: true, message: '' })}
+        onCancel={() => setResetResult({ show: false, success: true, message: '' })}
       />
     </div>
   );
