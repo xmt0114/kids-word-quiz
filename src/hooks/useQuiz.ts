@@ -147,7 +147,7 @@ export function useQuiz() {
     setQuizState(prev => {
       const newIndex = prev.currentQuestionIndex + 1;
       const isCompleted = newIndex >= prev.questions.length;
-      
+
       return {
         ...prev,
         currentQuestionIndex: newIndex,
@@ -230,6 +230,7 @@ export function useQuiz() {
     previousQuestion,
     restartQuiz,
     clearError,
+    setError, // Export setError
 
     // 计算属性
     getCurrentQuestion,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -7,7 +7,7 @@ import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
 import { QuizSettings, Game } from '../types';
-import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2 } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
 import { cn } from '../lib/utils';
@@ -21,11 +21,10 @@ const UniversalGamePage: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
     const { updateStats } = useQuizStats();
 
-    // 从路由状态获取设置 - 只信任路由传递的设置
+    // 浠庤矾鐢辩姸鎬佽幏鍙栬缃?- 鍙俊浠昏矾鐢变紶閫掔殑璁剧疆
     const { settings: routeSettings, collectionId, questions: passedQuestions, isReplay } = location.state || {};
 
-    // 检查是否有有效的路由设置
-    const hasValidRouteSettings = routeSettings && collectionId;
+    // 妫€鏌ユ槸鍚︽湁鏈夋晥鐨勮矾鐢辫缃?    const hasValidRouteSettings = routeSettings && collectionId;
 
     const {
         quizState,
@@ -40,7 +39,6 @@ const UniversalGamePage: React.FC = () => {
         getCurrentQuestion,
         getResult,
         restartQuiz,
-        setError,
     } = useQuiz();
 
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
@@ -49,10 +47,11 @@ const UniversalGamePage: React.FC = () => {
     const [isCorrect, setIsCorrect] = useState(false);
     const [showStarExplosion, setShowStarExplosion] = useState(false);
     const [viewportHeight, setViewportHeight] = useState(0);
+    // const questionTextRef = useRef<HTMLParagraphElement>(null); // Removed unused ref
     const [isInitializing, setIsInitializing] = useState(false);
     const [gameInfo, setGameInfo] = useState<Game | null>(null);
 
-    // 加载游戏信息以获取语言设置
+    // 鍔犺浇娓告垙淇℃伅浠ヨ幏鍙栬瑷€璁剧疆
     useEffect(() => {
         const loadGameInfo = async () => {
             if (!gameId) return;
@@ -73,17 +72,16 @@ const UniversalGamePage: React.FC = () => {
         loadGameInfo();
     }, [gameId]);
 
-    // 获取教材信息并初始化游戏
+    // 鑾峰彇鏁欐潗淇℃伅骞跺垵濮嬪寲娓告垙
     useEffect(() => {
         if (!hasValidRouteSettings) {
-            // 如果没有有效的路由设置，显示错误提示
-            alert('错误：无效的路由访问！请从首页正确进入游戏。');
+            // 濡傛灉娌℃湁鏈夋晥鐨勮矾鐢辫缃紝鏄剧ず閿欒鎻愮ず
+            alert('閿欒锛氭棤鏁堢殑璺敱璁块棶锛佽浠庨椤垫纭繘鍏ユ父鎴忋€?);
             navigate('/');
             return;
         }
 
-        // 防止重复初始化
-        if (isInitializing) {
+        // 闃叉閲嶅鍒濆鍖?        if (isInitializing) {
             return;
         }
 
@@ -91,35 +89,34 @@ const UniversalGamePage: React.FC = () => {
 
         const initializeGame = async () => {
             try {
-                // 使用路由传递的设置
+                // 浣跨敤璺敱浼犻€掔殑璁剧疆
                 const finalSettings: QuizSettings = {
                     questionType: routeSettings.questionType || 'text',
                     answerType: routeSettings.answerType || 'choice',
                     selectionStrategy: routeSettings.selectionStrategy || 'sequential',
-                    showPinyin: routeSettings.showPinyin,
-                    tts: routeSettings.tts,
+                    showPinyin: routeSettings.showPinyin, // Fix: Pass showPinyin setting
+                    tts: routeSettings.tts, // Fix: Pass TTS settings
                     collectionId
                 };
 
-                console.log('🎮 [UniversalGamePage] 初始化游戏设置:', finalSettings);
+                console.log('馃幃 [UniversalGamePage] 鍒濆鍖栨父鎴忚缃?', finalSettings);
 
-                // 如果是重新学习（使用相同单词）
-                if (isReplay && passedQuestions && passedQuestions.length > 0) {
-                    console.log('[GamePage] 使用相同单词重新学习:', passedQuestions.length);
+                // 濡傛灉鏄噸鏂板涔狅紙浣跨敤鐩稿悓鍗曡瘝锛?                if (isReplay && passedQuestions && passedQuestions.length > 0) {
+                    console.log('[GamePage] 浣跨敤鐩稿悓鍗曡瘝閲嶆柊瀛︿範:', passedQuestions.length);
 
-                    // 直接使用传递过来的单词，不更新进度
+                    // 鐩存帴浣跨敤浼犻€掕繃鏉ョ殑鍗曡瘝锛屼笉鏇存柊杩涘害
                     await initializeQuiz(finalSettings, collectionId, 0, passedQuestions);
                     return;
                 }
 
-                // 正常流程：使用新的RPC函数获取学习会话
-                console.log('[GamePage] 使用 get_my_study_session RPC 获取题目:', {
+                // 姝ｅ父娴佺▼锛氫娇鐢ㄦ柊鐨凴PC鍑芥暟鑾峰彇瀛︿範浼氳瘽
+                console.log('[GamePage] 浣跨敤 get_my_study_session RPC 鑾峰彇棰樼洰:', {
                     collectionId,
                     sessionSize: 10,
                     studyMode: finalSettings.selectionStrategy
                 });
 
-                // 调用新的RPC函数获取学习会话
+                // 璋冪敤鏂扮殑RPC鍑芥暟鑾峰彇瀛︿範浼氳瘽
                 const sessionResp = await (wordAPI.getStudySession?.({
                     collectionId,
                     sessionSize: 10,
@@ -127,54 +124,24 @@ const UniversalGamePage: React.FC = () => {
                 }))
 
                 if (!sessionResp || !sessionResp.success) {
-                    throw new Error(`获取学习会话失败${sessionResp?.error ? `: ${sessionResp.error}` : ''}`);
+                    throw new Error(`鑾峰彇瀛︿範浼氳瘽澶辫触${sessionResp?.error ? `: ${sessionResp.error}` : ''}`);
                 }
 
                 const words = sessionResp.data || [];
-
-                // 处理空列表情况：区分"今日无词"和"教材学完"
                 if (words.length === 0) {
-                    console.log('[GamePage] 获取到的单词列表为空，检查教材进度...');
-
-                    // 获取教材进度
-                    const progressResp = await wordAPI.getCollectionProgress?.(collectionId);
-
-                    if (progressResp?.success && progressResp.data) {
-                        const progress = progressResp.data;
-                        console.log('[GamePage] 教材进度:', progress);
-
-                        // 情况1: 教材本身没有单词 (total_words === 0)
-                        if (progress.total_words === 0) {
-                            throw new Error('本教材暂时还没有添加单词哦！');
-                        }
-                        // 情况2: 所有单词都已掌握 (mastered_words === total_words)
-                        else if (progress.mastered_words === progress.total_words) {
-                            throw new Error('恭喜！你已经学完了本教材的所有单词！');
-                        }
-                        // 情况3: 还有单词没掌握，但今天没有新词/复习词 (remaining_words === 0 && learning_words > 0)
-                        // 或者单纯就是今天任务完成了
-                        else {
-                            throw new Error('您今天的学习内容完成了哦，建议您换一个教材或者去玩其他游戏吧');
-                        }
-                    } else {
-                        // 如果获取进度失败，显示通用提示
-                        throw new Error('当前没有可用的学习内容');
-                    }
+                    throw new Error('娌℃湁鍙敤鐨勫涔犲唴瀹?);
                 }
 
-                console.log('[GamePage] 获取到学习会话:', {
+                console.log('[GamePage] 鑾峰彇鍒板涔犱細璇?', {
                     wordCount: words.length,
                     studyMode: finalSettings.selectionStrategy
                 });
 
-                // 直接使用RPC返回的单词数据初始化Quiz
-                // RPC已经处理了offset和随机化逻辑
+                // 鐩存帴浣跨敤RPC杩斿洖鐨勫崟璇嶆暟鎹垵濮嬪寲Quiz
+                // RPC宸茬粡澶勭悊浜唎ffset鍜岄殢鏈哄寲閫昏緫
                 await initializeQuiz(finalSettings, collectionId, 0, words);
             } catch (err) {
                 console.error('Failed to initialize quiz:', err);
-                const errorMessage = err instanceof Error ? err.message : '初始化游戏失败';
-                // 使用 setError 更新 UI 状态
-                setError(errorMessage);
             } finally {
                 setIsInitializing(false);
             }
@@ -183,16 +150,15 @@ const UniversalGamePage: React.FC = () => {
         initializeGame();
     }, [routeSettings, collectionId, hasValidRouteSettings, navigate, isReplay, passedQuestions]);
 
-    // 检测屏幕高度并动态调整布局
+    // 妫€娴嬪睆骞曢珮搴﹀苟鍔ㄦ€佽皟鏁村竷灞€
     useEffect(() => {
         const updateViewportHeight = () => {
             setViewportHeight(window.innerHeight);
         };
 
-        // 初始检测
-        updateViewportHeight();
+        // 鍒濆妫€娴?        updateViewportHeight();
 
-        // 监听窗口大小变化
+        // 鐩戝惉绐楀彛澶у皬鍙樺寲
         window.addEventListener('resize', updateViewportHeight);
 
         return () => {
@@ -200,9 +166,8 @@ const UniversalGamePage: React.FC = () => {
         };
     }, []);
 
-    // 根据屏幕高度计算动态间距
-    const getDynamicSpacing = () => {
-        // 默认大屏幕布局
+    // 鏍规嵁灞忓箷楂樺害璁＄畻鍔ㄦ€侀棿璺?    const getDynamicSpacing = () => {
+        // 榛樿澶у睆骞曞竷灞€
         let spacing = {
             container: 'p-sm md:p-lg',
             navbar: 'mb-lg',
@@ -212,7 +177,7 @@ const UniversalGamePage: React.FC = () => {
             buttonArea: 'pt-lg'
         };
 
-        // 小屏幕 (< 600px) 使用紧凑布局
+        // 灏忓睆骞?(< 600px) 浣跨敤绱у噾甯冨眬
         if (viewportHeight > 0 && viewportHeight < 600) {
             spacing = {
                 container: 'p-xs',
@@ -223,7 +188,7 @@ const UniversalGamePage: React.FC = () => {
                 buttonArea: 'pt-xs'
             };
         }
-        // 中等屏幕 (600px - 799px) 使用中等布局
+        // 涓瓑灞忓箷 (600px - 799px) 浣跨敤涓瓑甯冨眬
         else if (viewportHeight >= 600 && viewportHeight < 800) {
             spacing = {
                 container: 'p-xs',
@@ -242,13 +207,12 @@ const UniversalGamePage: React.FC = () => {
 
     const currentWord = getCurrentQuestion();
 
-    // 处理提交答案
+    // 澶勭悊鎻愪氦绛旀
     const handleSubmitAnswer = (answer: string) => {
         submitAnswer(answer);
         setShowResult(true);
 
-        // 检查答案是否正确
-        const correct = answer.toLowerCase().trim() === currentWord.answer.toLowerCase().trim();
+        // 妫€鏌ョ瓟妗堟槸鍚︽纭?        const correct = answer.toLowerCase().trim() === currentWord.answer.toLowerCase().trim();
         setIsCorrect(correct);
 
         if (correct) {
@@ -257,33 +221,31 @@ const UniversalGamePage: React.FC = () => {
         }
     };
 
-    // 处理下一题
-    const handleNextQuestion = async () => {
+    // 澶勭悊涓嬩竴棰?    const handleNextQuestion = async () => {
         if (quizState.currentQuestionIndex >= quizState.questions.length - 1) {
-            // 所有题目完成，显示结果
+            // 鎵€鏈夐鐩畬鎴愶紝鏄剧ず缁撴灉
             const result = getResult();
             updateStats(result.correctAnswers, result.totalQuestions);
 
-            // 提交答题结果到后端 - 只在非replay模式下提交
-            if (!isReplay) {
-                console.log('[GamePage] 提交答题结果到后端...', quizState.results);
+            // 鎻愪氦绛旈缁撴灉鍒板悗绔?- 鍙湪闈瀝eplay妯″紡涓嬫彁浜?            if (!isReplay) {
+                console.log('[GamePage] 鎻愪氦绛旈缁撴灉鍒板悗绔?..', quizState.results);
                 const submitResult = await submitResults(quizState.results);
 
                 if (!submitResult.success) {
-                    console.warn('[GamePage] 提交答题结果失败:', submitResult.error);
+                    console.warn('[GamePage] 鎻愪氦绛旈缁撴灉澶辫触:', submitResult.error);
                 } else {
-                    console.log('[GamePage] 答题结果提交成功');
+                    console.log('[GamePage] 绛旈缁撴灉鎻愪氦鎴愬姛');
                 }
             }
 
-            // 导航到结果页
+            // 瀵艰埅鍒扮粨鏋滈〉锛屾敞鎰忚繖閲屾垜浠彲鑳介渶瑕佷竴涓€氱敤鐨勭粨鏋滈〉锛屾垨鑰呭鐢?GuessWordResultPage
+            // 鏆傛椂澶嶇敤 GuessWordResultPage锛屽洜涓哄畠姣旇緝閫氱敤
             navigate('/guess-word/result', {
                 state: {
                     result,
                     settings: routeSettings,
                     collectionId,
-                    questions: quizState.questions, // 传递本轮单词列表
-                    gameId // 传递 gameId
+                    questions: quizState.questions, // 浼犻€掓湰杞崟璇嶅垪琛?                    gameId // 浼犻€?gameId
                 }
             });
         } else {
@@ -294,116 +256,67 @@ const UniversalGamePage: React.FC = () => {
         }
     };
 
-    // 处理上一题
-    const handlePreviousQuestion = () => {
+    // 澶勭悊涓婁竴棰?    const handlePreviousQuestion = () => {
         previousQuestion();
         setShowResult(false);
         setSelectedAnswer('');
         setInputAnswer('');
     };
 
-    // 处理返回首页
+    // 澶勭悊杩斿洖棣栭〉
     const handleBackToHome = () => {
         navigate('/');
     };
 
-    // 错误处理界面
+    // 閿欒澶勭悊鐣岄潰
     if (error) {
-        // 根据错误信息判断显示类型
-        let icon = <AlertCircle size={80} className="text-red-500" />;
-        let title = "哎呀，出现问题了";
-        let titleColor = "text-red-500";
-        let showRetry = true;
-        let bgGradient = "from-red-50 to-orange-50";
-
-        if (error.includes('学完了本教材')) {
-            icon = <Trophy size={80} className="text-yellow-500 drop-shadow-lg" />;
-            title = "太棒了！";
-            titleColor = "text-yellow-600";
-            showRetry = false;
-            bgGradient = "from-yellow-50 to-orange-50";
-        } else if (error.includes('今天的学习内容完成了')) {
-            icon = <Smile size={80} className="text-green-500 drop-shadow-lg" />;
-            title = "今日任务完成";
-            titleColor = "text-green-600";
-            showRetry = false;
-            bgGradient = "from-green-50 to-emerald-50";
-        } else if (error.includes('还没有添加单词')) {
-            icon = <BookOpen size={80} className="text-blue-500 drop-shadow-lg" />;
-            title = "教材为空";
-            titleColor = "text-blue-600";
-            showRetry = false;
-            bgGradient = "from-blue-50 to-indigo-50";
-        }
-
         return (
-            <div className={`min-h-screen bg-gradient-to-b ${bgGradient} flex items-center justify-center p-lg`}>
-                <Card className="max-w-md w-full text-center p-xl md:p-2xl shadow-card-hover border-2 border-white/50 backdrop-blur-sm">
-                    <div className="flex justify-center mb-lg animate-bounce-slow">
-                        <div className="p-md bg-white rounded-full shadow-md">
-                            {icon}
-                        </div>
-                    </div>
-                    <h2 className={`text-3xl font-bold ${titleColor} mb-md tracking-tight`}>
-                        {title}
+            <div className="min-h-screen bg-background-primary flex items-center justify-center p-lg">
+                <div className="bg-white rounded-lg p-xl shadow-card text-center max-w-md">
+                    <div className="text-6xl mb-md">馃様</div>
+                    <h2 className="text-h2 font-bold text-error mb-md">
+                        鍝庡憖锛屽嚭鐜伴棶棰樹簡
                     </h2>
-                    <p className="text-lg text-text-secondary mb-xl leading-relaxed">
+                    <p className="text-body text-text-secondary mb-lg">
                         {error}
                     </p>
 
-                    {showRetry && retryCount > 0 && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-md mb-lg animate-pulse">
-                            <p className="text-small text-yellow-700 font-medium">
-                                正在重试... (第 {retryCount} 次尝试)
+                    {retryCount > 0 && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-md mb-lg">
+                            <p className="text-small text-yellow-700">
+                                姝ｅ湪閲嶈瘯... (绗?{retryCount} 娆″皾璇?
                             </p>
                         </div>
                     )}
 
                     <div className="space-y-md">
-                        {showRetry && (
-                            <button
-                                className="w-full bg-primary-500 text-white px-xl py-lg rounded-full font-bold text-lg hover:bg-primary-600 transition-all shadow-button hover:shadow-button-hover active:scale-95 transform"
-                                onClick={() => restartQuiz()}
-                            >
-                                重新开始
-                            </button>
-                        )}
-
-                        {/* 如果是今日任务完成，显示去玩其他游戏的建议 */}
-                        {error.includes('今天的学习内容完成了') && (
-                            <button
-                                className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white px-xl py-lg rounded-full font-bold text-lg hover:from-green-500 hover:to-emerald-600 transition-all shadow-button hover:shadow-button-hover active:scale-95 transform flex items-center justify-center gap-md mb-md"
-                                onClick={() => navigate('/')}
-                            >
-                                <Gamepad2 size={24} />
-                                去玩其他游戏
-                            </button>
-                        )}
+                        <button
+                            className="w-full bg-primary-500 text-white px-lg py-md rounded-full font-bold hover:bg-primary-600 transition-colors"
+                            onClick={() => restartQuiz()}
+                        >
+                            閲嶆柊寮€濮?                        </button>
 
                         <button
-                            className="w-full bg-white border-2 border-gray-200 text-gray-600 px-xl py-lg rounded-full font-bold text-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 transform"
+                            className="w-full bg-gray-200 text-gray-700 px-lg py-md rounded-full font-bold hover:bg-gray-300 transition-colors"
                             onClick={handleBackToHome}
                         >
-                            返回首页
+                            杩斿洖棣栭〉
                         </button>
                     </div>
 
-                    {showRetry && (
-                        <div className="mt-xl text-sm text-text-tertiary">
-                            如果问题持续出现，请尝试刷新页面
-                        </div>
-                    )}
-                </Card>
+                    <div className="mt-lg text-small text-text-tertiary">
+                        濡傛灉闂鎸佺画鍑虹幇锛岃灏濊瘯鍒锋柊椤甸潰
+                    </div>
+                </div>
             </div>
         );
     }
 
-    // 加载状态
-    if (!currentWord || isLoading) {
+    // 鍔犺浇鐘舵€?    if (!currentWord || isLoading) {
         return (
             <div className={`min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 ${spacing.container}`}>
                 <div className="max-w-4xl mx-auto">
-                    {/* 导航栏 */}
+                    {/* 瀵艰埅鏍?*/}
                     <div className={`flex items-center justify-between ${spacing.navbar}`}>
                         <Button
                             variant="secondary"
@@ -411,10 +324,10 @@ const UniversalGamePage: React.FC = () => {
                             className="flex items-center gap-sm"
                         >
                             <Home size={20} />
-                            返回首页
+                            杩斿洖棣栭〉
                         </Button>
                         <div className="text-center">
-                            <h1 className="text-h2 font-bold text-text-primary">游戏加载中</h1>
+                            <h1 className="text-h2 font-bold text-text-primary">娓告垙鍔犺浇涓?/h1>
                         </div>
                         <div></div>
                     </div>
@@ -422,11 +335,11 @@ const UniversalGamePage: React.FC = () => {
                     <div className="text-center py-2xl">
                         <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-md" />
                         <p className="text-body text-text-secondary">
-                            {isLoading ? '正在加载题目...' : '准备中...'}
+                            {isLoading ? '姝ｅ湪鍔犺浇棰樼洰...' : '鍑嗗涓?..'}
                         </p>
                         {retryCount > 0 && (
                             <p className="text-small text-text-tertiary mt-sm">
-                                正在重试连接... (第 {retryCount} 次)
+                                姝ｅ湪閲嶈瘯杩炴帴... (绗?{retryCount} 娆?
                             </p>
                         )}
                     </div>
@@ -447,11 +360,11 @@ const UniversalGamePage: React.FC = () => {
 
     return (
         <div className={`min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 ${spacing.container}`}>
-            {/* 星空爆炸效果 */}
+            {/* 鏄熺┖鐖嗙偢鏁堟灉 */}
             {showStarExplosion && <StarExplosion isVisible={showStarExplosion} />}
 
             <div className="max-w-4xl mx-auto">
-                {/* 导航栏 */}
+                {/* 瀵艰埅鏍?*/}
                 <div className={`flex items-center justify-between ${spacing.navbar}`}>
                     <Button
                         variant="secondary"
@@ -459,14 +372,13 @@ const UniversalGamePage: React.FC = () => {
                         className="flex items-center gap-sm"
                     >
                         <Home size={20} />
-                        返回首页
+                        杩斿洖棣栭〉
                     </Button>
                     <div className="text-center">
-                        <h1 className="text-h2 font-bold text-text-primary">猜单词</h1>
+                        <h1 className="text-h2 font-bold text-text-primary">鐚滃崟璇?/h1>
                         <div className="flex items-center justify-center gap-md">
                             <p className="text-small text-text-secondary">
-                                第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
-                            </p>
+                                绗?{quizState.currentQuestionIndex + 1} 棰?/ 鍏?{quizState.questions.length} 棰?                            </p>
                             <ProgressBar
                                 current={quizState.currentQuestionIndex + 1}
                                 total={quizState.questions.length}
@@ -477,9 +389,9 @@ const UniversalGamePage: React.FC = () => {
                     <div></div>
                 </div>
 
-                {/* 题目卡片 */}
+                {/* 棰樼洰鍗＄墖 */}
                 <Card className={`${spacing.cardPadding} mb-lg`}>
-                    {/* 题目区域 */}
+                    {/* 棰樼洰鍖哄煙 */}
                     <div className={`${spacing.questionArea}`}>
                         <div className="text-center mb-lg">
                             {quizState.settings.questionType === 'audio' ? (
@@ -519,11 +431,10 @@ const UniversalGamePage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* 答题区域 */}
+                        {/* 绛旈鍖哄煙 */}
                         <div className="space-y-lg">
                             {quizState.settings.answerType === 'choice' ? (
-                                // 选择题
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                                // 閫夋嫨棰?                                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                                     {currentWord.options.map((option, index) => (
                                         <OptionButton
                                             key={index}
@@ -548,12 +459,11 @@ const UniversalGamePage: React.FC = () => {
                                 </div>
 
                             ) : (
-                                // 填空题
-                                <div className="space-y-md">
+                                // 濉┖棰?                                <div className="space-y-md">
                                     <Input
                                         value={inputAnswer}
                                         onChange={(value) => setInputAnswer(value)}
-                                        placeholder="请输入你的答案..."
+                                        placeholder="璇疯緭鍏ヤ綘鐨勭瓟妗?.."
                                         disabled={showResult}
                                         onSubmit={() => {
                                             if (!showResult) {
@@ -565,7 +475,7 @@ const UniversalGamePage: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* 答题结果 */}
+                            {/* 绛旈缁撴灉 */}
                             {showResult && (
                                 <div className={cn(
                                     'flex items-center justify-center gap-sm p-md rounded-lg',
@@ -574,22 +484,22 @@ const UniversalGamePage: React.FC = () => {
                                     {isCorrect ? (
                                         <>
                                             <CheckCircle size={24} className="text-green-500" />
-                                            <span className="text-h3 font-bold text-green-600">回答正确</span>
+                                            <span className="text-h3 font-bold text-green-600">鍥炵瓟姝ｇ‘</span>
                                         </>
                                     ) : (
                                         <>
                                             <XCircle size={24} className="text-red-500" />
-                                            <span className="text-h3 font-bold text-red-600">再试一次吧</span>
+                                            <span className="text-h3 font-bold text-red-600">鍐嶈瘯涓€娆″惂</span>
                                         </>
                                     )}
 
-                                    {/* 只有填空题才显示答案 */}
+                                    {/* 鍙湁濉┖棰樻墠鏄剧ず绛旀 */}
                                     {quizState.settings.answerType === 'fill' && (
                                         <span className={cn(
                                             'text-h3 font-bold',
                                             isCorrect ? 'text-green-600' : 'text-red-600'
                                         )}>
-                                            正确答案：{currentWord.answer}
+                                            姝ｇ‘绛旀锛歿currentWord.answer}
                                         </span>
                                     )}
                                 </div>
@@ -597,7 +507,7 @@ const UniversalGamePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 操作按钮区域 */}
+                    {/* 鎿嶄綔鎸夐挳鍖哄煙 */}
                     <div className={`flex items-center justify-between ${spacing.buttonArea} border-t border-gray-200`}>
                         <Button
                             variant="secondary"
@@ -606,8 +516,7 @@ const UniversalGamePage: React.FC = () => {
                             className="flex items-center gap-sm"
                         >
                             <ArrowLeft size={20} />
-                            上一题
-                        </Button>
+                            涓婁竴棰?                        </Button>
 
                         <div className="flex gap-md">
                             <Button
@@ -619,14 +528,14 @@ const UniversalGamePage: React.FC = () => {
                                 className="flex items-center gap-sm"
                             >
                                 <CheckCircle size={20} />
-                                提交答案
+                                鎻愪氦绛旀
                             </Button>
 
                             <Button
                                 onClick={handleNextQuestion}
                                 className="flex items-center gap-sm"
                             >
-                                {isLastQuestion ? '查看结果' : '下一题'}
+                                {isLastQuestion ? '鏌ョ湅缁撴灉' : '涓嬩竴棰?}
                                 <ArrowRight size={20} />
                             </Button>
                         </div>

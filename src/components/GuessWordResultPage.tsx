@@ -27,7 +27,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
   const isAdmin = profile?.role === 'admin';
 
   // 从路由状态获取结果和设置
-  const { result: routeResult, settings, collectionId, questions } = location.state || {};
+  const { result: routeResult, settings, collectionId, questions, gameId } = location.state || {};
   const result = propResult || routeResult;
 
   // 如果没有结果数据，显示错误信息
@@ -51,7 +51,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
   }
 
   const { correctAnswers, totalQuestions, accuracy, timeSpent, score } = result;
-  
+
   // 计算评级
   const getGrade = () => {
     if (accuracy >= 90) return { grade: 'S', color: 'text-yellow-500', bg: 'bg-yellow-100', desc: '完美表现！' };
@@ -130,7 +130,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
               <h3 className="text-h3 font-bold text-text-primary">{correctAnswers}</h3>
               <p className="text-small text-text-secondary">正确题数</p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-sm">
                 <BookOpen size={32} className="text-blue-500" />
@@ -138,7 +138,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
               <h3 className="text-h3 font-bold text-text-primary">{totalQuestions}</h3>
               <p className="text-small text-text-secondary">总题数</p>
             </div>
-            
+
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-sm">
                 <Award size={32} className="text-purple-500" />
@@ -167,28 +167,36 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
             className="flex items-center gap-sm"
           >
             <RotateCcw size={24} />
-            再来一局
+            重来一局
           </Button>
-          
-          {/* 数据管理按钮 - 仅管理员显示 */}
-          {isAdmin && (
-            <Button
-              variant="secondary"
-              onClick={handleDataManagement}
-              className="flex items-center gap-sm"
-            >
-              <BookOpen size={20} />
-              数据管理
-            </Button>
-          )}
 
           <Button
             variant="secondary"
+            size="large"
             onClick={handleBackToHome}
             className="flex items-center gap-sm"
           >
             <Home size={20} />
             返回首页
+          </Button>
+
+          <Button
+            size="large"
+            variant="primary" // Highlight "Continue Game"
+            onClick={() => {
+              // 继续游戏：跳转到游戏页面，传递设置和collectionId，但不传递questions（触发重新获取）
+              navigate(`/games/${gameId || 'guess-word'}/play`, {
+                state: {
+                  settings,
+                  collectionId,
+                  // 不传递 questions 和 isReplay，这样 UniversalGamePage 会重新获取新的单词
+                }
+              });
+            }}
+            className="flex items-center gap-sm bg-green-600 hover:bg-green-700"
+          >
+            <Target size={24} />
+            继续游戏
           </Button>
         </div>
 
@@ -200,11 +208,11 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
               <h3 className="text-h3 font-bold text-text-primary">继续努力！</h3>
             </div>
             <p className="text-body text-text-secondary">
-              {accuracy >= 80 
+              {accuracy >= 80
                 ? '你的表现非常出色！继续保持这个水平。'
                 : accuracy >= 60
-                ? '不错的开始！多练习会有更好的成绩。'
-                : '不要气馁，多练习就会进步的！'
+                  ? '不错的开始！多练习会有更好的成绩。'
+                  : '不要气馁，多练习就会进步的！'
               }
             </p>
           </Card>
