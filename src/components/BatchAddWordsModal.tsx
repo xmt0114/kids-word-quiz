@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Download, CheckCircle, Loader, Search } from 'lucide-react';
+import { X, Download, CheckCircle, Loader, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './Button';
 import { toast } from 'sonner';
 
@@ -35,6 +35,7 @@ const BatchAddWordsModal: React.FC<BatchAddWordsModalProps> = ({
 }) => {
   const [csvText, setCsvText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormatExpanded, setIsFormatExpanded] = useState(false);
   const [submitResult, setSubmitResult] = useState<{
     success: boolean;
     message: string;
@@ -470,27 +471,47 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
           </button>
         </div>
 
-        {/* CSV格式说明 */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-md mb-lg">
-          <h4 className="font-bold text-blue-800 mb-sm">CSV格式说明：</h4>
-          <ul className="text-small text-blue-700 space-y-xs">
-            <li>• 支持两种表头格式：</li>
-            <li>&nbsp;&nbsp;- word,definition,options,answer,hint,audioText（推荐）</li>
-            <li>&nbsp;&nbsp;- word,definition,difficulty,options,answer,hint,audioText（兼容旧格式）</li>
-            <li>• difficulty列可选，如果不提供将自动设为easy</li>
-            <li>• options用分号(;)分隔多个选项</li>
-            <li>• answer必须是options中的一个</li>
-            <li>• audioText为音频文本，hint为提示（hint可为空）</li>
-            <li>• 避免在数据末尾添加空行</li>
-          </ul>
-          <Button
-            variant="secondary"
-            className="mt-sm"
-            onClick={downloadTemplate}
+        {/* CSV格式说明 - 可折叠 */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg mb-lg overflow-hidden">
+          <button
+            onClick={() => setIsFormatExpanded(!isFormatExpanded)}
+            className="w-full flex items-center justify-between p-md hover:bg-blue-100 transition-colors rounded-lg"
           >
-            <Download size={16} className="mr-xs" />
-            下载模板
-          </Button>
+            <h4 className="font-bold text-blue-800">CSV格式说明</h4>
+            {isFormatExpanded ? (
+              <ChevronUp size={20} className="text-blue-600" />
+            ) : (
+              <ChevronDown size={20} className="text-blue-600" />
+            )}
+          </button>
+          <div
+            className="transition-all duration-300 ease-in-out overflow-hidden"
+            style={{
+              maxHeight: isFormatExpanded ? '500px' : '0px',
+              opacity: isFormatExpanded ? 1 : 0,
+            }}
+          >
+            <div className="px-md pb-md">
+              <ul className="text-small text-blue-700 space-y-xs mb-sm">
+                <li>• 支持两种表头格式：</li>
+                <li>&nbsp;&nbsp;- word,definition,options,answer,hint,audioText（推荐）</li>
+                <li>&nbsp;&nbsp;- word,definition,difficulty,options,answer,hint,audioText（兼容旧格式）</li>
+                <li>• difficulty列可选，如果不提供将自动设为easy</li>
+                <li>• options用分号(;)分隔多个选项</li>
+                <li>• answer必须是options中的一个</li>
+                <li>• audioText为音频文本，hint为提示（hint可为空）</li>
+                <li>• 避免在数据末尾添加空行</li>
+              </ul>
+              <Button
+                variant="secondary"
+                className="mt-sm"
+                onClick={downloadTemplate}
+              >
+                <Download size={16} className="mr-xs" />
+                下载模板
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* CSV输入区域 */}
