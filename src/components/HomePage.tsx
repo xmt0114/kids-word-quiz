@@ -7,13 +7,12 @@ import { cn } from '../lib/utils';
 import { useAppStore } from '../stores/appStore';
 import { useAuth } from '../hooks/useAuth';
 import { QuizSettings, Game } from '../types';
-import { LoginModal } from './auth/LoginModal';
 import { wordAPI } from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { openLoginModal } = useAppStore();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
@@ -70,7 +69,7 @@ const HomePage: React.FC = () => {
     if (!user || !profile) {
       // 用户未登录，弹出登录弹框
       setPendingAction(game.id);
-      setIsLoginModalOpen(true);
+      openLoginModal('开始游戏');
       return;
     }
 
@@ -128,12 +127,6 @@ const HomePage: React.FC = () => {
         collectionId: finalSettings.collectionId
       }
     });
-  };
-
-  // 登录弹框关闭回调
-  const handleLoginModalClose = () => {
-    setIsLoginModalOpen(false);
-    setPendingAction(null);
   };
 
   // 辅助函数：获取图标组件
@@ -338,13 +331,6 @@ const HomePage: React.FC = () => {
           </Card>
         </div>
       </div>
-
-      {/* 登录弹框 */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={handleLoginModalClose}
-        action="开始游戏"
-      />
     </div>
   );
 };

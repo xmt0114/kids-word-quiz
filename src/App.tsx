@@ -17,6 +17,8 @@ import { TextbookSelectionPage } from './components/TextbookSelectionPage';
 import { UserHeader } from './components/user/UserHeader';
 import { GameSettingsPage } from './components/GameSettingsPage';
 import { UniversalGamePage } from './components/UniversalGamePage';
+import { LoginModal } from './components/auth/LoginModal';
+import { useAppStore } from './stores/appStore';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -70,6 +72,7 @@ function AppContent() {
   const [checkingPassword, setCheckingPassword] = useState(true);
   // const [needsPasswordReset, setNeedsPasswordReset] = useState(false); // 已移除：使用 ResetPasswordPage 替代
   const { user, profile, loading, checkPasswordSet } = useAuth();
+  const { loginModal, closeLoginModal } = useAppStore();
 
   // 检查用户是否需要设置密码或重置密码
   useEffect(() => {
@@ -163,6 +166,13 @@ function AppContent() {
           onSuccess={handlePasswordResetSuccess}
           mode="reset"
         /> */}
+
+        {/* 全局登录弹框 */}
+        <LoginModal
+          isOpen={loginModal.isOpen}
+          onClose={closeLoginModal}
+          action={loginModal.action}
+        />
       </div>
     </Router>
   );

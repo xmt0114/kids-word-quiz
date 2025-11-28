@@ -1,10 +1,12 @@
 import { useAuth } from '../../hooks/useAuth'
+import { useAppStore } from '../../stores/appStore'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../Button'
 import { LogIn, User, LogOut, Mail, Database } from 'lucide-react'
 
 export function UserHeader() {
   const { user, profile, signOut } = useAuth()
+  const { openLoginModal } = useAppStore()
   const navigate = useNavigate()
 
   // 角色映射函数
@@ -81,15 +83,14 @@ export function UserHeader() {
             ) : (
               // 未登录状态
               <>
-                <Link to="/login">
-                  <Button
-                    variant="secondary"
-                    className="flex items-center gap-2 !py-2 !px-4"
-                  >
-                    <LogIn size={16} />
-                    登录
-                  </Button>
-                </Link>
+                <Button
+                  variant="secondary"
+                  className="flex items-center gap-2 !py-2 !px-4"
+                  onClick={() => openLoginModal('登录')}
+                >
+                  <LogIn size={16} />
+                  登录
+                </Button>
               </>
             )}
           </div>

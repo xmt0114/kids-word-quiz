@@ -62,6 +62,14 @@ interface AppState {
   getProgress: (collectionId: string) => Promise<UserProgress | null>;
   refreshProgress: (collectionId: string) => Promise<UserProgress | null>;
   submitSessionResults: (results: Array<{ word_id: string; is_correct: boolean }>) => Promise<{ success: boolean; error?: string }>;
+
+  // ==================== UI 状态 ====================
+  loginModal: {
+    isOpen: boolean;
+    action: string; // 例如 "开始游戏"、"登录" 等提示文案
+  };
+  openLoginModal: (action?: string) => void;
+  closeLoginModal: () => void;
 }
 
 // ==================== Store 实现 ====================
@@ -263,6 +271,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         error: error instanceof Error ? error.message : '未知错误'
       };
     }
+  },
+
+  // ==================== UI Actions ====================
+  loginModal: {
+    isOpen: false,
+    action: '登录',
+  },
+
+  openLoginModal: (action = '登录') => {
+    console.log('UI [AppStore] 打开登录弹框:', action);
+    set({ loginModal: { isOpen: true, action } });
+  },
+
+  closeLoginModal: () => {
+    console.log('UI [AppStore] 关闭登录弹框');
+    set({ loginModal: { isOpen: false, action: '登录' } });
   },
 }));
 

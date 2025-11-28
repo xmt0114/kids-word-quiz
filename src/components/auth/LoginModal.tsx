@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../Button'
 import { X } from 'lucide-react'
@@ -77,9 +78,18 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
             </div>
 
             <div>
-              <label htmlFor="modal-password" className="block text-body font-semibold text-text-primary mb-sm">
-                密码
-              </label>
+              <div className="flex justify-between items-center mb-sm">
+                <label htmlFor="modal-password" className="block text-body font-semibold text-text-primary">
+                  密码
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-small text-primary-600 hover:text-primary-700 hover:underline"
+                  onClick={onClose}
+                >
+                  忘记密码？
+                </Link>
+              </div>
               <input
                 id="modal-password"
                 name="password"
