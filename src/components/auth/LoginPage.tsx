@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../Button'
 import { Card } from '../Card'
@@ -10,8 +10,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [resetLoading, setResetLoading] = useState(false)
-  const [resetSuccess, setResetSuccess] = useState(false)
   const { signIn, user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -47,65 +45,7 @@ export function LoginPage() {
     }
   }
 
-  // 发送重置密码邮件
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError('请先输入邮箱地址')
-      return
-    }
 
-    setResetLoading(true)
-    setError('')
-
-    try {
-      // 首先检查用户是否存在（通过 user_profiles 表查询）
-      const { data: users, error: userError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', email)
-        .single()
-
-      if (userError || !users) {
-        // 用户不存在，返回错误
-        setError('该邮箱地址未注册')
-        setResetLoading(false)
-        return
-      }
-
-      const userId = users.id
-
-      // 更新用户的 has_password_set 字段（表示用户已设置过密码）
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ has_password_set: true })
-        .eq('id', userId)
-
-      if (updateError) {
-        console.warn('更新 has_password_set 字段失败:', updateError)
-        // 即使更新失败，也继续发送邮件
-      }
-
-      // 发送重置密码邮件
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      })
-
-      if (error) {
-        setError(error.message || '发送重置邮件失败')
-      } else {
-        // 显示成功状态
-        setResetSuccess(true)
-        // 3秒后自动隐藏成功提示
-        setTimeout(() => {
-          setResetSuccess(false)
-        }, 3000)
-      }
-    } catch (err) {
-      setError('发送重置邮件失败，请重试')
-    } finally {
-      setResetLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
@@ -127,13 +67,7 @@ export function LoginPage() {
               </div>
             )}
 
-            {resetSuccess && (
-              <div className="rounded-sm bg-green-50 p-md text-center">
-                <p className="text-small text-green-600">
-                  ✓ 重置密码邮件已发送，请检查您的邮箱
-                </p>
-              </div>
-            )}
+
 
             <div className="space-y-md">
               <div>
@@ -158,14 +92,12 @@ export function LoginPage() {
                   <label htmlFor="password" className="block text-body font-semibold text-text-primary">
                     密码
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    disabled={resetLoading || !email}
-                    className="text-small text-primary-600 hover:text-primary-700 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  <Link
+                    to="/forgot-password"
+                    className="text-small text-primary-600 hover:text-primary-700 hover:underline"
                   >
-                    {resetLoading ? '发送中...' : '忘记密码？'}
-                  </button>
+                    忘记密码？
+                  </Link>
                 </div>
                 <input
                   id="password"

@@ -6,6 +6,8 @@ import { SetPasswordModal } from './components/SetPasswordModal';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { HomePage } from './components/HomePage';
+import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { GuessWordSettingsPage } from './components/GuessWordSettingsPage';
 import { GuessWordGamePage } from './components/GuessWordGamePage';
 import { GuessWordResultPage } from './components/GuessWordResultPage';
@@ -66,23 +68,25 @@ const ProtectedInviteUser = () => {
 function AppContent() {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
-  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+  // const [needsPasswordReset, setNeedsPasswordReset] = useState(false); // 已移除：使用 ResetPasswordPage 替代
   const { user, profile, loading, checkPasswordSet } = useAuth();
 
   // 检查用户是否需要设置密码或重置密码
   useEffect(() => {
     const checkPassword = async () => {
       // 检查 URL 是否包含重置密码参数
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      const type = urlParams.get('type');
-
-      if (token && type === 'recovery') {
-        console.log('🔑 [App] 检测到密码重置请求');
-        setNeedsPasswordReset(true);
-        setCheckingPassword(false);
-        return;
-      }
+      // 检查 URL 是否包含重置密码参数
+      // 注意：新的重置密码流程使用 /reset-password 页面，不再使用模态框
+      // const urlParams = new URLSearchParams(window.location.search);
+      // const token = urlParams.get('token');
+      // const type = urlParams.get('type');
+      //
+      // if (token && type === 'recovery') {
+      //   console.log('🔑 [App] 检测到密码重置请求');
+      //   setNeedsPasswordReset(true);
+      //   setCheckingPassword(false);
+      //   return;
+      // }
 
       // 普通密码设置检查
       if (!loading && user && profile) {
@@ -112,13 +116,7 @@ function AppContent() {
     setNeedsPasswordSetup(false);
   };
 
-  // 处理密码重置成功的回调
-  const handlePasswordResetSuccess = () => {
-    console.log('✅ [App] 密码重置成功，关闭弹框');
-    setNeedsPasswordReset(false);
-    // 重置成功后清理 URL 参数
-    window.history.replaceState({}, '', window.location.pathname);
-  };
+  // 已移除：handlePasswordResetSuccess
 
   // 如果正在加载认证或检查密码，显示加载状态
   if (loading || checkingPassword) {
@@ -138,6 +136,8 @@ function AppContent() {
         <UserHeader />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
           <Route path="/guess-word/game" element={<GuessWordGamePage />} />
@@ -157,12 +157,12 @@ function AppContent() {
           mode="setup"
         />
 
-        {/* 密码重置弹框 */}
-        <SetPasswordModal
+        {/* 密码重置弹框 - 已移除，使用 ResetPasswordPage */}
+        {/* <SetPasswordModal
           isOpen={needsPasswordReset}
           onSuccess={handlePasswordResetSuccess}
           mode="reset"
-        />
+        /> */}
       </div>
     </Router>
   );
