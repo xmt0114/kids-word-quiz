@@ -8,15 +8,14 @@ import { LoginPage } from './components/auth/LoginPage';
 import { HomePage } from './components/HomePage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
-import { GuessWordSettingsPage } from './components/GuessWordSettingsPage';
-import { GuessWordGamePage } from './components/GuessWordGamePage';
-import { GuessWordResultPage } from './components/GuessWordResultPage';
+
 import { DataManagementPage } from './components/DataManagementPage';
 import { InviteUserPage } from './components/InviteUserPage';
 import { TextbookSelectionPage } from './components/TextbookSelectionPage';
 import { UserHeader } from './components/user/UserHeader';
 import { GameSettingsPage } from './components/GameSettingsPage';
 import { UniversalGamePage } from './components/UniversalGamePage';
+import { UniversalResultPage } from './components/UniversalResultPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { useAppStore } from './stores/appStore';
 
@@ -142,14 +141,12 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<HomePage />} />
-          <Route path="/guess-word/settings" element={<GuessWordSettingsPage />} />
-          <Route path="/guess-word/game" element={<GuessWordGamePage />} />
-          <Route path="/guess-word/result" element={<GuessWordResultPage />} />
-          <Route path="/guess-word/data" element={<ProtectedDataManagement />} />
-          <Route path="/guess-word/invite" element={<ProtectedInviteUser />} />
+          <Route path="/admin/data" element={<ProtectedDataManagement />} />
+          <Route path="/admin/invite" element={<ProtectedInviteUser />} />
           <Route path="/textbook-selection" element={<TextbookSelectionPage />} />
           <Route path="/games/:gameId/settings" element={<GameSettingsPage />} />
           <Route path="/games/:gameId/play" element={<UniversalGamePage />} />
+          <Route path="/games/:gameId/result" element={<UniversalResultPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

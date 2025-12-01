@@ -41,13 +41,13 @@ export function UserHeader() {
                 {/* 管理员专用菜单 */}
                 {profile.role === 'admin' && (
                   <div className="flex items-center space-x-3 mr-6">
-                    <Link to="/guess-word/data">
+                    <Link to="/admin/data">
                       <button className="header-button header-button-admin flex items-center gap-2">
                         <Database size={16} />
                         数据管理
                       </button>
                     </Link>
-                    <Link to="/guess-word/invite">
+                    <Link to="/admin/invite">
                       <button className="header-button header-button-admin flex items-center gap-2">
                         <Mail size={16} />
                         邀请用户

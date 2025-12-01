@@ -28,12 +28,12 @@ const OptionButton: React.FC<OptionButtonProps> = ({
 
   const stateClasses = {
     default: [
-      'hover:border-primary-400 hover:scale-105 hover:bg-primary-50',
+      'hover:border-orange-400 hover:scale-105 hover:bg-orange-50',
     ],
     selected: [
-      'bg-gradient-to-br from-primary-400 to-primary-600',
+      'bg-gradient-to-br from-orange-400 to-red-400',
       'text-white',
-      'border-primary-500',
+      'border-orange-500',
       'shadow-xl transform scale-105',
     ],
     correct: [
@@ -72,7 +72,15 @@ const OptionButton: React.FC<OptionButtonProps> = ({
       disabled={disabled}
       aria-pressed={isSelected}
     >
-      <span className="flex items-center gap-3 text-center">
+      <span 
+        className={cn(
+          "flex items-center gap-3 text-center",
+          (isSelected || isCorrect || isWrong) && "drop-shadow-sm"
+        )}
+        style={(isSelected || isCorrect || isWrong) ? {
+          textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+        } : {}}
+      >
         {option}
         {isCorrect && <CheckCircle size={28} className="animate-bounce" />}
         {isWrong && <XCircle size={28} className="animate-pulse" />}

@@ -10,7 +10,7 @@ import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Sh
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
-import { LoginModal } from './auth/LoginModal';
+
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface GameSettingsPageProps {
@@ -39,12 +39,12 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     const isAdmin = profile?.role === 'admin';
 
     // 使用 Zustand 管理学习进度
-    const { userProgress, getProgress, refreshProgress } = useAppStore();
+    const { userProgress, getProgress, refreshProgress, openLoginModal } = useAppStore();
 
     // 获取文本配置
     const texts = useGameTexts(gameId || '');
 
-    const [showLoginModal, setShowLoginModal] = useState(false);
+
     const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
     const [pendingSettings, setPendingSettings] = useState<Partial<QuizSettings> | null>(null);
     const [isResetting, setIsResetting] = useState(false);
@@ -65,19 +65,8 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                         if (game) {
                             setGameInfo(game);
                         } else {
-                            // 如果找不到游戏，可能是旧的 guess-word 路由，或者 ID 错误
-                            if (gameId === 'guess-word') {
-                                setGameInfo({
-                                    id: 'guess-word',
-                                    title: '猜单词',
-                                    description: '根据提示猜测单词',
-                                    icon: 'Brain',
-                                    type: 'guess_word',
-                                    language: 'en',
-                                    default_config: { questionType: 'text', answerType: 'choice' } as any,
-                                    is_active: true
-                                });
-                            }
+                            // 如果找不到游戏，显示错误信息
+                            console.error(`Game not found: ${gameId}`);
                         }
                     }
                 }
@@ -95,18 +84,11 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     useEffect(() => {
         if (!isLoggedIn) {
             // 未登录，弹出登录框
-            setShowLoginModal(true);
-        }
-    }, [isLoggedIn]);
-
-    // 处理弹框关闭
-    const handleCloseLoginModal = () => {
-        setShowLoginModal(false);
-        if (!isLoggedIn) {
-            // 未登录，关闭弹框后跳转到主页
+            openLoginModal('访问设置');
+            // 跳转到主页
             navigate('/');
         }
-    };
+    }, [isLoggedIn, openLoginModal, navigate]);
 
     // 初始化 collectionId 和 pendingSettings
     useEffect(() => {
@@ -383,7 +365,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleDataManagement = () => {
-        navigate('/guess-word/data');
+        navigate('/admin/data');
     };
 
     const handleSelectTextbook = () => {
@@ -887,12 +869,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
             </div>
 
-            {/* 登录弹框 */}
-            <LoginModal
-                isOpen={showLoginModal}
-                onClose={handleCloseLoginModal}
-                action="访问设置"
-            />
+
 
             {/* 重置确认弹框 */}
             <ConfirmDialog

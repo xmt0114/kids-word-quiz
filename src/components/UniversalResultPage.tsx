@@ -1,11 +1,11 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
 import { StarExplosion } from './StarExplosion';
 import { Trophy, RotateCcw, Home, BookOpen, Target, Award } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useAuth } from '../hooks/useAuth';
+
 
 interface QuizResult {
   correctAnswers: number;
@@ -15,19 +15,19 @@ interface QuizResult {
   score?: number;
 }
 
-interface GuessWordResultPageProps {
+interface UniversalResultPageProps {
   // 如果没有通过路由状态传递结果，可以作为props传入
   result?: QuizResult;
 }
 
-const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propResult }) => {
+const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propResult }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === 'admin';
+  const { gameId } = useParams<{ gameId: string }>();
+
 
   // 从路由状态获取结果和设置
-  const { result: routeResult, settings, collectionId, questions, gameId } = location.state || {};
+  const { result: routeResult, settings, collectionId, questions } = location.state || {};
   const result = propResult || routeResult;
 
   // 如果没有结果数据，显示错误信息
@@ -50,7 +50,7 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
     );
   }
 
-  const { correctAnswers, totalQuestions, accuracy, timeSpent, score } = result;
+  const { correctAnswers, totalQuestions, accuracy } = result;
 
   // 计算评级
   const getGrade = () => {
@@ -65,8 +65,10 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
 
   // 重新开始游戏（使用相同单词，不更新进度）
   const handleRestart = () => {
+    if (!gameId) return;
+    
     // 直接跳转到游戏页面，传递相同的单词和设置
-    navigate('/guess-word/game', {
+    navigate(`/games/${gameId}/play`, {
       state: {
         settings,
         collectionId,
@@ -76,15 +78,26 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
     });
   };
 
+  // 继续游戏（获取新的单词）
+  const handleContinueGame = () => {
+    if (!gameId) return;
+    
+    // 继续游戏：跳转到游戏页面，传递设置和collectionId，但不传递questions（触发重新获取）
+    navigate(`/games/${gameId}/play`, {
+      state: {
+        settings,
+        collectionId,
+        // 不传递 questions 和 isReplay，这样 UniversalGamePage 会重新获取新的单词
+      }
+    });
+  };
+
   // 返回首页
   const handleBackToHome = () => {
     navigate('/');
   };
 
-  // 进入数据管理 - 仅管理员显示
-  const handleDataManagement = () => {
-    navigate('/guess-word/data');
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
@@ -183,21 +196,14 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
           <Button
             size="large"
             variant="primary" // Highlight "Continue Game"
-            onClick={() => {
-              // 继续游戏：跳转到游戏页面，传递设置和collectionId，但不传递questions（触发重新获取）
-              navigate(`/games/${gameId || 'guess-word'}/play`, {
-                state: {
-                  settings,
-                  collectionId,
-                  // 不传递 questions 和 isReplay，这样 UniversalGamePage 会重新获取新的单词
-                }
-              });
-            }}
+            onClick={handleContinueGame}
             className="flex items-center gap-sm bg-green-600 hover:bg-green-700"
           >
             <Target size={24} />
             继续游戏
           </Button>
+
+
         </div>
 
         {/* 鼓励信息 */}
@@ -222,4 +228,4 @@ const GuessWordResultPage: React.FC<GuessWordResultPageProps> = ({ result: propR
   );
 };
 
-export { GuessWordResultPage };
+export { UniversalResultPage };

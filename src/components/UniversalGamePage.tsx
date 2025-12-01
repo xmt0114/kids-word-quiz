@@ -278,7 +278,7 @@ const UniversalGamePage: React.FC = () => {
             }
 
             // 导航到结果页
-            navigate('/guess-word/result', {
+            navigate(`/games/${gameId}/result`, {
                 state: {
                     result,
                     settings: routeSettings,
