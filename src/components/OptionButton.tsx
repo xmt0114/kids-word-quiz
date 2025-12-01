@@ -13,39 +13,40 @@ const OptionButton: React.FC<OptionButtonProps> = ({
 }) => {
   const baseClasses = [
     'inline-flex items-center justify-center',
-    'w-full min-h-touch min-w-touch',
-    'p-md',
-    'bg-background-secondary',
+    'w-full min-h-[80px]',
+    'p-6',
+    'bg-white',
     'border-4 border-gray-200',
-    'rounded-md',
-    'font-bold text-text-primary', // Removed text-h1 to allow custom font sizes
-    'transition-all duration-fast',
+    'rounded-2xl',
+    'font-bold text-text-primary',
+    'transition-all duration-300',
     'focus:outline-none focus:ring-4 focus:ring-primary-500 focus:ring-opacity-50',
     'active:scale-95',
     'disabled:opacity-50 disabled:cursor-not-allowed',
+    'shadow-lg hover:shadow-xl',
   ];
 
   const stateClasses = {
     default: [
-      'hover:border-primary-500 hover:scale-105',
+      'hover:border-primary-400 hover:scale-105 hover:bg-primary-50',
     ],
     selected: [
-      'bg-gradient-to-r from-primary-500 to-primary-600',
-      'text-text-inverse',
+      'bg-gradient-to-br from-primary-400 to-primary-600',
+      'text-white',
       'border-primary-500',
-      'shadow-md',
+      'shadow-xl transform scale-105',
     ],
     correct: [
-      'bg-success',
-      'text-text-inverse',
-      'border-success',
-      'animate-bounce-in',
+      'bg-gradient-to-br from-green-400 to-green-600',
+      'text-white',
+      'border-green-500',
+      'animate-bounce-in shadow-xl',
     ],
     wrong: [
-      'bg-error',
-      'text-text-inverse',
-      'border-error',
-      'animate-shake',
+      'bg-gradient-to-br from-red-400 to-red-600',
+      'text-white',
+      'border-red-500',
+      'animate-shake shadow-xl',
     ],
   };
 
@@ -71,10 +72,10 @@ const OptionButton: React.FC<OptionButtonProps> = ({
       disabled={disabled}
       aria-pressed={isSelected}
     >
-      <span className="flex items-center gap-sm"> {/* Removed text-h1 to allow custom font sizes */}
+      <span className="flex items-center gap-3 text-center">
         {option}
-        {isCorrect && <CheckCircle size={24} />}
-        {isWrong && <XCircle size={24} />}
+        {isCorrect && <CheckCircle size={28} className="animate-bounce" />}
+        {isWrong && <XCircle size={28} className="animate-pulse" />}
       </span>
     </button>
   );

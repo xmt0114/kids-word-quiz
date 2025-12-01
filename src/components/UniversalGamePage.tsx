@@ -10,6 +10,7 @@ import { QuizSettings, Game } from '../types';
 import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2 } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
+import { AutoSizeText } from './AutoSizeText';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
@@ -408,13 +409,16 @@ const UniversalGamePage: React.FC = () => {
                         <Button
                             variant="secondary"
                             onClick={handleBackToHome}
-                            className="flex items-center gap-sm"
+                            className="flex items-center gap-2 px-6 py-3 text-base font-medium"
+                            style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
                         >
-                            <Home size={20} />
+                            <Home size={22} />
                             返回首页
                         </Button>
                         <div className="text-center">
-                            <h1 className="text-h2 font-bold text-text-primary">游戏加载中</h1>
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                                游戏加载中
+                            </h1>
                         </div>
                         <div></div>
                     </div>
@@ -456,25 +460,29 @@ const UniversalGamePage: React.FC = () => {
                     <Button
                         variant="secondary"
                         onClick={handleBackToHome}
-                        className="flex items-center gap-sm"
+                        className="flex items-center gap-2 px-6 py-3 text-base font-medium"
+                        style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
                     >
-                        <Home size={20} />
+                        <Home size={22} />
                         返回首页
                     </Button>
+                    
                     <div className="text-center">
-                        <h1 className="text-h2 font-bold text-text-primary">{gameInfo?.title || '猜单词'}</h1>
-                        <div className="flex items-center justify-center gap-md">
-                            <p className="text-small text-text-secondary">
-                                第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
-                            </p>
-                            <ProgressBar
-                                current={quizState.currentQuestionIndex + 1}
-                                total={quizState.questions.length}
-                                className="w-24"
-                            />
-                        </div>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            {gameInfo?.title || '猜单词'}
+                        </h1>
                     </div>
-                    <div></div>
+                    
+                    <div className="flex flex-col items-end">
+                        <p className="text-sm font-medium text-text-secondary mb-2" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
+                        </p>
+                        <ProgressBar
+                            current={quizState.currentQuestionIndex + 1}
+                            total={quizState.questions.length}
+                            className="w-40 h-3"
+                        />
+                    </div>
                 </div>
 
                 {/* 题目卡片 */}
@@ -490,24 +498,55 @@ const UniversalGamePage: React.FC = () => {
                                     />
                                 </div>
                             ) : (
-                                <div className="bg-yellow-50 border-2 border-gray-200 rounded-lg p-lg mb-md relative">
-                                    <div className="pr-12">
-                                        <PinyinText
-                                            text={currentWord.definition}
-                                            showPinyin={quizState.settings.showPinyin}
-                                            size="xl"
-                                            className={cn(
-                                                "text-h2 leading-relaxed block",
-                                                gameInfo?.language === 'zh' ? "font-serif" : "font-sans"
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="absolute top-4 right-4">
+                                <div className="relative">
+                                    {/* 朗读按钮 - 浮动在右上角 */}
+                                    <div className="absolute -top-2 -right-2 z-10">
                                         <TextToSpeechButton
                                             text={currentWord.definition}
-                                            size="small"
+                                            size="large"
                                             ttsSettings={quizState.settings.tts}
                                         />
+                                    </div>
+                                    
+                                    {/* 题干内容区域 */}
+                                    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl px-6 py-10 mb-8 shadow-sm">
+                                        {quizState.settings.showPinyin ? (
+                                            <PinyinText
+                                                text={currentWord.definition}
+                                                showPinyin={quizState.settings.showPinyin}
+                                                size="xl"
+                                                language={gameInfo?.language as 'zh' | 'en'}
+                                                className={cn(
+                                                    "block text-center",
+                                                    gameInfo?.language === 'zh' 
+                                                        ? "font-serif font-bold text-3xl leading-relaxed" 
+                                                        : "text-4xl leading-tight"
+                                                )}
+                                                style={gameInfo?.language === 'en' ? { 
+                                                    fontFamily: 'Nunito, sans-serif',
+                                                    lineHeight: '1.2',
+                                                    letterSpacing: '0.01em',
+                                                    fontSize: '2.25rem',
+                                                    fontWeight: '400',
+                                                    minHeight: '5.5rem'
+                                                } : {}}
+                                            />
+                                        ) : (
+                                            <AutoSizeText
+                                                text={currentWord.definition}
+                                                maxLines={2}
+                                                minFontSize={18}
+                                                maxFontSize={gameInfo?.language === 'zh' ? 32 : 36}
+                                                language={gameInfo?.language as 'zh' | 'en'}
+                                                className="font-medium"
+                                                style={gameInfo?.language === 'zh' ? {
+                                                    fontWeight: '600'
+                                                } : {
+                                                    fontWeight: '400',
+                                                    letterSpacing: '0.01em'
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -532,10 +571,19 @@ const UniversalGamePage: React.FC = () => {
                                                     text={option}
                                                     showPinyin={quizState.settings.showPinyin}
                                                     size="medium"
+                                                    language={gameInfo?.language as 'zh' | 'en'}
                                                     className={cn(
-                                                        "text-4xl", // Significantly increased font size for options
-                                                        gameInfo?.language === 'zh' ? "font-serif" : "font-sans"
+                                                        "text-3xl font-bold", 
+                                                        gameInfo?.language === 'zh' ? "font-serif" : ""
                                                     )}
+                                                    style={gameInfo?.language === 'en' ? { 
+                                                        fontFamily: 'Fredoka, sans-serif',
+                                                        letterSpacing: '0.02em',
+                                                        fontWeight: '800'
+                                                    } : { 
+                                                        fontFamily: 'Noto Sans SC, Fredoka, sans-serif',
+                                                        fontWeight: '700'
+                                                    }}
                                                 />
                                             }
                                             isSelected={selectedAnswer === option}

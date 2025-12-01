@@ -143,37 +143,43 @@ const HomePage: React.FC = () => {
         color: 'from-blue-400 to-blue-600',
         bgColor: 'from-blue-50 to-blue-100',
         borderColor: 'border-blue-200',
-        iconBg: 'bg-blue-100 text-blue-600'
+        iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+        iconColor: 'text-white'
       },
       {
         color: 'from-green-400 to-green-600',
         bgColor: 'from-green-50 to-green-100',
         borderColor: 'border-green-200',
-        iconBg: 'bg-green-100 text-green-600'
+        iconBg: 'bg-gradient-to-br from-green-400 to-green-600',
+        iconColor: 'text-white'
       },
       {
         color: 'from-purple-400 to-purple-600',
         bgColor: 'from-purple-50 to-purple-100',
         borderColor: 'border-purple-200',
-        iconBg: 'bg-purple-100 text-purple-600'
+        iconBg: 'bg-gradient-to-br from-purple-400 to-purple-600',
+        iconColor: 'text-white'
       },
       {
         color: 'from-orange-400 to-orange-600',
         bgColor: 'from-orange-50 to-orange-100',
         borderColor: 'border-orange-200',
-        iconBg: 'bg-orange-100 text-orange-600'
+        iconBg: 'bg-gradient-to-br from-orange-400 to-orange-600',
+        iconColor: 'text-white'
       },
       {
         color: 'from-pink-400 to-pink-600',
         bgColor: 'from-pink-50 to-pink-100',
         borderColor: 'border-pink-200',
-        iconBg: 'bg-pink-100 text-pink-600'
+        iconBg: 'bg-gradient-to-br from-pink-400 to-pink-600',
+        iconColor: 'text-white'
       },
       {
         color: 'from-teal-400 to-teal-600',
         bgColor: 'from-teal-50 to-teal-100',
         borderColor: 'border-teal-200',
-        iconBg: 'bg-teal-100 text-teal-600'
+        iconBg: 'bg-gradient-to-br from-teal-400 to-teal-600',
+        iconColor: 'text-white'
       }
     ];
 
@@ -190,20 +196,13 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
       {/* 页面标题 */}
-      <div className="text-center mb-xl">
-        <div className="relative">
-          <h1 className="text-hero font-bold text-text-primary mb-md animate-slide-in-right">
-            英语学习游戏中心
-          </h1>
-          <p className="text-h2 text-text-secondary font-semibold">
-            选择你喜欢的游戏开始学习
-          </p>
-
-          {/* 装饰元素 */}
-          <div className="relative mt-lg">
-            <div className="absolute -top-4 -left-8 w-16 h-16 bg-accent-500 rounded-full opacity-20 animate-float" />
-            <div className="absolute -top-2 -right-12 w-12 h-12 bg-secondary-500 rounded-full opacity-20 animate-float" style={{ animationDelay: '1s' }} />
-            <div className="absolute top-4 left-1/2 w-8 h-8 bg-primary-500 rounded-full opacity-20 animate-float" style={{ animationDelay: '2s' }} />
+      <div className="mb-lg">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+              热门游戏
+            </h2>
           </div>
         </div>
       </div>
@@ -224,35 +223,43 @@ const HomePage: React.FC = () => {
                 <Card
                   key={game.id}
                   className={cn(
-                    'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group',
+                    'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
                     styles.borderColor
                   )}
                 >
                   {/* 背景渐变 */}
                   <div className={cn(
-                    'absolute inset-0 opacity-10 transition-opacity group-hover:opacity-20',
+                    'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
                     styles.bgColor
                   )} />
+                  
+                  {/* 装饰性圆点 */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
+                  <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
+                  
+                  {/* 左上角装饰线 */}
+                  <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
+                  <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
 
                   <div className="relative p-lg">
                     {/* 游戏图标 */}
                     <div className="text-center mb-md">
                       <div className={cn(
-                        'w-20 h-20 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center shadow-md transform transition-transform group-hover:scale-110',
-                        styles.color
+                        'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
+                        styles.iconBg
                       )}>
-                        <Icon size={40} className="text-white" />
+                        <Icon size={40} className={styles.iconColor} />
                       </div>
-                      <h3 className="text-h3 font-bold text-text-primary mb-sm">
+                      <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                         {game.title}
                       </h3>
-                      <p className="text-body text-text-secondary line-clamp-2 h-12">
+                      <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                         {game.description}
                       </p>
                     </div>
 
                     {/* 游戏信息 */}
-                    <div className="flex justify-between items-center mb-md text-small text-text-tertiary">
+                    <div className="flex justify-between items-center mb-md text-small text-text-tertiary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                       <div className="flex items-center gap-xs">
                         <LucideIcons.BarChart3 size={16} />
                         <span>初级到高级</span>
@@ -275,14 +282,15 @@ const HomePage: React.FC = () => {
                           开始游戏
                         </Button>
                         <Link to={`/games/${game.id}/settings`}>
-                          <Button
-                            variant="secondary"
-                            size="default"
-                            className="flex items-center justify-center !w-12 !h-12 p-0 rounded-full hover:bg-gray-100"
+                          <button
+                            className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
                             title="游戏设置"
                           >
-                            <LucideIcons.Settings size={24} className="text-gray-600" />
-                          </Button>
+                            <LucideIcons.Settings 
+                              size={36} 
+                              className="text-gray-500 hover:text-gray-700 gear-3d"
+                            />
+                          </button>
                         </Link>
                       </div>
                     </div>
@@ -298,9 +306,9 @@ const HomePage: React.FC = () => {
           <Card className="p-lg bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
             <div className="flex items-center justify-center gap-sm mb-sm">
               <LucideIcons.Trophy size={24} className="text-yellow-500" />
-              <h3 className="text-h3 font-bold text-text-primary">学习成就系统</h3>
+              <h3 className="text-h3 font-bold text-text-primary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>学习成就系统</h3>
             </div>
-            <p className="text-body text-text-secondary">
+            <p className="text-body text-text-secondary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
               完成游戏获得积分，解锁成就徽章，追踪你的学习进度
             </p>
           </Card>

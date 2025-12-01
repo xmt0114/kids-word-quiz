@@ -16,16 +16,19 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const containerClasses = [
     'bg-gray-200',
     'rounded-full',
-    'h-3',
+    'h-2',
     'overflow-hidden',
+    'shadow-inner',
   ];
 
   const progressClasses = [
     'h-full',
-    'bg-gradient-to-r from-primary-500 to-primary-600',
+    'bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500',
     'rounded-full',
-    'transition-all duration-normal',
+    'transition-all duration-500',
     'ease-out',
+    'shadow-sm',
+    'relative',
   ];
 
   return (
@@ -39,7 +42,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           aria-valuemin={0}
           aria-valuemax={total}
           aria-label={`答题进度: ${current} / ${total}`}
-        />
+        >
+          {/* 添加光泽效果 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full"></div>
+        </div>
       </div>
     </div>
   );

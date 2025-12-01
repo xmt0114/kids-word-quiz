@@ -186,22 +186,22 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
   const getIconSize = () => {
     switch (size) {
       case 'small':
-        return 16;
-      case 'large':
-        return 28;
-      default:
         return 20;
+      case 'large':
+        return 36;
+      default:
+        return 24;
     }
   };
 
   const getButtonSize = () => {
     switch (size) {
       case 'small':
-        return 'w-8 h-8';
-      case 'large':
-        return 'w-12 h-12';
-      default:
         return 'w-10 h-10';
+      case 'large':
+        return 'w-16 h-16';
+      default:
+        return 'w-12 h-12';
     }
   };
 
@@ -215,13 +215,18 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       <button
         onClick={handlePlay}
         className={cn(
-          'inline-flex items-center justify-center rounded-full transition-all duration-200',
-          'bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700',
-          'focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2',
-          'active:scale-95',
+          'inline-flex items-center justify-center rounded-full transition-all duration-300',
+          'bg-gradient-to-br from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700',
+          'text-white shadow-lg hover:shadow-xl',
+          'focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2',
+          'active:scale-95 hover:scale-110 transform',
+          'border-2 border-white',
           getButtonSize(),
           className
         )}
+        style={{
+          filter: 'drop-shadow(2px 4px 8px rgba(59, 130, 246, 0.3))'
+        }}
         title={isPlaying ? "停止朗读" : "点击朗读题目"}
         type="button"
       >

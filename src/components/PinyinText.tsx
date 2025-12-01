@@ -6,13 +6,15 @@ interface PinyinTextProps {
     showPinyin?: boolean;
     className?: string;
     size?: 'small' | 'medium' | 'large' | 'xl';
+    language?: 'zh' | 'en';
 }
 
 export const PinyinText: React.FC<PinyinTextProps> = ({
     text,
     showPinyin = false,
     className = '',
-    size = 'medium'
+    size = 'medium',
+    language
 }) => {
     const sizeClasses = {
         small: 'text-sm',
@@ -23,12 +25,15 @@ export const PinyinText: React.FC<PinyinTextProps> = ({
 
     // 如果不显示拼音，直接返回文本
     if (!showPinyin) {
+        // 根据语言类型选择字体
+        const fontStyle = language === 'zh' ? {
+            fontFamily: '"KaiTi", "STKaiti", "SimSun", "Songti SC", serif',
+        } : {};
+        
         return (
-            <span
+            <span 
                 className={`${className || sizeClasses[size]}`}
-                style={{
-                    fontFamily: '"KaiTi", "STKaiti", "SimSun", "Songti SC", serif',
-                }}
+                style={fontStyle}
             >
                 {text}
             </span>
