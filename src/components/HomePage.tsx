@@ -290,31 +290,6 @@ const HomePage: React.FC = () => {
                 </Card>
               );
             })}
-
-            {/* 占位符：即将推出的游戏 */}
-            <Card className="relative overflow-hidden opacity-75 border-gray-200">
-              <div className="absolute inset-0 bg-gray-50 opacity-10" />
-              <div className="absolute top-4 right-4 z-10">
-                <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">
-                  即将推出
-                </span>
-              </div>
-              <div className="relative p-lg text-center">
-                <div className="w-20 h-20 mx-auto mb-md rounded-full bg-gray-200 flex items-center justify-center">
-                  <LucideIcons.Target size={40} className="text-gray-400" />
-                </div>
-                <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                  更多游戏
-                </h3>
-                <p className="text-body text-text-secondary mb-lg">
-                  敬请期待更多精彩游戏模式
-                </p>
-                <Button variant="secondary" disabled className="w-full">
-                  <LucideIcons.Zap size={16} className="mr-xs" />
-                  敬请期待
-                </Button>
-              </div>
-            </Card>
           </div>
         )}
 
