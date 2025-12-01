@@ -14,6 +14,7 @@ import { WordCollection, Game } from '../types';
 import { toast, Toaster } from 'sonner';
 import { SupabaseWordAPI } from '../utils/supabaseApi';
 import { supabase } from '../lib/supabase';
+import { useGameTexts, formatMessage } from '../stores/appStore';
 
 interface DataManagementPageProps {
   onBack?: () => void;
@@ -96,6 +97,9 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
   // Selection State
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+
+  // 获取当前游戏的文本配置
+  const texts = useGameTexts(selectedGameId || '');
 
   // Data State
   const [games, setGames] = useState<Game[]>([]);
@@ -220,7 +224,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
       if (response.success && response.data) {
         setWords(response.data);
       } else {
-        setError(response.error || '加载词汇失败');
+        setError(response.error || formatMessage(texts.messages.loadError, { itemName: texts.itemName }));
       }
     } catch (err) {
       setError('网络错误，请稍后重试');
@@ -334,7 +338,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
     setConfirmDialog({
       isOpen: true,
       title: '确认删除教材',
-      message: `确定要删除教材"${collection.name}"吗？如果教材下有词汇，将无法删除。`,
+      message: `确定要删除教材"${collection.name}"吗？如果教材下有${texts.itemName}，将无法删除。`,
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -346,7 +350,12 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
               setSelectedCollectionId(null);
             }
           } else {
-            toast.error(response.error || '删除教材失败');
+            // 替换错误消息中的"词汇"为配置化文本
+            let errorMsg = response.error || '删除教材失败';
+            if (errorMsg.includes('词汇')) {
+              errorMsg = errorMsg.replace(/词汇/g, texts.itemName);
+            }
+            toast.error(errorMsg);
           }
         } catch (err) {
           toast.error('删除教材失败');
@@ -501,14 +510,14 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
   const handleDeleteWord = (word: WordData) => {
     setConfirmDialog({
       isOpen: true,
-      title: '确认删除词汇',
-      message: `确定要删除词汇"${word.word}"吗？`,
+      title: `确认删除${texts.itemName}`,
+      message: `确定要删除${texts.itemName}"${word.word}"吗？`,
       variant: 'danger',
       onConfirm: async () => {
         try {
           const response = await wordAPI.deleteWord(word.id);
           if (response.success) {
-            toast.success('删除词汇成功');
+            toast.success(`删除${texts.itemName}成功`);
             if (selectedCollectionId) {
               setCollections(prev => prev.map(c =>
                 c.id === selectedCollectionId ? { ...c, word_count: Math.max(c.word_count - 1, 0) } : c
@@ -516,10 +525,10 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
               loadWords(selectedCollectionId, currentPage, wordsPerPage);
             }
           } else {
-            toast.error(response.error || '删除词汇失败');
+            toast.error(response.error || `删除${texts.itemName}失败`);
           }
         } catch (err) {
-          toast.error('删除词汇失败');
+          toast.error(`删除${texts.itemName}失败`);
         }
         setConfirmDialog({ ...confirmDialog, isOpen: false });
       },
@@ -532,13 +541,13 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
     setConfirmDialog({
       isOpen: true,
       title: '确认批量删除',
-      message: `确定要删除选中的 ${selectedWordIds.length} 个词汇吗？`,
+      message: `确定要删除选中的 ${selectedWordIds.length} 个${texts.itemName}吗？`,
       variant: 'danger',
       onConfirm: async () => {
         try {
           const response = await supabaseAPI.batchDeleteWords(selectedWordIds);
           if (response.success) {
-            toast.success(`成功删除 ${selectedWordIds.length} 个词汇`);
+            toast.success(`成功删除 ${selectedWordIds.length} 个${texts.itemName}`);
             setSelectedWordIds([]);
             if (selectedCollectionId) {
               setCollections(prev => prev.map(c =>
@@ -582,10 +591,10 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
         const wordData = { ...data, collectionId: selectedCollectionId };
         const response = await wordAPI.updateWord(editingWord.id, wordData);
         if (response.success) {
-          toast.success('更新词汇成功');
+          toast.success(`更新${texts.itemName}成功`);
           loadWords(selectedCollectionId);
         } else {
-          toast.error(response.error || '更新词汇失败');
+          toast.error(response.error || `更新${texts.itemName}失败`);
         }
       } else {
         const wordParams = {
@@ -604,7 +613,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
         if (error) {
           toast.error(`添加失败: ${error.message}`);
         } else {
-          toast.success('添加词汇成功');
+          toast.success(`添加${texts.itemName}成功`);
           setCollections(prev => prev.map(c =>
             c.id === selectedCollectionId ? { ...c, word_count: c.word_count + 1 } : c
           ));
@@ -870,11 +879,11 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
             <div className="flex items-center gap-md">
               <h2 className="text-xl font-display font-bold text-text-primary flex items-center gap-2">
                 <BookMarked className="text-accent-500" size={24} />
-                词汇列表
+                {texts.itemName}列表
               </h2>
               {selectedCollection && (
                 <span className="text-sm font-bold text-secondary-500 bg-secondary-50 px-3 py-1 rounded-full">
-                  共 {selectedCollection.word_count || 0} 个单词
+                  共 {selectedCollection.word_count || 0} 个{texts.itemName}
                 </span>
               )}
             </div>
@@ -953,7 +962,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
                   </div>
                 ) : words.length === 0 ? (
                   <div className="text-center py-12 text-text-tertiary bg-white rounded-lg border-2 border-dashed border-gray-200 m-4">
-                    <p className="mb-md font-display">暂无单词数据</p>
+                    <p className="mb-md font-display">暂无{texts.itemName}数据</p>
                     <Button variant="secondary" onClick={handleAddWord}>
                       立即添加
                     </Button>
@@ -970,8 +979,8 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
                           className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
                         />
                       </div>
-                      <div className="col-span-3">单词</div>
-                      <div className="col-span-4">释义</div>
+                      <div className="col-span-3">{texts.itemFieldLabel}</div>
+                      <div className="col-span-4">{texts.definitionLabel}</div>
                       <div className="col-span-2">难度</div>
                       <div className="col-span-2 text-right">操作</div>
                     </div>
@@ -1093,6 +1102,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
         onSubmit={handleSubmitWord}
         word={editingWord || undefined}
         collectionId={selectedCollectionId || ''}
+        gameId={selectedGameId || ''}
       />
 
       <BatchAddWordsModal
@@ -1100,6 +1110,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
         onClose={() => setIsBatchAddModalOpen(false)}
         onSubmit={handleBatchSubmitWords}
         collectionId={selectedCollectionId || ''}
+        gameId={selectedGameId || ''}
       />
 
       {/* Confirm Dialog */}

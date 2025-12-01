@@ -50,6 +50,32 @@ export interface WordCollection {
   game_id?: string;
 }
 
+// 游戏文本配置类型
+export interface GameTextConfig {
+  // 基础名称
+  itemName: string;        // "单词" | "成语" | "字谜"
+
+  // 字段标签
+  itemFieldLabel: string;  // "单词" | "成语" | "谜面"
+  definitionLabel: string; // "定义" | "解释" | "谜底"
+  audioTextLabel: string;  // "音频文本" | "朗读文本" | "提示文本"
+
+  // 提示信息模板(支持变量替换)
+  messages: {
+    addSuccess: string;       // "添加{itemName}成功"
+    addError: string;         // "添加{itemName}失败"
+    updateSuccess: string;    // "更新{itemName}成功"
+    updateError: string;      // "更新{itemName}失败"
+    deleteConfirm: string;    // "确定要删除{itemName}"{name}"吗?"
+    deleteSuccess: string;    // "删除{itemName}成功"
+    deleteError: string;      // "删除{itemName}失败"
+    loadError: string;        // "加载{itemName}失败"
+    batchAddTitle: string;    // "批量添加{itemName}"
+    masteredCount: string;    // "已掌握 {count} 个{itemName}"
+    learningCount: string;    // "正在学习 {count} 个{itemName}"
+  };
+}
+
 export interface Game {
   id: string;
   title: string;
@@ -59,6 +85,7 @@ export interface Game {
   language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;
+  text_config?: GameTextConfig; // 文本配置(可选,用于自定义显示文本)
 }
 
 // 词汇选取策略类型

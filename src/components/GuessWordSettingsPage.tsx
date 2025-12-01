@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
-import { useAppStore } from '../stores/appStore';
+import { useAppStore, useGameTexts } from '../stores/appStore';
 import { LoginModal } from './auth/LoginModal';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -29,6 +29,9 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
 
   // 使用 Zustand 管理学习进度
   const { userProgress, getProgress, dataLoading, refreshProgress } = useAppStore();
+
+  // 获取文本配置 (默认为猜单词游戏)
+  const texts = useGameTexts('guess_word');
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
@@ -121,7 +124,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
     {
       id: 'fill',
       name: '填空题',
-      description: '根据提示填写完整单词',
+      description: `根据提示填写完整${texts.itemName}`,
       icon: Edit3,
       color: 'from-orange-400 to-orange-600',
     },
@@ -132,14 +135,14 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
       id: 'sequential' as const,
       name: '顺序选取',
       description: '按添加时间顺序依次出题',
-      detail: '单词将按照添加的时间顺序排列，新添加的单词优先出现',
+      detail: `${texts.itemName}将按照添加的时间顺序排列，新添加的${texts.itemName}优先出现`,
       icon: ListOrdered,
       color: 'from-blue-400 to-blue-600',
     },
     {
       id: 'random' as const,
       name: '随机选取',
-      description: '从词汇池中随机抽取题目',
+      description: `从${texts.itemName}池中随机抽取题目`,
       detail: '每次练习题目顺序都不同，增加趣味性和挑战性',
       icon: Shuffle,
       color: 'from-purple-400 to-purple-600',
@@ -330,7 +333,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
       {/* 页面标题 */}
       <div className="text-center mb-xl">
         <h1 className="text-hero font-bold text-text-primary mb-md animate-slide-in-right">
-          猜单词游戏设置
+          {texts.itemName}游戏设置
         </h1>
         <p className="text-h2 text-text-secondary font-semibold">
           配置你的游戏参数
@@ -386,10 +389,10 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                     {userProgress ? (
                       <>
                         <p className="text-small font-semibold text-text-primary">
-                          已掌握 {userProgress.mastered_words} 个单词
+                          已掌握 {userProgress.mastered_words} 个{texts.itemName}
                         </p>
                         <p className="text-xs text-text-tertiary">
-                          正在学习 {userProgress.learning_words} 个单词
+                          正在学习 {userProgress.learning_words} 个{texts.itemName}
                         </p>
                       </>
                     ) : (
@@ -400,7 +403,7 @@ const GuessWordSettingsPage: React.FC<GuessWordSettingsPageProps> = ({
                 <div className="flex items-center gap-md">
                   {userProgress && (
                     <p className="text-xs text-text-tertiary">
-                      总词汇: {userProgress.total_words} 个
+                      总{texts.itemName}: {userProgress.total_words} 个
                     </p>
                   )}
                   <Button

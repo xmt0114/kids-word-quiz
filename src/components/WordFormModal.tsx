@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '../lib/utils';
+import { useGameTexts } from '../stores/appStore';
 
 interface WordFormData {
   word: string;
@@ -17,6 +18,7 @@ interface WordFormModalProps {
   isOpen: boolean;
   word?: any; // 编辑时传入现有数据
   collectionId: string;
+  gameId: string; // 新增: 游戏ID用于获取文本配置
   onClose: () => void;
   onSubmit: (data: WordFormData) => Promise<void>;
 }
@@ -25,9 +27,12 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
   isOpen,
   word,
   collectionId,
+  gameId,
   onClose,
   onSubmit,
 }) => {
+  // 获取游戏文本配置
+  const texts = useGameTexts(gameId);
   const [formData, setFormData] = useState<WordFormData>({
     word: '',
     definition: '',
@@ -73,15 +78,15 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.word.trim()) {
-      newErrors.word = '单词不能为空';
+      newErrors.word = `${texts.itemFieldLabel}不能为空`;
     }
 
     if (!formData.definition.trim()) {
-      newErrors.definition = '定义不能为空';
+      newErrors.definition = `${texts.definitionLabel}不能为空`;
     }
 
     if (!formData.audioText.trim()) {
-      newErrors.audioText = '音频文本不能为空';
+      newErrors.audioText = `${texts.audioTextLabel}不能为空`;
     }
 
     const validOptions = formData.options.filter(opt => opt.trim());
@@ -152,7 +157,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
         {/* 头部 */}
         <div className="flex items-center justify-between mb-lg sticky top-0 bg-white pb-md border-b border-gray-200">
           <h2 className="text-h2 font-bold text-text-primary">
-            {word ? '编辑词汇' : '添加词汇'}
+            {word ? `编辑${texts.itemName}` : `添加${texts.itemName}`}
           </h2>
           <button
             className="p-sm hover:bg-gray-100 rounded-full transition-colors"
@@ -167,7 +172,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
           {/* 单词 */}
           <div>
             <label className="block text-body font-bold text-text-primary mb-sm">
-              单词 <span className="text-red-500">*</span>
+              {texts.itemFieldLabel} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -178,7 +183,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
                 errors.word ? 'border-red-500' : 'border-gray-300 focus:border-primary-500',
                 'outline-none transition-colors'
               )}
-              placeholder="请输入单词"
+              placeholder={`请输入${texts.itemFieldLabel}`}
             />
             {errors.word && (
               <p className="text-small text-red-500 mt-xs">{errors.word}</p>
@@ -188,7 +193,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
           {/* 定义 */}
           <div>
             <label className="block text-body font-bold text-text-primary mb-sm">
-              定义 <span className="text-red-500">*</span>
+              {texts.definitionLabel} <span className="text-red-500">*</span>
             </label>
             <textarea
               value={formData.definition}
@@ -199,7 +204,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
                 'outline-none transition-colors'
               )}
               rows={3}
-              placeholder="请输入定义"
+              placeholder={`请输入${texts.definitionLabel}`}
             />
             {errors.definition && (
               <p className="text-small text-red-500 mt-xs">{errors.definition}</p>
@@ -209,7 +214,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
           {/* 音频文本 */}
           <div>
             <label className="block text-body font-bold text-text-primary mb-sm">
-              音频文本 <span className="text-red-500">*</span>
+              {texts.audioTextLabel} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -220,7 +225,7 @@ const WordFormModal: React.FC<WordFormModalProps> = ({
                 errors.audioText ? 'border-red-500' : 'border-gray-300 focus:border-primary-500',
                 'outline-none transition-colors'
               )}
-              placeholder="朗读文本（默认与单词相同）"
+              placeholder={`朗读文本(默认与${texts.itemFieldLabel}相同)`}
             />
             {errors.audioText && (
               <p className="text-small text-red-500 mt-xs">{errors.audioText}</p>

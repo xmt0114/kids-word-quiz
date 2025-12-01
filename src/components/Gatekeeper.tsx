@@ -57,6 +57,11 @@ export function Gatekeeper({ children }: { children: React.ReactNode }) {
             await useAppStore.getState().loadGuestData();
             console.log('✅ [Gatekeeper] 游客配置加载完成');
           }
+
+          // 加载游戏列表(包含 text_config)
+          console.log('🎮 [Gatekeeper] 加载游戏列表...');
+          await useAppStore.getState().loadGames();
+          console.log('✅ [Gatekeeper] 游戏列表加载完成');
         } catch (error) {
           console.error('❌ [Gatekeeper] 数据加载失败:', error);
         }
@@ -89,6 +94,11 @@ export function Gatekeeper({ children }: { children: React.ReactNode }) {
           await useAppStore.getState().loadGuestData();
           console.log('✅ [Gatekeeper] 游客配置加载完成');
         }
+
+        // 加载游戏列表(包含 text_config)
+        console.log('🎮 [Gatekeeper] 加载游戏列表...');
+        await useAppStore.getState().loadGames();
+        console.log('✅ [Gatekeeper] 游戏列表加载完成');
       } catch (error) {
         console.error('❌ [Gatekeeper] 数据加载失败:', error);
       }

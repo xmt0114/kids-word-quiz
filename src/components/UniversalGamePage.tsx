@@ -462,7 +462,7 @@ const UniversalGamePage: React.FC = () => {
                         返回首页
                     </Button>
                     <div className="text-center">
-                        <h1 className="text-h2 font-bold text-text-primary">猜单词</h1>
+                        <h1 className="text-h2 font-bold text-text-primary">{gameInfo?.title || '猜单词'}</h1>
                         <div className="flex items-center justify-center gap-md">
                             <p className="text-small text-text-secondary">
                                 第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题

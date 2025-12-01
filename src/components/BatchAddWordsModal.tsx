@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Download, CheckCircle, Loader, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './Button';
 import { toast } from 'sonner';
+import { useGameTexts } from '../stores/appStore';
 
 interface BatchWordData {
   word: string;
@@ -19,6 +20,7 @@ interface BatchWordData {
 interface BatchAddWordsModalProps {
   isOpen: boolean;
   collectionId: string;
+  gameId: string; // 新增: 游戏ID用于获取文本配置
   onClose: () => void;
   onSubmit: (words: BatchWordData[], onProgress?: (progress: {
     current: number;
@@ -30,9 +32,13 @@ interface BatchAddWordsModalProps {
 
 const BatchAddWordsModal: React.FC<BatchAddWordsModalProps> = ({
   isOpen,
+  collectionId,
+  gameId,
   onClose,
   onSubmit,
 }) => {
+  // 获取游戏文本配置
+  const texts = useGameTexts(gameId);
   const [csvText, setCsvText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormatExpanded, setIsFormatExpanded] = useState(false);
@@ -71,7 +77,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', '单词批量导入模板.csv');
+    link.setAttribute('download', `${texts.itemName}批量导入模板.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -191,15 +197,15 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
     const errors: string[] = [];
 
     if (!word.word.trim()) {
-      errors.push('单词不能为空');
+      errors.push(`${texts.itemFieldLabel}不能为空`);
     }
 
     if (!word.definition.trim()) {
-      errors.push('定义不能为空');
+      errors.push(`${texts.definitionLabel}不能为空`);
     }
 
     if (!word.audioText.trim()) {
-      errors.push('音频文本不能为空');
+      errors.push(`${texts.audioTextLabel}不能为空`);
     }
 
     if (!['easy', 'medium', 'hard'].includes(word.difficulty)) {
@@ -257,7 +263,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         if (w.errors && w.errors.length > 0) {
           const wordDisplay = w.word || `第${w.lineNumber}行`;
           w.errors.forEach(err => {
-            errorList.push(`单词"${wordDisplay}": ${err}`);
+            errorList.push(`${texts.itemName}"${wordDisplay}": ${err}`);
           });
         }
       });
@@ -270,7 +276,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
       };
 
       setValidationResults(results);
-      toast.success(`格式检查完成：共${validatedWords.length}个单词，其中${validCount}个有效，${invalidCount}个无效`);
+      toast.success(`格式检查完成：共${validatedWords.length}个${texts.itemName}，其中${validCount}个有效，${invalidCount}个无效`);
       toast.info('错误信息支持复制，便于查看');
     } catch (error) {
       console.error('格式检查失败:', error);
@@ -311,7 +317,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         if (w.errors && w.errors.length > 0) {
           const wordDisplay = w.word || `第${w.lineNumber}行`;
           w.errors.forEach(err => {
-            errorList.push(`单词"${wordDisplay}": ${err}`);
+            errorList.push(`${texts.itemName}"${wordDisplay}": ${err}`);
           });
         }
       });
@@ -379,9 +385,9 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
           errors: reValidatedWords.map(w => {
             // 保留原有的验证错误，如果还有的话
             if (w.errors && w.errors.length > 0 && !w.errors[0].includes('提交失败')) {
-              return `单词"${w.word}": ${w.errors[0]}`;
+              return `${texts.itemName}"${w.word}": ${w.errors[0]}`;
             }
-            return `单词"${w.word}"提交失败`;
+            return `${texts.itemName}"${w.word}"提交失败`;
           }),
         };
         setValidationResults(reResults);
@@ -405,7 +411,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
         // 所有单词都成功提交（不自动关闭）
         setSubmitResult({
           success: true,
-          message: `所有单词提交成功！`,
+          message: `所有${texts.itemName}提交成功！`,
           successCount: validWords.length,
           failedCount: 0,
         });
@@ -462,7 +468,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
       <div className="relative bg-white rounded-lg shadow-2xl p-xl max-w-4xl w-full my-8 animate-scale-in max-h-[90vh] overflow-y-auto">
         {/* 头部 */}
         <div className="flex items-center justify-between mb-lg sticky top-0 bg-white pb-md border-b border-gray-200">
-          <h2 className="text-h2 font-bold text-text-primary">批量添加词汇</h2>
+          <h2 className="text-h2 font-bold text-text-primary">批量添加{texts.itemName}</h2>
           <button
             className="p-sm hover:bg-gray-100 rounded-full transition-colors"
             onClick={onClose}
@@ -549,7 +555,7 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
                 )}
                 {submitProgress.failedWords.length > 0 && (
                   <span className="text-red-600 ml-md">
-                    失败: {submitProgress.failedWords.length} 个单词
+                    失败: {submitProgress.failedWords.length} 个{texts.itemName}
                   </span>
                 )}
               </div>
@@ -571,11 +577,11 @@ dog,狗,"猫;狗;鸟;鱼","狗","barks loudly","狗"`;
               </div>
               <div className="text-small space-y-xs">
                 <div className={submitResult.success ? 'text-green-700' : 'text-yellow-700'}>
-                  <span className="font-bold">成功:</span> {submitResult.successCount} 个单词
+                  <span className="font-bold">成功:</span> {submitResult.successCount} 个{texts.itemName}
                 </div>
                 {!submitResult.success && (
                   <div className="text-red-700">
-                    <span className="font-bold">失败:</span> {submitResult.failedCount} 个单词（已保留在文本框中，请检查后重试）
+                    <span className="font-bold">失败:</span> {submitResult.failedCount} 个{texts.itemName}（已保留在文本框中，请检查后重试）
                   </div>
                 )}
               </div>

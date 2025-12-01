@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Brain, Book, Star, Gamepad2, Puzzle, Lightbulb, GraduationCap, Trophy, Target, Sparkles } from 'lucide-react';
 import { Button } from './Button';
-import { Game } from '../types';
+import { Game, GameTextConfig } from '../types';
+import { PRESET_TEXT_CONFIGS, getDefaultTextConfig } from '../utils/gameTextConfig';
 
 interface GameFormModalProps {
     isOpen: boolean;
@@ -41,7 +42,8 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
             answerType: 'choice' as 'choice' | 'fill',
             showPinyin: false
         },
-        is_active: true
+        is_active: true,
+        text_config: getDefaultTextConfig()
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +63,8 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                         answerType: (initialData.default_config?.answerType as 'choice' | 'fill') || 'choice',
                         showPinyin: initialData.default_config?.showPinyin || false
                     },
-                    is_active: initialData.is_active
+                    is_active: initialData.is_active,
+                    text_config: initialData.text_config || getDefaultTextConfig()
                 });
             } else {
                 // 重置为默认值
@@ -76,7 +79,8 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                         answerType: 'choice',
                         showPinyin: false
                     },
-                    is_active: true
+                    is_active: true,
+                    text_config: getDefaultTextConfig()
                 });
             }
             setError(null);
@@ -252,6 +256,111 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                                 </label>
                             </div>
                         )}
+                    </div>
+
+                    {/* 文本配置 */}
+                    <div className="border-t border-gray-100 pt-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">文本配置</h3>
+
+                        {/* 预设配置选择 */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                使用预设配置
+                            </label>
+                            <select
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        setFormData({
+                                            ...formData,
+                                            text_config: PRESET_TEXT_CONFIGS[e.target.value]
+                                        });
+                                    }
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="">自定义配置</option>
+                                <option value="word">单词游戏</option>
+                                <option value="idiom">成语游戏</option>
+                                <option value="riddle">字谜游戏</option>
+                            </select>
+                        </div>
+
+                        {/* 基础名称 */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                基础名称 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.text_config.itemName}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    text_config: { ...formData.text_config, itemName: e.target.value }
+                                })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                placeholder="例如: 单词、成语、字谜"
+                            />
+                        </div>
+
+                        {/* 字段标签 */}
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    题目字段
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.text_config.itemFieldLabel}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        text_config: { ...formData.text_config, itemFieldLabel: e.target.value }
+                                    })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    placeholder="单词"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    定义字段
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.text_config.definitionLabel}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        text_config: { ...formData.text_config, definitionLabel: e.target.value }
+                                    })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    placeholder="定义"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    音频字段
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.text_config.audioTextLabel}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        text_config: { ...formData.text_config, audioTextLabel: e.target.value }
+                                    })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    placeholder="音频文本"
+                                />
+                            </div>
+                        </div>
+
+                        {/* 提示: 消息模板说明 */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                            <p className="font-medium mb-1">💡 提示</p>
+                            <p>消息模板支持变量替换:</p>
+                            <ul className="list-disc list-inside mt-1 space-y-0.5">
+                                <li><code className="bg-blue-100 px-1 rounded">{'{itemName}'}</code> - 基础名称</li>
+                                <li><code className="bg-blue-100 px-1 rounded">{'{name}'}</code> - 具体项目名称</li>
+                                <li><code className="bg-blue-100 px-1 rounded">{'{count}'}</code> - 数量</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">

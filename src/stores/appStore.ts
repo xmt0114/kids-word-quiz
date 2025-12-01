@@ -4,6 +4,8 @@ import { QuizSettings } from '../types';
 import { useMemo } from 'react';
 import { useAuth, useAuthState } from '../hooks/useAuth';
 import { wordAPI } from '../utils/api';
+import { createGameTextsSlice, GameTextsSlice } from './gameTextsSlice';
+import { getDefaultTextConfig } from '../utils/gameTextConfig';
 
 // ==================== 类型定义 ====================
 
@@ -31,7 +33,7 @@ export interface UserProfile {
 }
 
 // 应用状态接口
-interface AppState {
+interface AppState extends GameTextsSlice {
   // ==================== Auth 状态（只管认证） ====================
   authLoading: boolean; // 认证加载状态（默认为 true）
   session: Session | null; // 认证会话
@@ -84,6 +86,9 @@ interface AppState {
  * - 服务器优先的缓存更新策略
  */
 export const useAppStore = create<AppState>((set, get) => ({
+  // ==================== 集成 GameTextsSlice ====================
+  ...createGameTextsSlice(set, get),
+
   // ==================== 初始状态 ====================
   // Auth 状态初始值
   authLoading: true, // 认证加载默认 true
@@ -634,3 +639,33 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
 
   return { settings, setSettings };
 };
+
+// ==================== 游戏文本配置 Hook ====================
+
+/**
+ * Hook: 获取游戏文本配置
+ * 
+ * @param gameId 游戏ID
+ * @returns 游戏的文本配置
+ * 
+ * @example
+ * const texts = useGameTexts('guess_word');
+ * console.log(texts.itemName); // "单词"
+ */
+export const useGameTexts = (gameId: string) => {
+  // 直接从 store 获取 games 数组
+  const games = useAppStore(state => state.games);
+
+  // 使用 useMemo 缓存结果,只有当 games 或 gameId 变化时才重新计算
+  return useMemo(() => {
+    if (!gameId) return getDefaultTextConfig();
+    const game = games?.find(g => g.id === gameId);
+    return game?.text_config || getDefaultTextConfig();
+  }, [games, gameId]);
+};
+
+/**
+ * 导出格式化消息的工具函数
+ * 方便在组件中使用
+ */
+export { formatMessage } from '../utils/gameTextConfig';

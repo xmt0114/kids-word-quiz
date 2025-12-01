@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
-import { useAppStore } from '../stores/appStore';
+import { useAppStore, useGameTexts } from '../stores/appStore';
 import { LoginModal } from './auth/LoginModal';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -40,6 +40,9 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
     // 使用 Zustand 管理学习进度
     const { userProgress, getProgress, refreshProgress } = useAppStore();
+
+    // 获取文本配置
+    const texts = useGameTexts(gameId || '');
 
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
@@ -201,7 +204,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         {
             id: 'fill',
             name: '填空题',
-            description: '根据提示填写完整单词',
+            description: `根据提示填写完整${texts.itemName}`,
             icon: Edit3,
             color: 'from-orange-400 to-orange-600',
         },
@@ -212,14 +215,14 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
             id: 'sequential' as const,
             name: '顺序选取',
             description: '按添加时间顺序依次出题',
-            detail: '单词将按照添加的时间顺序排列，新添加的单词优先出现',
+            detail: `${texts.itemName}将按照添加的时间顺序排列，新添加的${texts.itemName}优先出现`,
             icon: ListOrdered,
             color: 'from-blue-400 to-blue-600',
         },
         {
             id: 'random' as const,
             name: '随机选取',
-            description: '从词汇池中随机抽取题目',
+            description: `从${texts.itemName}池中随机抽取题目`,
             detail: '每次练习题目顺序都不同，增加趣味性和挑战性',
             icon: Shuffle,
             color: 'from-purple-400 to-purple-600',
@@ -488,10 +491,10 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                         {userProgress ? (
                                             <>
                                                 <p className="text-small font-semibold text-text-primary">
-                                                    已掌握 {userProgress.mastered_words} 个单词
+                                                    已掌握 {userProgress.mastered_words} 个{texts.itemName}
                                                 </p>
                                                 <p className="text-xs text-text-tertiary">
-                                                    正在学习 {userProgress.learning_words} 个单词
+                                                    正在学习 {userProgress.learning_words} 个{texts.itemName}
                                                 </p>
                                             </>
                                         ) : (
@@ -502,7 +505,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                 <div className="flex items-center gap-md">
                                     {userProgress && (
                                         <p className="text-xs text-text-tertiary">
-                                            总词汇: {userProgress.total_words} 个
+                                            总{texts.itemName}: {userProgress.total_words} 个
                                         </p>
                                     )}
                                     <Button

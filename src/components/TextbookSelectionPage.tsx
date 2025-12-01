@@ -4,7 +4,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { WordCollection } from '../types';
 import { wordAPI } from '../utils/api';
-import { useQuizSettings } from '../stores/appStore';
+import { useQuizSettings, useGameTexts } from '../stores/appStore';
 import { BookOpen, ArrowLeft, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -25,6 +25,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
   const location = useLocation();
   const effectiveGameId = gameId || location.state?.gameId;
   const { setSettings } = useQuizSettings(effectiveGameId); // 获取setSettings函数（自动同步到后端）
+  const texts = useGameTexts(effectiveGameId || '');
   const [collections, setCollections] = useState<WordCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(currentCollectionId || null);
   const [isLoading, setIsLoading] = useState(true);
@@ -206,7 +207,7 @@ const TextbookSelectionPage: React.FC<TextbookSelectionPageProps> = ({
                       {/* 词汇数量 */}
                       <div className="pt-md border-t border-gray-200">
                         <p className="text-body text-text-secondary">
-                          词汇数量：
+                          {texts.itemName}数量：
                           <span className="font-bold text-primary-500 ml-xs">
                             {collection.word_count}
                           </span>
