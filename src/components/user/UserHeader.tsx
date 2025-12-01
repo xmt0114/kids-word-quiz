@@ -27,70 +27,62 @@ export function UserHeader() {
 
   return (
     <header className="bg-white shadow">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="text-lg font-semibold text-gray-900">
-              儿童单词测验
+            <Link to="/" className="title-font hover:scale-105 transition-transform duration-200">
+              语智乐园
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {user && profile ? (
               // 已登录状态
               <>
                 {/* 管理员专用菜单 */}
                 {profile.role === 'admin' && (
-                  <div className="flex items-center space-x-2 mr-4">
+                  <div className="flex items-center space-x-3 mr-6">
                     <Link to="/guess-word/data">
-                      <Button
-                        variant="secondary"
-                        className="flex items-center gap-1 !py-2 !px-3 text-xs"
-                      >
-                        <Database size={14} />
+                      <button className="header-button header-button-admin flex items-center gap-2">
+                        <Database size={16} />
                         数据管理
-                      </Button>
+                      </button>
                     </Link>
                     <Link to="/guess-word/invite">
-                      <Button
-                        variant="secondary"
-                        className="flex items-center gap-1 !py-2 !px-3 text-xs"
-                      >
-                        <Mail size={14} />
+                      <button className="header-button header-button-admin flex items-center gap-2">
+                        <Mail size={16} />
                         邀请用户
-                      </Button>
+                      </button>
                     </Link>
                   </div>
                 )}
 
-                <div className="flex items-center space-x-2">
-                  <User size={16} className="text-gray-600" />
-                  <span className="text-sm text-gray-700">
+                <div className="flex items-center space-x-3">
+                  <User size={18} className="text-purple-500" />
+                  <span className="user-info font-semibold">
                     {profile.display_name}
                   </span>
-                  <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full">
+                  <span className="user-role-badge">
                     {getRoleDisplayName(profile.role)}
                   </span>
                 </div>
-                <Button
-                  variant="secondary"
+                <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 !py-2 !px-4"
+                  className="header-button header-button-secondary flex items-center gap-2"
                 >
                   <LogOut size={16} />
                   登出
-                </Button>
+                </button>
               </>
             ) : (
               // 未登录状态
               <>
-                <Button
-                  variant="secondary"
-                  className="flex items-center gap-2 !py-2 !px-4"
+                <button
+                  className="header-button header-button-primary flex items-center gap-2"
                   onClick={() => openLoginModal('登录')}
                 >
                   <LogIn size={16} />
                   登录
-                </Button>
+                </button>
               </>
             )}
           </div>

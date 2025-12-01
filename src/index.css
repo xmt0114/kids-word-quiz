@@ -76,3 +76,103 @@ img {
 .fixed {
   position: fixed;
 }
+
+/* 语智乐园标题字体 */
+.title-font {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease-in-out infinite;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 640px) {
+  .title-font {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .title-font {
+    font-size: 2.25rem;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Header按钮样式 */
+.header-button {
+  font-family: 'Noto Sans SC', 'Fredoka', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid transparent;
+}
+
+.header-button-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.header-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.header-button-secondary {
+  background: linear-gradient(135deg, #ffecd2, #fcb69f);
+  color: #8b4513;
+  border: 2px solid #fcb69f;
+}
+
+.header-button-secondary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #fcb69f, #ffecd2);
+  box-shadow: 0 4px 15px rgba(252, 182, 159, 0.4);
+}
+
+.header-button-admin {
+  background: linear-gradient(135deg, #a8edea, #fed6e3);
+  color: #2d3748;
+  border: 2px solid #fed6e3;
+}
+
+.header-button-admin:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #fed6e3, #a8edea);
+  box-shadow: 0 4px 15px rgba(254, 214, 227, 0.4);
+}
+
+/* 用户信息样式 */
+.user-info {
+  font-family: 'Noto Sans SC', 'Fredoka', sans-serif;
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.user-role-badge {
+  font-family: 'Noto Sans SC', 'Fredoka', sans-serif;
+  font-size: 0.75rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 500;
+}
