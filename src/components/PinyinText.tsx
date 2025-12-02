@@ -7,6 +7,7 @@ interface PinyinTextProps {
     className?: string;
     size?: 'small' | 'medium' | 'large' | 'xl';
     language?: 'zh' | 'en';
+    style?: React.CSSProperties;
 }
 
 export const PinyinText: React.FC<PinyinTextProps> = ({
@@ -14,7 +15,8 @@ export const PinyinText: React.FC<PinyinTextProps> = ({
     showPinyin = false,
     className = '',
     size = 'medium',
-    language
+    language,
+    style
 }) => {
     const sizeClasses = {
         small: 'text-sm',
@@ -33,7 +35,7 @@ export const PinyinText: React.FC<PinyinTextProps> = ({
         return (
             <span 
                 className={`${className || sizeClasses[size]}`}
-                style={fontStyle}
+                style={{ ...fontStyle, ...style }}
             >
                 {text}
             </span>
@@ -54,6 +56,7 @@ export const PinyinText: React.FC<PinyinTextProps> = ({
             className={`inline-flex flex-wrap items-end gap-1 ${className || sizeClasses[size]}`}
             style={{
                 fontFamily: '"KaiTi", "STKaiti", "SimSun", "Songti SC", serif',
+                ...style
             }}
         >
             {pinyinData.map((item: any, index: number) => {
