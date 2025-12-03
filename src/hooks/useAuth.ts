@@ -1,4 +1,3 @@
-import { createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useAppStore } from '../stores/appStore'
@@ -12,36 +11,16 @@ interface UserProfile {
   has_password_set?: boolean // 是否已设置密码
 }
 
-interface AuthContextType {
-  user: User | null
-  profile: UserProfile | null
-  session: Session | null
-  loading: boolean
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signOut: () => Promise<void>
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>
-  updatePreferredTextbook: (textbookId: string) => Promise<{ success: boolean; error?: string }>
-  updateUserSettings: (updates: any) => Promise<{ success: boolean; error?: string }>
-  setPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>
-  checkPasswordSet: () => Promise<boolean>
-  setAuthProfile: (profile: UserProfile | null) => void
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
+// useAuth 现在直接使用 useAuthState，不再需要 Context
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  return useAuthState();
 }
 
 export function useAuthState() {
   // 从 Zustand Store 读取认证状态（由 Gatekeeper 管理）
   const {
     session,
-    authProfile,
+    profile: authProfile,
     authLoading,
     setAuthProfile
   } = useAppStore();

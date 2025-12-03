@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthState } from '../hooks/useAuth';
 import { Button } from './Button';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -16,7 +16,8 @@ export function SetPasswordModal({ isOpen, onSuccess, mode = 'setup' }: SetPassw
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const { setPassword: updatePassword, profile, setAuthProfile } = useAuth();
+  // 使用 useAuthState 获取认证相关方法
+  const { setPassword: updatePassword, profile, setAuthProfile } = useAuthState();
 
   const isResetMode = mode === 'reset';
   const title = isResetMode ? '重置密码' : '设置登录密码';

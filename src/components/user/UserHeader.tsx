@@ -1,11 +1,14 @@
-import { useAuth } from '../../hooks/useAuth'
+import { useAuthState } from '../../hooks/useAuth'
 import { useAppStore } from '../../stores/appStore'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../Button'
 import { LogIn, User, LogOut, Mail, Database } from 'lucide-react'
 
 export function UserHeader() {
-  const { user, profile, signOut } = useAuth()
+  // 直接使用 Zustand store 和 useAuthState
+  const { session, profile } = useAppStore();
+  const user = session?.user ?? null;
+  const { signOut } = useAuthState();
   const { openLoginModal } = useAppStore()
   const navigate = useNavigate()
 

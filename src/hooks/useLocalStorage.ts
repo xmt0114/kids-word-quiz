@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
+// useAuth 已替换为直接使用 Zustand store
 import { useAppStore } from '../stores/appStore';
 
 // 创建内部hook来获取配置（避免在useLocalStorage中直接使用Context）
@@ -93,7 +93,9 @@ export function useLocalStorage<T>(key: string, initialValue: T, userId?: string
 // 优先使用服务器配置，内置默认值为保底
 export function useQuizStats() {
   const { getConfig, loading } = useAppDefaults();
-  const { user } = useAuth();
+  // 直接使用 Zustand store
+  const { session } = useAppStore();
+  const user = session?.user ?? null;
   const userId = user?.id;
 
   // 从配置中获取默认值，优先级：服务器配置 > 内置默认值

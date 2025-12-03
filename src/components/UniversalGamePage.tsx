@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStats } from '../hooks/useLocalStorage';
 import { wordAPI } from '../utils/api';
+import useAppStore from '@/stores/appStore';
 
 const UniversalGamePage: React.FC = () => {
     const navigate = useNavigate();
@@ -53,26 +54,17 @@ const UniversalGamePage: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState(false);
     const [gameInfo, setGameInfo] = useState<Game | null>(null);
 
-    // 加载游戏信息以获取语言设置
+    // 从store获取游戏信息
+    const { games } = useAppStore();
+    
     useEffect(() => {
-        const loadGameInfo = async () => {
-            if (!gameId) return;
-            try {
-                if (wordAPI.getGames) {
-                    const response = await wordAPI.getGames();
-                    if (response.success && response.data) {
-                        const game = response.data.find(g => g.id === gameId);
-                        if (game) {
-                            setGameInfo(game);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to load game info:', error);
-            }
-        };
-        loadGameInfo();
-    }, [gameId]);
+        if (!gameId || !games) return;
+        
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+            setGameInfo(game);
+        }
+    }, [gameId, games]);
 
     // 获取教材信息并初始化游戏
     useEffect(() => {

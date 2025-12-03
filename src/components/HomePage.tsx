@@ -5,52 +5,17 @@ import { Button } from './Button';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAppStore } from '../stores/appStore';
-import { useAuth } from '../hooks/useAuth';
+// useAuth 已替换为直接使用 Zustand store
 import { QuizSettings, Game } from '../types';
-import { wordAPI } from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
-  const { openLoginModal } = useAppStore();
+  // 直接使用 Zustand store
+  const { session, profile, games, gamesLoading, openLoginModal } = useAppStore();
+  const user = session?.user ?? null;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [games, setGames] = useState<Game[]>([]);
-  const [loadingGames, setLoadingGames] = useState(true);
 
-  // 加载游戏列表
-  useEffect(() => {
-    const loadGames = async () => {
-      setLoadingGames(true);
-      try {
-        if (wordAPI.getGames) {
-          const response = await wordAPI.getGames();
-          if (response.success && response.data) {
-            setGames(response.data);
-          }
-        } else {
-          // Fallback for local dev if API not ready
-          setGames([
-            {
-              id: 'guess-word',
-              title: '猜单词',
-              description: '根据提示猜测单词，支持看图、听音等多种模式',
-              icon: 'Brain',
-              type: 'guess_word',
-              language: 'en',
-              default_config: { questionType: 'text', answerType: 'choice' } as any,
-              is_active: true
-            }
-          ]);
-        }
-      } catch (error) {
-        console.error('Failed to load games:', error);
-      } finally {
-        setLoadingGames(false);
-      }
-    };
-
-    loadGames();
-  }, []);
+  // 游戏列表现在由 Gatekeeper 统一加载到 store 中，无需重复请求
 
   // 监听用户状态变化，登录后自动执行pendingAction
   useEffect(() => {
@@ -209,7 +174,7 @@ const HomePage: React.FC = () => {
 
       {/* 游戏列表 */}
       <div className="max-w-6xl mx-auto">
-        {loadingGames ? (
+        {gamesLoading ? (
           <div className="flex justify-center py-2xl">
             <LucideIcons.Loader size={48} className="text-primary-500 animate-spin" />
           </div>

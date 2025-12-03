@@ -2,10 +2,14 @@ import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
 import { QuizSettings } from '../types';
 import { useMemo } from 'react';
-import { useAuth, useAuthState } from '../hooks/useAuth';
+import { useAuthState } from '../hooks/useAuth';
 import { wordAPI } from '../utils/api';
 import { createGameTextsSlice, GameTextsSlice } from './gameTextsSlice';
 import { getDefaultTextConfig } from '../utils/gameTextConfig';
+// 导入新的slice
+import { createConfigSlice, ConfigSlice } from './slices/configSlice';
+import { createUISlice, UISlice } from './slices/uiSlice';
+import { createAuthSlice, AuthSlice } from './slices/authSlice';
 
 // ==================== 类型定义 ====================
 
@@ -32,23 +36,12 @@ export interface UserProfile {
   has_password_set?: boolean // 是否已设置密码
 }
 
-// 应用状态接口
-interface AppState extends GameTextsSlice {
-  // ==================== Auth 状态（只管认证） ====================
-  authLoading: boolean; // 认证加载状态（默认为 true）
-  session: Session | null; // 认证会话
-  authProfile: UserProfile | null; // 用户资料
-
-  // ==================== Data 状态（只管数据） ====================
+// 应用状态接口 - 集成所有slice
+interface AppState extends GameTextsSlice, ConfigSlice, UISlice, AuthSlice {
+  // ==================== Data 状态（保留现有数据管理） ====================
   dataLoading: boolean; // 数据加载状态（默认为 false）
-  guestConfig: GuestConfig | null;
   userSettings: any | null;
   userProgress: UserProgress | null;
-
-  // ==================== Actions - 同步（只设置状态） ====================
-  // 【关键】同步的 Auth Action
-  setAuth: (session: Session | null) => void; // 只设置 session 和 authLoading: false
-  setAuthProfile: (profile: UserProfile | null) => void;
 
   // ==================== Actions - 异步（处理数据加载） ====================
   // 【关键】异步的 Data Actions
@@ -65,13 +58,7 @@ interface AppState extends GameTextsSlice {
   refreshProgress: (collectionId: string) => Promise<UserProgress | null>;
   submitSessionResults: (results: Array<{ word_id: string; is_correct: boolean }>) => Promise<{ success: boolean; error?: string }>;
 
-  // ==================== UI 状态 ====================
-  loginModal: {
-    isOpen: boolean;
-    action: string; // 例如 "开始游戏"、"登录" 等提示文案
-  };
-  openLoginModal: (action?: string) => void;
-  closeLoginModal: () => void;
+  // UI状态和认证状态现在由slice管理，无需重复定义
 }
 
 // ==================== Store 实现 ====================
@@ -86,54 +73,35 @@ interface AppState extends GameTextsSlice {
  * - 服务器优先的缓存更新策略
  */
 export const useAppStore = create<AppState>((set, get) => ({
-  // ==================== 集成 GameTextsSlice ====================
+  // ==================== 集成所有 Slice ====================
   ...createGameTextsSlice(set, get),
+  ...createConfigSlice(set, get),
+  ...createUISlice(set, get),
+  ...createAuthSlice(set, get),
 
-  // ==================== 初始状态 ====================
-  // Auth 状态初始值
-  authLoading: true, // 认证加载默认 true
-  session: null,
-  authProfile: null,
-
+  // ==================== 保留的数据状态 ====================
   // Data 状态初始值
   dataLoading: false, // 数据加载默认 false
-  guestConfig: null,
   userSettings: null,
   userProgress: null,
 
-  // ==================== Actions - 同步（认证相关） ====================
-
-  /**
-   * 【关键】同步的 Auth Action
-   * 只设置 session 和 authLoading: false
-   */
-  setAuth: (session: Session | null) => {
-    console.log('🔑 [AppStore] 设置认证状态:', session?.user?.id);
-    set({ session, authLoading: false });
-  },
-
-  setAuthProfile: (profile: UserProfile | null) => {
-    console.log('👤 [AppStore] 设置用户资料:', profile?.id);
-    set({ authProfile: profile });
-  },
+  // 认证相关Actions现在由AuthSlice提供
 
   // ==================== Actions - 异步（数据加载） ====================
 
   /**
    * 【关键】异步的 Data Action - 加载游客配置
-   * 只负责加载配置，不清理用户数据（清理在登出时完成）
+   * 现在委托给ConfigSlice处理
    */
   loadGuestData: async () => {
     console.log('📦 [AppStore] 开始加载游客配置...');
     try {
       set({ dataLoading: true });
 
-      // 调用 Gatekeeper 中的 fetchGuestConfig
-      const { fetchGuestConfig } = await import('../components/Gatekeeper');
-      const guestConfig = await fetchGuestConfig();
+      // 委托给ConfigSlice处理
+      await get().loadGuestConfig();
 
-      console.log('✅ [AppStore] 游客配置加载完成:', guestConfig);
-      set({ guestConfig, dataLoading: false });
+      set({ dataLoading: false });
     } catch (error) {
       console.error('❌ [AppStore] 游客配置加载失败:', error);
       set({ dataLoading: false });
@@ -142,6 +110,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   /**
    * 【关键】异步的 Data Action - 加载用户数据
+   * 现在委托给AuthSlice和ConfigSlice处理
    */
   loadUserData: async (session: Session) => {
     console.log('👤 [AppStore] 开始加载用户数据...');
@@ -154,10 +123,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       console.log('✅ [AppStore] 用户数据加载完成:', userData);
 
-      // 设置用户资料（触发登录页面跳转）
-      set({ authProfile: userData.profile });
+      // 委托给AuthSlice设置用户资料
+      get().setAuthProfile(userData.profile);
 
-      // 设置用户设置
+      // 委托给ConfigSlice设置用户配置
+      get().setUserConfig(userData.settings);
+
+      // 设置用户设置（保留现有逻辑）
       set({ userSettings: userData.settings, dataLoading: false });
     } catch (error) {
       console.error('❌ [AppStore] 用户数据加载失败:', error);
@@ -167,13 +139,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   /**
    * 【关键】异步的 Data Action - 清理所有数据（登出时调用）
-   * 清理所有用户相关数据，确保完全切换到游客模式
+   * 现在委托给各个slice处理
    */
   clearAllData: async () => {
     console.log('🧹 [AppStore] 清除所有用户数据...');
+    
+    // 委托给AuthSlice清理认证数据
+    get().clearAuthData();
+    
+    // 委托给ConfigSlice清理用户配置
+    get().setUserConfig(null);
+    
+    // 清理剩余的数据状态
     set({
-      session: null,
-      authProfile: null, // 清理用户资料（重要！）
       userSettings: null,
       userProgress: null,
       dataLoading: false,
@@ -278,200 +256,85 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  // ==================== UI Actions ====================
-  loginModal: {
-    isOpen: false,
-    action: '登录',
-  },
-
-  openLoginModal: (action = '登录') => {
-    console.log('UI [AppStore] 打开登录弹框:', action);
-    set({ loginModal: { isOpen: true, action } });
-  },
-
-  closeLoginModal: () => {
-    console.log('UI [AppStore] 关闭登录弹框');
-    set({ loginModal: { isOpen: false, action: '登录' } });
-  },
+  // UI Actions现在由UISlice提供
 }));
 
 // ==================== 选择器辅助函数 ====================
 
 /**
  * 便捷的选择器函数，避免重复计算
+ * 现在使用新的slice状态
  */
 export const appStoreSelectors = {
   // 获取完整的设置（合并游客和用户设置）
   getFullSettings: () => {
-    const { guestConfig, userSettings } = useAppStore.getState();
-
-    if (userSettings) {
+    const state = useAppStore.getState();
+    
+    if (state.userConfig) {
       return {
-        ...guestConfig,
-        ...userSettings,
-        // 确保优先级正确
-        ...userSettings,
+        ...state.guestConfig,
+        ...state.userConfig,
       };
     }
 
-    return guestConfig;
+    return state.guestConfig;
   },
 
   // 检查是否已加载数据
   isDataLoaded: () => {
-    const { dataLoading, guestConfig } = useAppStore.getState();
-    return !dataLoading && guestConfig !== null;
+    const state = useAppStore.getState();
+    return !state.configLoading && state.guestConfig !== null;
   },
 
   // 检查是否为登录用户
   isLoggedIn: () => {
-    const { userSettings } = useAppStore.getState();
-    return userSettings !== null;
+    const state = useAppStore.getState();
+    return state.userConfig !== null;
   },
 
   // === 与原 useAppConfig 兼容的方法 ===
 
   /**
    * 获取特定配置项（兼容 useAppConfig.getConfig）
+   * 现在委托给ConfigSlice处理
    */
   getConfig: (key: string) => {
-    const { guestConfig, userSettings } = useAppStore.getState();
+    const state = useAppStore.getState();
+    return state.getConfig(key);
 
-    // 优先从用户设置获取
-    if (userSettings && userSettings[key as keyof typeof userSettings]) {
-      return userSettings[key as keyof typeof userSettings];
-    }
-
-    // 其次从游客配置获取
-    if (guestConfig && guestConfig[key]) {
-      return guestConfig[key];
-    }
-
-    // 返回内置默认值
-    const BUILTIN_DEFAULTS: Record<string, any> = {
-      app_settings: {
-        defaultLanguage: 'zh-CN',
-        theme: 'light',
-        enableSound: true,
-        autoSave: true,
-      },
-      default_stats: {
-        totalGames: 0,
-        totalCorrect: 0,
-        bestScore: 0,
-        averageScore: 0,
-        lastPlayed: null,
-      },
-      game_constants: {
-        totalQuestions: 10,
-        optionCount: 3,
-        shuffleWords: true,
-        defaultTimeLimit: 300,
-      },
-      default_collection_id: '',
-      tts_defaults: {
-        lang: 'en-US',
-        rate: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        voiceName: 'default',
-      },
-      supported_games: [
-        {
-          id: 'guess_word',
-          name: '猜单词',
-          description: '根据提示猜测单词',
-          category: 'vocabulary',
-          enabled: true,
-        },
-        {
-          id: 'spelling_bee',
-          name: '拼写蜜蜂',
-          description: '听音拼词游戏',
-          category: 'spelling',
-          enabled: false,
-        },
-        {
-          id: 'word_match',
-          name: '单词匹配',
-          description: '单词与释义匹配',
-          category: 'comprehension',
-          enabled: false,
-        },
-      ],
-      guess_word_settings: {
-        questionType: 'text',
-        answerType: 'choice',
-        learningStrategy: 'sequential',
-        hintsEnabled: true,
-        showPhonetic: true,
-        showDefinition: true,
-      },
-      difficulty_levels: [
-        { id: 'easy', name: '简单', description: '适合初学者' },
-        { id: 'medium', name: '中等', description: '适合有一定基础的学习者' },
-        { id: 'hard', name: '困难', description: '适合高级学习者' },
-      ],
-      question_types: [
-        { id: 'text', name: '文字题干', description: '在屏幕上显示题目描述' },
-        { id: 'image', name: '图片题干', description: '通过图片显示题目' },
-        { id: 'audio', name: '音频题干', description: '通过语音播放题目' },
-      ],
-      answer_types: [
-        { id: 'choice', name: '选择题', description: '从选项中选择答案' },
-        { id: 'input', name: '填空题', description: '手动输入答案' },
-        { id: 'audio', name: '语音答题', description: '通过语音回答' },
-      ],
-      learning_strategies: [
-        { id: 'sequential', name: '顺序学习', description: '按顺序学习内容' },
-        { id: 'random', name: '随机学习', description: '随机选择内容' },
-        { id: 'spaced_repetition', name: '间隔重复', description: '根据记忆曲线重复学习' },
-        { id: 'adaptive', name: '自适应学习', description: '根据表现调整难度' },
-      ],
-    };
-
-    return BUILTIN_DEFAULTS[key] ?? null;
   },
 
   /**
    * 获取配置项的类别（兼容 useAppConfig.getConfigCategory）
    */
   getConfigCategory: (key: string) => {
-    if (['app_settings', 'default_stats', 'game_constants', 'default_collection_id', 'tts_defaults'].includes(key)) {
-      return 'app';
-    }
-    if (['supported_games', 'guess_word_settings'].includes(key)) {
-      return 'games';
-    }
-    if (['difficulty_levels', 'question_types', 'answer_types', 'learning_strategies'].includes(key)) {
-      return 'universal';
-    }
-    return 'unknown';
+    const state = useAppStore.getState();
+    return state.getConfigCategory(key);
   },
 
   /**
    * 检查数据源（兼容 useAppConfig.dataSource）
    */
   getDataSource: () => {
-    const { userSettings, dataLoading } = useAppStore.getState();
-    if (dataLoading) return null;
-    return userSettings ? 'user' : 'guest';
+    const state = useAppStore.getState();
+    if (state.configLoading) return null;
+    return state.userConfig ? 'user' : 'guest';
   },
 
   /**
    * 检查是否正在加载（兼容 useAppConfig.loading）
    */
   isLoading: () => {
-    const { dataLoading } = useAppStore.getState();
-    return dataLoading;
+    const state = useAppStore.getState();
+    return state.configLoading;
   },
 
   /**
    * 获取错误信息（兼容 useAppConfig.error）
    */
   getError: () => {
-    // Store 当前不存储错误，但可以为未来扩展预留
-    return null;
+    const state = useAppStore.getState();
+    return state.configError;
   },
 };
 
@@ -490,12 +353,16 @@ export { useAppStore as default };
  * 从 Zustand Store 读取设置，优先级：userSettings > guestConfig > 默认值
  */
 export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: Partial<QuizSettings>) => {
-  const { user } = useAuth();
-  const { profile, updateUserSettings } = useAuthState();
+  // 直接使用 Zustand store 和 useAuthState
+  const { session, profile: storeProfile } = useAppStore();
+  const user = session?.user ?? null;
+  const profile = storeProfile;
+  const { updateUserSettings } = useAuthState();
 
   // 从 Zustand Store 订阅设置（服务器优先缓存）
   const userSettings = useAppStore(state => state.userSettings);
   const guestConfig = useAppStore(state => state.guestConfig);
+  const userConfig = useAppStore(state => state.userConfig);
 
   // 合并获取完整设置
   const settings = useMemo(() => {

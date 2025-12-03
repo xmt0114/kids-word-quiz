@@ -56,6 +56,20 @@ export const createGameTextsSlice = (
 
     // 业务方法
     loadGames: async () => {
+        const state = get();
+        
+        // 如果已经有游戏数据且不在加载中，跳过重复请求
+        if (state.games && state.games.length > 0 && !state.gamesLoading) {
+            console.log('⏭️ [GameTextsSlice] 游戏列表已存在，跳过重复加载');
+            return;
+        }
+
+        // 如果正在加载中，也跳过
+        if (state.gamesLoading) {
+            console.log('⏭️ [GameTextsSlice] 游戏列表正在加载中，跳过重复请求');
+            return;
+        }
+
         console.log('📦 [GameTextsSlice] 开始加载游戏列表...');
         set({ gamesLoading: true, gamesError: null });
 

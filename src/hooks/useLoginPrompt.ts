@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuth } from './useAuth';
+import { useAppStore } from '../stores/appStore';
 
 interface UseLoginPromptOptions {
   action?: string; // 登录后要执行的操作描述，如"访问设置"
@@ -13,7 +13,9 @@ interface UseLoginPromptOptions {
  * 当用户登录成功后，会自动执行之前pending的回调
  */
 export function useLoginPrompt(options: UseLoginPromptOptions = {}) {
-  const { user, profile } = useAuth();
+  // 直接使用 Zustand store
+  const { session, profile } = useAppStore();
+  const user = session?.user ?? null;
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
     onLoginSuccess?: () => void;

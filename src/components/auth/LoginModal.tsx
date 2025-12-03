@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuthState } from '../../hooks/useAuth'
 import { Button } from '../Button'
 import { X } from 'lucide-react'
 
@@ -15,7 +15,7 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signIn } = useAuth()
+  const { signIn } = useAuthState()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

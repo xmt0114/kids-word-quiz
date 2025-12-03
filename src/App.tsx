@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './components/auth/AuthProvider';
+// AuthProvider 已移除，直接使用 Zustand store
 import { Gatekeeper } from './components/Gatekeeper';
 import { SetPasswordModal } from './components/SetPasswordModal';
-import { useAuth } from './hooks/useAuth';
+import { useAuthState } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
 import { HomePage } from './components/HomePage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
@@ -21,7 +21,8 @@ import { useAppStore } from './stores/appStore';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
-  const { user, profile, loading } = useAuth();
+  const { session, profile, authLoading: loading } = useAppStore();
+  const user = session?.user ?? null;
 
   // 如果正在加载认证状态，显示加载指示器
   if (loading) {
@@ -44,7 +45,8 @@ const ProtectedDataManagement = () => {
 
 // 邀请用户页面路由保护 - 仅管理员可访问
 const ProtectedInviteUser = () => {
-  const { user, profile, loading } = useAuth();
+  const { session, profile, authLoading: loading } = useAppStore();
+  const user = session?.user ?? null;
 
   // 如果正在加载认证状态，显示加载指示器
   if (loading) {
@@ -70,7 +72,12 @@ function AppContent() {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(true);
   // const [needsPasswordReset, setNeedsPasswordReset] = useState(false); // 已移除：使用 ResetPasswordPage 替代
-  const { user, profile, loading, checkPasswordSet } = useAuth();
+  // 直接使用 Zustand store 替代 useAuth
+  const { session, profile, authLoading: loading } = useAppStore();
+  const user = session?.user ?? null;
+  
+  // 从 useAuthState 获取 checkPasswordSet 方法
+  const { checkPasswordSet } = useAuthState();
   const { loginModal, closeLoginModal } = useAppStore();
 
   // 检查用户是否需要设置密码或重置密码
@@ -178,11 +185,9 @@ function AppContent() {
 // 根组件
 function App() {
   return (
-    <AuthProvider>
-      <Gatekeeper>
-        <AppContent />
-      </Gatekeeper>
-    </AuthProvider>
+    <Gatekeeper>
+      <AppContent />
+    </Gatekeeper>
   );
 }
 

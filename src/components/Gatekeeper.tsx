@@ -58,7 +58,7 @@ export function Gatekeeper({ children }: { children: React.ReactNode }) {
             console.log('✅ [Gatekeeper] 游客配置加载完成');
           }
 
-          // 加载游戏列表(包含 text_config)
+          // 加载游戏列表(包含 text_config) - 只在首次加载时执行
           console.log('🎮 [Gatekeeper] 加载游戏列表...');
           await useAppStore.getState().loadGames();
           console.log('✅ [Gatekeeper] 游戏列表加载完成');
@@ -95,10 +95,7 @@ export function Gatekeeper({ children }: { children: React.ReactNode }) {
           console.log('✅ [Gatekeeper] 游客配置加载完成');
         }
 
-        // 加载游戏列表(包含 text_config)
-        console.log('🎮 [Gatekeeper] 加载游戏列表...');
-        await useAppStore.getState().loadGames();
-        console.log('✅ [Gatekeeper] 游戏列表加载完成');
+        // 游戏列表已在首次加载时获取，无需重复加载
       } catch (error) {
         console.error('❌ [Gatekeeper] 数据加载失败:', error);
       }

@@ -5,7 +5,7 @@ import { Button } from './Button';
 import { QuizSettings, TTSSettings, Game } from '../types';
 import { useQuizSettings } from '../stores/appStore';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
-import { useAuth } from '../hooks/useAuth';
+// useAuth 已替换为直接使用 Zustand store
 import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
@@ -34,7 +34,9 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     const { settings, setSettings } = useQuizSettings(gameId, gameInfo?.default_config);
 
     const { voices, isLoaded: isVoicesLoaded } = useAvailableVoices();
-    const { user, profile } = useAuth();
+    // 直接使用 Zustand store
+    const { session, profile } = useAppStore();
+    const user = session?.user ?? null;
     const isLoggedIn = !!(user && profile);
     const isAdmin = profile?.role === 'admin';
 
@@ -56,23 +58,19 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         const loadGameInfo = async () => {
             if (!gameId) return;
 
-            setLoadingGame(true);
-            try {
-                if (wordAPI.getGames) {
-                    const response = await wordAPI.getGames();
-                    if (response.success && response.data) {
-                        const game = response.data.find(g => g.id === gameId);
-                        if (game) {
-                            setGameInfo(game);
-                        } else {
-                            // 如果找不到游戏，显示错误信息
-                            console.error(`Game not found: ${gameId}`);
-                        }
-                    }
+            // 从store获取游戏信息，避免重复请求
+            const { games } = useAppStore.getState();
+            if (games && games.length > 0) {
+                const game = games.find(g => g.id === gameId);
+                if (game) {
+                    setGameInfo(game);
+                } else {
+                    console.error(`Game not found: ${gameId}`);
                 }
-            } catch (error) {
-                console.error('Failed to load game info:', error);
-            } finally {
+                setLoadingGame(false);
+            } else {
+                // 如果store中还没有游戏数据，等待Gatekeeper加载完成
+                console.log('等待游戏数据加载...');
                 setLoadingGame(false);
             }
         };
