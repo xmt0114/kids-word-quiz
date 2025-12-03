@@ -56,10 +56,10 @@ const UniversalGamePage: React.FC = () => {
 
     // 从store获取游戏信息
     const { games } = useAppStore();
-    
+
     useEffect(() => {
         if (!gameId || !games) return;
-        
+
         const game = games.find(g => g.id === gameId);
         if (game) {
             setGameInfo(game);
@@ -458,13 +458,13 @@ const UniversalGamePage: React.FC = () => {
                         <Home size={22} />
                         返回首页
                     </Button>
-                    
+
                     <div className="text-center">
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                             {gameInfo?.title || '猜单词'}
                         </h1>
                     </div>
-                    
+
                     <div className="flex flex-col items-end">
                         <p className="text-sm font-medium text-text-secondary mb-2" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                             第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
@@ -499,7 +499,7 @@ const UniversalGamePage: React.FC = () => {
                                             ttsSettings={quizState.settings.tts}
                                         />
                                     </div>
-                                    
+
                                     {/* 题干内容区域 */}
                                     <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl px-6 py-10 mb-8 shadow-sm">
                                         {quizState.settings.showPinyin ? (
@@ -510,11 +510,11 @@ const UniversalGamePage: React.FC = () => {
                                                 language={gameInfo?.language as 'zh' | 'en'}
                                                 className={cn(
                                                     "block text-center",
-                                                    gameInfo?.language === 'zh' 
-                                                        ? "font-serif font-bold text-3xl leading-relaxed" 
+                                                    gameInfo?.language === 'zh'
+                                                        ? "font-serif font-bold text-3xl leading-relaxed"
                                                         : "text-4xl leading-tight"
                                                 )}
-                                                style={gameInfo?.language === 'en' ? { 
+                                                style={gameInfo?.language === 'en' ? {
                                                     fontFamily: 'Nunito, sans-serif',
                                                     lineHeight: '1.2',
                                                     letterSpacing: '0.01em',
@@ -565,15 +565,15 @@ const UniversalGamePage: React.FC = () => {
                                                     size="medium"
                                                     language={gameInfo?.language as 'zh' | 'en'}
                                                     className={cn(
-                                                        "text-3xl font-bold", 
+                                                        "text-3xl font-bold",
                                                         gameInfo?.language === 'zh' ? "font-serif" : ""
                                                     )}
-                                                    style={gameInfo?.language === 'en' ? { 
+                                                    style={gameInfo?.language === 'en' ? {
                                                         fontFamily: 'Fredoka, sans-serif',
                                                         letterSpacing: '0.02em',
                                                         fontWeight: '800'
-                                                    } : { 
-                                                        fontFamily: 'Noto Sans SC, Fredoka, sans-serif',
+                                                    } : {
+                                                        fontFamily: 'KaiTi, STKaiti, 楷体, serif',
                                                         fontWeight: '700'
                                                     }}
                                                 />

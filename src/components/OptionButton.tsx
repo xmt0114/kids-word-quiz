@@ -72,7 +72,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
       disabled={disabled}
       aria-pressed={isSelected}
     >
-      <span 
+      <span
         className={cn(
           "flex items-center gap-3 text-center",
           (isSelected || isCorrect || isWrong) && "drop-shadow-sm"

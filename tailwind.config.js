@@ -87,7 +87,7 @@ module.exports = {
 				'display': ['Fredoka', 'Baloo 2', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
 				'body': ['Fredoka', 'Nunito', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
 			},
-			
+
 			// 色彩系统
 			colors: {
 				// 主色 - 珊瑚红
@@ -97,7 +97,7 @@ module.exports = {
 					DEFAULT: '#ff6b6b',
 					foreground: '#ffffff',
 				},
-				
+
 				// 次要色 - 青绿色
 				secondary: {
 					500: '#4ecdc4',
@@ -105,19 +105,19 @@ module.exports = {
 					DEFAULT: '#4ecdc4',
 					foreground: '#ffffff',
 				},
-				
+
 				// 强调色 - 阳光黄
 				accent: {
 					500: '#ffe66d',
 					DEFAULT: '#ffe66d',
 					foreground: '#2d3748',
 				},
-				
+
 				// 语义色
 				success: '#51cf66',
 				error: '#ff5757',
 				warning: '#ffd43b',
-				
+
 				// 文字颜色
 				text: {
 					primary: '#2d3748',
@@ -125,13 +125,13 @@ module.exports = {
 					tertiary: '#718096',
 					inverse: '#ffffff',
 				},
-				
+
 				// 背景色
 				background: {
 					primary: '#fffbf0',
 					secondary: '#ffffff',
 				},
-				
+
 				// 保留原有的shadcn/ui颜色（兼容性）
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -154,7 +154,7 @@ module.exports = {
 					foreground: 'hsl(var(--card-foreground))',
 				},
 			},
-			
+
 			// 字体大小
 			fontSize: {
 				'hero': ['clamp(48px, 5vw + 1rem, 72px)', { lineHeight: '1.1' }],
@@ -167,14 +167,14 @@ module.exports = {
 				'button': ['clamp(17px, 0.5vw + 0.5rem, 20px)', { lineHeight: '1.2' }],
 				'small': ['clamp(15px, 0.25vw + 0.5rem, 16px)', { lineHeight: '1.5' }],
 			},
-			
+
 			// 字重
 			fontWeight: {
 				regular: 400,
 				semibold: 600,
 				bold: 700,
 			},
-			
+
 			// 间距系统（8pt网格）
 			spacing: {
 				'xs': '8px',
@@ -185,7 +185,7 @@ module.exports = {
 				'2xl': '64px',
 				'3xl': '96px',
 			},
-			
+
 			// 圆角系统
 			borderRadius: {
 				'sm': '16px',
@@ -193,7 +193,7 @@ module.exports = {
 				'lg': '32px',
 				'full': '50px',
 			},
-			
+
 			// 阴影系统
 			boxShadow: {
 				'sm': '0 4px 12px rgba(45, 55, 72, 0.08)',
@@ -201,31 +201,31 @@ module.exports = {
 				'card-hover': '0 16px 40px rgba(255, 107, 107, 0.25)',
 				'button': '0 8px 24px rgba(255, 107, 107, 0.35)',
 			},
-			
+
 			// 动画持续时间
 			transitionDuration: {
 				'fast': '150ms',
 				'normal': '300ms',
 				'slow': '500ms',
 			},
-			
+
 			// 缓动函数
 			transitionTimingFunction: {
 				'bounce': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 				'smooth': 'ease-out',
 			},
-			
+
 			// 尺寸标准
 			minHeight: {
 				'touch': '64px',
 				'button': '56px',
 				'input': '80px',
 			},
-			
+
 			minWidth: {
 				'touch': '64px',
 			},
-			
+
 			// 动画关键帧
 			keyframes: {
 				// 弹跳动画
@@ -234,61 +234,61 @@ module.exports = {
 					'50%': { transform: 'scale(1.05)' },
 					'100%': { transform: 'scale(1)' },
 				},
-				
+
 				// 脉搏动画（音频播放）
 				'pulse-gentle': {
 					'0%, 100%': { transform: 'scale(1)' },
 					'50%': { transform: 'scale(1.1)' },
 				},
-				
+
 				// 抖动动画（错误反馈）
 				'shake': {
 					'0%, 100%': { transform: 'translateX(0)' },
 					'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-10px)' },
 					'20%, 40%, 60%, 80%': { transform: 'translateX(10px)' },
 				},
-				
+
 				// 浮动动画（装饰元素）
 				'float': {
 					'0%, 100%': { transform: 'translateY(0px)' },
 					'50%': { transform: 'translateY(-20px)' },
 				},
-				
+
 				// 星星爆炸特效
 				'star-explosion': {
-					'0%': { 
+					'0%': {
 						transform: 'scale(0) rotate(0deg)',
 						opacity: '1'
 					},
-					'100%': { 
+					'100%': {
 						transform: 'scale(1) rotate(360deg)',
 						opacity: '0'
 					},
 				},
-				
+
 				// 页面切换动画
 				'slide-in-right': {
-					'0%': { 
+					'0%': {
 						transform: 'translateX(50px)',
 						opacity: '0'
 					},
-					'100%': { 
+					'100%': {
 						transform: 'translateX(0)',
 						opacity: '1'
 					},
 				},
-				
+
 				'slide-out-left': {
-					'0%': { 
+					'0%': {
 						transform: 'translateX(0)',
 						opacity: '1'
 					},
-					'100%': { 
+					'100%': {
 						transform: 'translateX(-50px)',
 						opacity: '0'
 					},
 				},
-				
+
 				// 保留原有的动画
 				'accordion-down': {
 					from: { height: 0 },
@@ -299,7 +299,7 @@ module.exports = {
 					to: { height: 0 },
 				},
 			},
-			
+
 			// 动画
 			animation: {
 				'bounce-in': 'bounce-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -309,7 +309,7 @@ module.exports = {
 				'star-explosion': 'star-explosion 600ms ease-out forwards',
 				'slide-in-right': 'slide-in-right 250ms ease-out',
 				'slide-out-left': 'slide-out-left 250ms ease-out',
-				
+
 				// 保留原有的动画
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
