@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // AuthProvider 已移除，直接使用 Zustand store
 import { Gatekeeper } from './components/Gatekeeper';
+import { cleanupLegacyQuizStats, debugStorageUsage } from './utils/storageCleanup';
 import { SetPasswordModal } from './components/SetPasswordModal';
 import { useAuthState } from './hooks/useAuth';
 import { LoginPage } from './components/auth/LoginPage';
@@ -184,6 +185,12 @@ function AppContent() {
 
 // 根组件
 function App() {
+  // 应用启动时清理旧的localStorage数据
+  useEffect(() => {
+    cleanupLegacyQuizStats();
+    debugStorageUsage();
+  }, []);
+
   return (
     <Gatekeeper>
       <AppContent />

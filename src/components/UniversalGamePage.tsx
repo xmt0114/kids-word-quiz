@@ -13,7 +13,7 @@ import { PinyinText } from './PinyinText';
 import { AutoSizeText } from './AutoSizeText';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
-import { useQuizStats } from '../hooks/useLocalStorage';
+// localStorage统计已移除，使用后端进度系统
 import { wordAPI } from '../utils/api';
 import useAppStore from '@/stores/appStore';
 
@@ -21,7 +21,7 @@ const UniversalGamePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { gameId } = useParams<{ gameId: string }>();
-    const { updateStats } = useQuizStats();
+    // 使用后端进度系统，不再需要本地统计
 
     // 从路由状态获取设置 - 只信任路由传递的设置
     const { settings: routeSettings, collectionId, questions: passedQuestions, isReplay } = location.state || {};
@@ -255,7 +255,7 @@ const UniversalGamePage: React.FC = () => {
         if (quizState.currentQuestionIndex >= quizState.questions.length - 1) {
             // 所有题目完成，显示结果
             const result = getResult();
-            updateStats(result.correctAnswers, result.totalQuestions);
+            // 统计数据现在通过后端进度系统管理，无需本地更新
 
             // 提交答题结果到后端 - 只在非replay模式下提交
             if (!isReplay) {

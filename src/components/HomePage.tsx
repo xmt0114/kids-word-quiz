@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { useAppStore } from '../stores/appStore';
 // useAuth 已替换为直接使用 Zustand store
 import { QuizSettings, Game } from '../types';
+import { wordAPI } from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
