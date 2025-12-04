@@ -11,6 +11,7 @@ import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookO
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
 import { AutoSizeText } from './AutoSizeText';
+import { GameTimer } from './GameTimer';
 import { cn } from '../lib/utils';
 import { useQuiz } from '../hooks/useQuiz';
 // localStorage统计已移除，使用后端进度系统
@@ -269,6 +270,20 @@ const UniversalGamePage: React.FC = () => {
                 }
             }
 
+            // 构建详细的题目结果数据
+            const questionResults = quizState.results?.map((result, index) => ({
+                questionIndex: index,
+                question: quizState.questions[index],
+                userAnswer: result?.answer || '未作答',
+                isCorrect: result?.isCorrect || false,
+                timeSpent: result?.timeSpent // 使用真实的单题计时
+            })) || [];
+
+            // 计算总用时
+            const totalTimeSpent = quizState.startTime 
+                ? (Date.now() - quizState.startTime) / 1000 
+                : undefined;
+
             // 导航到结果页
             navigate(`/games/${gameId}/result`, {
                 state: {
@@ -276,7 +291,11 @@ const UniversalGamePage: React.FC = () => {
                     settings: routeSettings,
                     collectionId,
                     questions: quizState.questions, // 传递本轮单词列表
-                    gameId // 传递 gameId
+                    questionResults, // 传递真实的答题结果
+                    gameId, // 传递 gameId
+                    startTime: quizState.startTime, // 传递开始时间
+                    endTime: Date.now(), // 传递结束时间
+                    timeSpent: totalTimeSpent // 传递总用时
                 }
             });
         } else {
@@ -466,9 +485,16 @@ const UniversalGamePage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-end">
-                        <p className="text-sm font-medium text-text-secondary mb-2" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
-                            第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
-                        </p>
+                        <div className="flex items-center gap-4 mb-2">
+                            <GameTimer 
+                                startTime={quizState.startTime}
+                                size="medium"
+                                className="text-text-secondary"
+                            />
+                            <p className="text-sm font-medium text-text-secondary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                                第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
+                            </p>
+                        </div>
                         <ProgressBar
                             current={quizState.currentQuestionIndex + 1}
                             total={quizState.questions.length}

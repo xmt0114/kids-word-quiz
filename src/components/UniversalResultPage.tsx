@@ -2,18 +2,25 @@ import React from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
-import { StarExplosion } from './StarExplosion';
-import { Trophy, RotateCcw, Home, BookOpen, Target, Award } from 'lucide-react';
-import { cn } from '../lib/utils';
-
-
-interface QuizResult {
-  correctAnswers: number;
-  totalQuestions: number;
-  accuracy: number;
-  timeSpent?: number;
-  score?: number;
-}
+import { StarResultCard } from './StarResultCard';
+import { DetailedStatsGrid } from './DetailedStatsGrid';
+import { QuestionOverviewSection } from './QuestionOverviewSection';
+import { Trophy, RotateCcw, Home, Target } from 'lucide-react';
+import { 
+  calculateGrade, 
+  calculateDetailedStats, 
+  shouldShowCelebration,
+  getEncouragementMessage,
+  validateQuizResult,
+  sanitizeQuestionResults,
+  getAchievementInfo,
+  sanitizeDetailedStats
+} from '../utils/resultCalculations';
+import { 
+  EnhancedQuizResult, 
+  QuestionResult, 
+  QuizResult 
+} from '../types/index';
 
 interface UniversalResultPageProps {
   // 如果没有通过路由状态传递结果，可以作为props传入
@@ -25,13 +32,52 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
 
-
   // 从路由状态获取结果和设置
-  const { result: routeResult, settings, collectionId, questions } = location.state || {};
+  const { 
+    result: routeResult, 
+    settings, 
+    collectionId, 
+    questions,
+    questionResults,
+    startTime,
+    endTime,
+    timeSpent
+  } = location.state || {};
+  
   const result = propResult || routeResult;
 
-  // 如果没有结果数据，显示错误信息
-  if (!result) {
+  // 如果没有questionResults但有questions，创建模拟的questionResults
+  const createMockQuestionResults = (): QuestionResult[] => {
+    if (!questions || !Array.isArray(questions)) return [];
+    
+    // 创建一个随机分布的正确/错误答案模式，而不是简单的前N个正确
+    const correctCount = result.correctAnswers;
+    const totalCount = result.totalQuestions;
+    
+    // 创建一个包含正确答案索引的数组
+    const correctIndices = new Set<number>();
+    
+    // 随机选择正确答案的位置
+    while (correctIndices.size < correctCount && correctIndices.size < totalCount) {
+      const randomIndex = Math.floor(Math.random() * totalCount);
+      correctIndices.add(randomIndex);
+    }
+    
+    return questions.slice(0, totalCount).map((question, index) => {
+      const isCorrect = correctIndices.has(index);
+      return {
+        questionIndex: index,
+        question,
+        userAnswer: isCorrect ? question.answer : `错误答案${index + 1}`, // 为错误答案生成模拟的错误回答
+        isCorrect,
+        timeSpent: undefined
+      };
+    });
+  };
+
+  // 验证结果数据
+  const validation = validateQuizResult(result);
+  if (!validation.isValid) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 flex items-center justify-center p-lg">
         <Card className="text-center p-xl max-w-md">
@@ -40,7 +86,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
             无法显示结果
           </h2>
           <p className="text-body text-text-secondary mb-lg">
-            没有找到游戏结果数据
+            {validation.errors.join(', ') || '没有找到游戏结果数据'}
           </p>
           <Button onClick={() => navigate('/')}>
             返回首页
@@ -50,18 +96,29 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
     );
   }
 
-  const { correctAnswers, totalQuestions, accuracy } = result;
+  // 处理和清理题目结果数据
+  const sanitizedQuestionResults = sanitizeQuestionResults(
+    questionResults, 
+    result.totalQuestions, 
+    result.correctAnswers
+  );
 
-  // 计算评级
-  const getGrade = () => {
-    if (accuracy >= 90) return { grade: 'S', color: 'text-yellow-500', bg: 'bg-yellow-100', desc: '完美表现！' };
-    if (accuracy >= 80) return { grade: 'A', color: 'text-green-500', bg: 'bg-green-100', desc: '非常出色！' };
-    if (accuracy >= 70) return { grade: 'B', color: 'text-blue-500', bg: 'bg-blue-100', desc: '表现良好！' };
-    if (accuracy >= 60) return { grade: 'C', color: 'text-orange-500', bg: 'bg-orange-100', desc: '还需努力！' };
-    return { grade: 'D', color: 'text-red-500', bg: 'bg-red-100', desc: '继续加油！' };
+  // 构建增强的结果数据
+  const enhancedResult: EnhancedQuizResult = {
+    ...result,
+    questionResults: sanitizedQuestionResults,
+    startTime,
+    endTime,
+    timeSpent
   };
 
-  const gradeInfo = getGrade();
+  // 使用新的计算函数
+  const gradeInfo = calculateGrade(result.accuracy);
+  const rawDetailedStats = calculateDetailedStats(enhancedResult);
+  const detailedStats = sanitizeDetailedStats(rawDetailedStats);
+  const showCelebration = shouldShowCelebration(gradeInfo, result.accuracy);
+  const encouragementMessage = getEncouragementMessage(result.accuracy, result.totalQuestions);
+  const achievementInfo = getAchievementInfo(result.accuracy, result.totalQuestions, detailedStats.longestStreak || 0);
 
   // 重新开始游戏（使用相同单词，不更新进度）
   const handleRestart = () => {
@@ -100,129 +157,77 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
-      <div className="max-w-4xl mx-auto">
-        {/* 页面标题 */}
-        <div className="text-center mb-xl">
-          <div className="relative">
-            <StarExplosion isVisible={true} />
-            <h1 className="text-hero font-bold text-text-primary mb-md animate-slide-in-right">
-              游戏完成！
-            </h1>
-            <p className="text-h2 text-text-secondary font-semibold">
-              看看你的表现如何
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen result-page-gradient p-sm md:p-lg result-page-compact">
+      <div className="max-w-4xl mx-auto space-y-sm">
+        {/* 星级结果卡片 */}
+        <StarResultCard
+          accuracy={result.accuracy}
+          encouragementMessage={encouragementMessage}
+          showCelebration={showCelebration}
+        />
 
-        {/* 主要结果卡片 */}
-        <Card className="p-xl mb-lg text-center">
-          {/* 评级徽章 */}
-          <div className="mb-lg">
-            <div className={cn(
-              'w-24 h-24 mx-auto rounded-full flex items-center justify-center text-4xl font-bold mb-md',
-              gradeInfo.bg,
-              gradeInfo.color
-            )}>
-              {gradeInfo.grade}
-            </div>
-            <h2 className={cn('text-h2 font-bold mb-sm', gradeInfo.color)}>
-              {gradeInfo.desc}
-            </h2>
-            <p className="text-body text-text-secondary">
-              准确率 {accuracy.toFixed(1)}%
-            </p>
-          </div>
+        {/* 详细统计网格 */}
+        <DetailedStatsGrid
+          correctAnswers={result.correctAnswers}
+          totalQuestions={result.totalQuestions}
+          accuracy={result.accuracy}
+          timeSpent={enhancedResult.timeSpent}
+          averageTimePerQuestion={detailedStats.averageTimePerQuestion}
+          longestStreak={detailedStats.longestStreak}
+          className="stats-card-hover"
+        />
 
-          {/* 分数统计 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg mb-lg">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-sm">
-                <Target size={32} className="text-green-500" />
-              </div>
-              <h3 className="text-h3 font-bold text-text-primary">{correctAnswers}</h3>
-              <p className="text-small text-text-secondary">正确题数</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-sm">
-                <BookOpen size={32} className="text-blue-500" />
-              </div>
-              <h3 className="text-h3 font-bold text-text-primary">{totalQuestions}</h3>
-              <p className="text-small text-text-secondary">总题数</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-sm">
-                <Award size={32} className="text-purple-500" />
-              </div>
-              <h3 className="text-h3 font-bold text-text-primary">{accuracy.toFixed(1)}%</h3>
-              <p className="text-small text-text-secondary">准确率</p>
-            </div>
-          </div>
-
-          {/* 详细统计 */}
-          <div className="bg-gray-50 rounded-lg p-md">
-            <div className="flex justify-between items-center">
-              <span className="text-body text-text-secondary">错误题数</span>
-              <span className="text-h3 font-bold text-red-500">
-                {totalQuestions - correctAnswers}
-              </span>
-            </div>
-          </div>
-        </Card>
+        {/* 题目概览区域 */}
+        {enhancedResult.questionResults && enhancedResult.questionResults.length > 0 && (
+          <QuestionOverviewSection
+            questionResults={enhancedResult.questionResults}
+          />
+        )}
 
         {/* 操作按钮 */}
-        <div className="flex flex-col md:flex-row gap-md justify-center">
+        <div className="flex flex-col md:flex-row gap-sm justify-center pt-md">
           <Button
-            size="large"
+            size="default"
             onClick={handleRestart}
             className="flex items-center gap-sm"
           >
-            <RotateCcw size={24} />
+            <RotateCcw size={16} />
             重来一局
           </Button>
 
           <Button
             variant="secondary"
-            size="large"
+            size="default"
             onClick={handleBackToHome}
             className="flex items-center gap-sm"
           >
-            <Home size={20} />
+            <Home size={16} />
             返回首页
           </Button>
 
           <Button
-            size="large"
-            variant="primary" // Highlight "Continue Game"
+            size="default"
+            variant="primary"
             onClick={handleContinueGame}
             className="flex items-center gap-sm bg-green-600 hover:bg-green-700"
           >
-            <Target size={24} />
+            <Target size={16} />
             继续游戏
           </Button>
-
-
         </div>
 
-        {/* 鼓励信息 */}
-        <div className="text-center mt-xl">
-          <Card className="p-lg bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
-            <div className="flex items-center justify-center gap-sm mb-sm">
-              <Trophy size={24} className="text-yellow-500" />
-              <h3 className="text-h3 font-bold text-text-primary">继续努力！</h3>
+        {/* 成就信息（如果有特殊成就） */}
+        {achievementInfo.hasAchievement && (
+          <Card className="p-md bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-center achievement-pulse">
+            <div className="flex items-center justify-center gap-sm">
+              <span className="text-2xl animate-bounce-in">{achievementInfo.icon}</span>
+              <div className="text-left">
+                <div className="text-base font-bold text-amber-700">{achievementInfo.title}</div>
+                <div className="text-sm text-amber-600">{achievementInfo.description}</div>
+              </div>
             </div>
-            <p className="text-body text-text-secondary">
-              {accuracy >= 80
-                ? '你的表现非常出色！继续保持这个水平。'
-                : accuracy >= 60
-                  ? '不错的开始！多练习会有更好的成绩。'
-                  : '不要气馁，多练习就会进步的！'
-              }
-            </p>
           </Card>
-        </div>
+        )}
       </div>
     </div>
   );

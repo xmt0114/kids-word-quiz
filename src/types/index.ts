@@ -115,6 +115,7 @@ export interface QuizAnswerResult {
   wordId: number;
   answer: string;
   isCorrect: boolean;
+  timeSpent?: number; // 单题用时(秒)
 }
 
 export interface QuizState {
@@ -125,6 +126,8 @@ export interface QuizState {
   results?: QuizAnswerResult[]; // 答题结果记录
   isCompleted: boolean;
   score: number;
+  startTime?: number; // 游戏开始时间戳
+  currentQuestionStartTime?: number; // 当前题目开始时间戳
 }
 
 export interface QuizResult {
@@ -133,6 +136,32 @@ export interface QuizResult {
   score: number;
   accuracy: number;
   wrongAnswers?: Word[];
+}
+
+// 增强的游戏结果页面数据接口
+export interface QuestionResult {
+  questionIndex: number;
+  question: Word;
+  userAnswer: string;
+  isCorrect: boolean;
+  timeSpent?: number; // 单题用时(秒)
+}
+
+export interface GradeInfo {
+  grade: 'S' | 'A' | 'B' | 'C' | 'D';
+  color: string;
+  bgColor: string;
+  description: string;
+  celebrationLevel: 'high' | 'medium' | 'low';
+}
+
+export interface EnhancedQuizResult extends QuizResult {
+  timeSpent?: number;           // 游戏总用时(秒)
+  averageTimePerQuestion?: number; // 平均每题用时(秒)
+  longestStreak?: number;       // 最长连续正确记录
+  questionResults?: QuestionResult[]; // 每题详细结果
+  startTime?: number;           // 游戏开始时间戳
+  endTime?: number;             // 游戏结束时间戳
 }
 
 // 组件Props类型
@@ -185,6 +214,45 @@ export interface ProgressBarProps {
   className?: string;
 }
 
+// 游戏结果页面组件Props类型
+export interface CompactHeaderProps {
+  title: string;
+  subtitle?: string;
+  className?: string;
+}
+
+export interface GradeDisplayCardProps {
+  gradeInfo: GradeInfo;
+  accuracy: number;
+  showCelebration: boolean;
+  className?: string;
+}
+
+export interface DetailedStatsGridProps {
+  correctAnswers: number;
+  totalQuestions: number;
+  accuracy: number;
+  timeSpent?: number;
+  averageTimePerQuestion?: number;
+  longestStreak?: number;
+  className?: string;
+}
+
+export interface QuestionCircleProps {
+  questionNumber: number;
+  isCorrect: boolean;
+  question: Word;
+  userAnswer: string;
+  animationDelay: number;
+  className?: string;
+  onHover?: (question: Word, userAnswer: string) => void;
+}
+
+export interface QuestionOverviewSectionProps {
+  questionResults: QuestionResult[];
+  className?: string;
+}
+
 // Speech Synthesis类型
 export interface SpeechSynthesisOptions {
   text: string;
@@ -228,4 +296,28 @@ export interface ThemeConfig {
   spacing: Record<string, string>;
   borderRadius: Record<string, string>;
   shadows: Record<string, string>;
+}
+
+// 统计计算结果类型
+export interface DetailedStats {
+  averageTimePerQuestion?: number;
+  longestStreak: number;
+  formattedTime?: string;
+  accuracyDisplay: string; // 格式化的准确率显示 (如 "85% (17/20)")
+}
+
+// 时间格式化选项
+export interface TimeFormatOptions {
+  showHours?: boolean;
+  showMilliseconds?: boolean;
+  format?: 'mm:ss' | 'h:mm:ss' | 'compact';
+}
+
+// 悬浮提示内容类型
+export interface TooltipContent {
+  question: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  timeSpent?: string;
 }

@@ -15,6 +15,8 @@ export function useQuiz() {
     answers: [],
     isCompleted: false,
     score: 0,
+    startTime: undefined,
+    currentQuestionStartTime: undefined,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +61,7 @@ export function useQuiz() {
         throw new Error('没有有效的题目数据');
       }
 
+      const now = Date.now();
       setQuizState({
         settings,
         currentQuestionIndex: 0,
@@ -67,6 +70,8 @@ export function useQuiz() {
         results: new Array(validWords.length).fill(null),
         isCompleted: false,
         score: 0,
+        startTime: now,
+        currentQuestionStartTime: now,
       });
 
       setRetryCount(0);
@@ -120,12 +125,19 @@ export function useQuiz() {
       const currentWord = prev.questions[prev.currentQuestionIndex];
       const isCorrect = answer.toLowerCase().trim() === currentWord.answer.toLowerCase().trim();
 
+      // 计算单题用时
+      const now = Date.now();
+      const timeSpent = prev.currentQuestionStartTime 
+        ? (now - prev.currentQuestionStartTime) / 1000 
+        : undefined;
+
       // 创建或更新答题结果记录
       const newResults = [...(prev.results || [])];
       newResults[prev.currentQuestionIndex] = {
         wordId: currentWord.id,
         answer: answer,
-        isCorrect: isCorrect
+        isCorrect: isCorrect,
+        timeSpent: timeSpent
       };
 
       let newScore = prev.score;
@@ -152,6 +164,7 @@ export function useQuiz() {
         ...prev,
         currentQuestionIndex: newIndex,
         isCompleted,
+        currentQuestionStartTime: isCompleted ? prev.currentQuestionStartTime : Date.now(),
       };
     });
   }, []);
@@ -161,17 +174,22 @@ export function useQuiz() {
     setQuizState(prev => ({
       ...prev,
       currentQuestionIndex: Math.max(prev.currentQuestionIndex - 1, 0),
+      currentQuestionStartTime: Date.now(), // 重新开始计时
     }));
   }, []);
 
   // 重新开始
   const restartQuiz = useCallback(() => {
+    const now = Date.now();
     setQuizState(prev => ({
       ...prev,
       currentQuestionIndex: 0,
       answers: new Array(prev.questions.length).fill(null),
+      results: new Array(prev.questions.length).fill(null),
       isCompleted: false,
       score: 0,
+      startTime: now,
+      currentQuestionStartTime: now,
     }));
     setError(null);
   }, []);
@@ -209,6 +227,18 @@ export function useQuiz() {
     return Math.round((quizState.currentQuestionIndex / quizState.questions.length) * 100);
   }, [quizState.currentQuestionIndex, quizState.questions.length]);
 
+  // 获取总用时（秒）
+  const getTotalTime = useCallback((): number => {
+    if (!quizState.startTime) return 0;
+    return (Date.now() - quizState.startTime) / 1000;
+  }, [quizState.startTime]);
+
+  // 获取当前题目用时（秒）
+  const getCurrentQuestionTime = useCallback((): number => {
+    if (!quizState.currentQuestionStartTime) return 0;
+    return (Date.now() - quizState.currentQuestionStartTime) / 1000;
+  }, [quizState.currentQuestionStartTime]);
+
   // 清除错误
   const clearError = useCallback(() => {
     setError(null);
@@ -237,6 +267,8 @@ export function useQuiz() {
     getResult,
     getProgress,
     checkAnswer,
+    getTotalTime,
+    getCurrentQuestionTime,
 
     // 常量
     totalQuestions: TOTAL_QUESTIONS,
