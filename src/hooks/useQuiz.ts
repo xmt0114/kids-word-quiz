@@ -162,6 +162,33 @@ export function useQuiz() {
     });
   }, []);
 
+  // 重置指定题目的状态
+  const resetQuestion = useCallback((index: number) => {
+    setQuizState(prev => {
+      const newAnswers = [...prev.answers];
+      const newResults = prev.results ? [...prev.results] : [];
+      let newScore = prev.score;
+
+      // 如果之前该题答对了，需要减去分数
+      // 注意：这里的逻辑假设我们只在当前题重置，且只影响 score
+      // 如果之前的答案是正确的，我们应该从总分中减去
+      if (newResults[index]?.isCorrect) {
+        newScore = Math.max(0, newScore - 1);
+      }
+
+      // 清除该题的答案和结果
+      newAnswers[index] = null;
+      newResults[index] = null as any; // 或者undefined，取决于类型定义，这里用null占位
+
+      return {
+        ...prev,
+        answers: newAnswers,
+        results: newResults,
+        score: newScore,
+      };
+    });
+  }, []);
+
   // 获取下一题
   const nextQuestion = useCallback(() => {
     setQuizState(prev => {
@@ -267,6 +294,7 @@ export function useQuiz() {
     nextQuestion,
     previousQuestion,
     restartQuiz,
+    resetQuestion, // Export resetQuestion
     clearError,
     setError, // Export setError
 

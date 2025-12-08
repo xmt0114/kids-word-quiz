@@ -44,6 +44,7 @@ const UniversalGamePage: React.FC = () => {
         getResult,
         restartQuiz,
         setError,
+        resetQuestion,
     } = useQuiz();
 
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
@@ -269,11 +270,25 @@ const UniversalGamePage: React.FC = () => {
     }, [quizState.currentQuestionIndex, quizState.answers, quizState.results, quizState.settings.answerType]);
 
     // 处理提交答案
+    // 重置当前题目
+    const handleResetQuestion = () => {
+        // 清除状态
+        setSelectedAnswer('');
+        setInputAnswer('');
+        setShowResult(false);
+        setIsCorrect(false);
+        setShowStarExplosion(false);
+
+        // 调用 useQuiz 提供的 resetQuestion 方法清除全局状态
+        resetQuestion(quizState.currentQuestionIndex);
+    };
+
+    // 处理提交答案
     const handleSubmitAnswer = (answer: string) => {
-        // 如果已经有结果了，不允许重复提交（双重保险）
-        if (quizState.results && quizState.results[quizState.currentQuestionIndex]) {
-            return;
-        }
+        // 移除锁定逻辑，允许重答
+        // if (quizState.results && quizState.results[quizState.currentQuestionIndex]) {
+        //    return;
+        // }
 
         submitAnswer(answer);
         setShowResult(true);
@@ -498,9 +513,15 @@ const UniversalGamePage: React.FC = () => {
     }
 
     const handleAnswerSubmit = () => {
-        const answer = quizState.settings.answerType === 'choice' ? selectedAnswer : inputAnswer;
-        if (answer.trim()) {
-            handleSubmitAnswer(answer);
+        if (showResult) {
+            // 如果已显示结果，点击按钮为重置功能
+            handleResetQuestion();
+        } else {
+            // 否则为提交功能
+            const answer = quizState.settings.answerType === 'choice' ? selectedAnswer : inputAnswer;
+            if (answer.trim()) {
+                handleSubmitAnswer(answer);
+            }
         }
     };
 
@@ -662,51 +683,35 @@ const UniversalGamePage: React.FC = () => {
 
                             ) : (
                                 // 填空题
-                                <div className="space-y-md">
-                                    <Input
-                                        value={inputAnswer}
-                                        onChange={(value) => setInputAnswer(value)}
-                                        placeholder="请输入你的答案..."
-                                        disabled={showResult}
-                                        onSubmit={() => {
-                                            if (!showResult) {
-                                                handleAnswerSubmit();
-                                            }
-                                        }}
-                                    />
-
-                                </div>
-                            )}
-
-                            {/* 答题结果 */}
-                            {showResult && (
-                                <div className={cn(
-                                    'flex items-center justify-center gap-sm p-md rounded-lg',
-                                    isCorrect ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'
-                                )}>
-                                    {isCorrect ? (
-                                        <>
-                                            <CheckCircle size={24} className="text-green-500" />
-                                            <span className="text-h3 font-bold text-green-600">回答正确</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <XCircle size={24} className="text-red-500" />
-                                            <span className="text-h3 font-bold text-red-600">再试一次吧</span>
-                                        </>
-                                    )}
-
-                                    {/* 只有填空题才显示答案 */}
-                                    {quizState.settings.answerType === 'fill' && (
-                                        <span className={cn(
-                                            'text-h3 font-bold',
-                                            isCorrect ? 'text-green-600' : 'text-red-600'
-                                        )}>
-                                            正确答案：{currentWord.answer}
-                                        </span>
+                                <div className="space-y-md flex items-center gap-md">
+                                    <div className="flex-1">
+                                        <Input
+                                            value={inputAnswer}
+                                            onChange={(value) => setInputAnswer(value)}
+                                            placeholder="请输入你的答案..."
+                                            disabled={showResult}
+                                            isCorrect={showResult && isCorrect}
+                                            isWrong={showResult && !isCorrect}
+                                            onSubmit={() => {
+                                                if (!showResult) {
+                                                    // 获取最新的 inputAnswer
+                                                    if (inputAnswer.trim()) {
+                                                        handleSubmitAnswer(inputAnswer);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    {/* 填空题错误时显示正确答案 */}
+                                    {showResult && !isCorrect && (
+                                        <div className="text-xl font-bold text-green-600 animate-in fade-in slide-in-from-left-4 shrink-0 whitespace-nowrap">
+                                            {currentWord.answer}
+                                        </div>
                                     )}
                                 </div>
                             )}
+
+                            {/* 移除原本的反馈信息区域 */}
                         </div>
                     </div>
 
@@ -726,13 +731,38 @@ const UniversalGamePage: React.FC = () => {
                             <Button
                                 onClick={handleAnswerSubmit}
                                 disabled={
-                                    (quizState.settings.answerType === 'choice' && !selectedAnswer) ||
-                                    (quizState.settings.answerType === 'fill' && !inputAnswer.trim())
+                                    !showResult && (
+                                        (quizState.settings.answerType === 'choice' && !selectedAnswer) ||
+                                        (quizState.settings.answerType === 'fill' && !inputAnswer.trim())
+                                    )
                                 }
-                                className="flex items-center gap-sm"
+                                className={cn(
+                                    "flex items-center gap-sm transition-all duration-300",
+                                    showResult
+                                        ? isCorrect
+                                            ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                                            : "bg-red-50 text-red-500 border-2 border-red-200 hover:bg-red-100" // 错误状态下：红字，淡红背景，红边框
+                                        : "" // 默认样式通过 Button 组件处理
+                                )}
                             >
-                                <CheckCircle size={20} />
-                                提交答案
+                                {showResult ? (
+                                    isCorrect ? (
+                                        <>
+                                            <CheckCircle size={20} />
+                                            回答正确
+                                        </>
+                                    ) : (
+                                        <>
+                                            <XCircle size={20} />
+                                            再试一次
+                                        </>
+                                    )
+                                ) : (
+                                    <>
+                                        <CheckCircle size={20} />
+                                        提交答案
+                                    </>
+                                )}
                             </Button>
 
                             <Button
