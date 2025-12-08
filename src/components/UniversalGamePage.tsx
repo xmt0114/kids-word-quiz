@@ -54,6 +54,7 @@ const UniversalGamePage: React.FC = () => {
     const [viewportHeight, setViewportHeight] = useState(0);
     const [isInitializing, setIsInitializing] = useState(false);
     const [gameInfo, setGameInfo] = useState<Game | null>(null);
+    const [showUnansweredModal, setShowUnansweredModal] = useState(false);
 
     // 从store获取游戏信息
     const { games } = useAppStore();
@@ -236,8 +237,44 @@ const UniversalGamePage: React.FC = () => {
 
     const currentWord = getCurrentQuestion();
 
+    // 监听题目索引变化，恢复答题状态
+    useEffect(() => {
+        const index = quizState.currentQuestionIndex;
+        const savedAnswer = quizState.answers[index];
+        const savedResult = quizState.results ? quizState.results[index] : null;
+
+        if (savedAnswer) {
+            // 如果已有保存的答案，恢复状态
+            if (quizState.settings.answerType === 'choice') {
+                setSelectedAnswer(savedAnswer);
+            } else {
+                setInputAnswer(savedAnswer);
+            }
+        } else {
+            // 没有答案则清空
+            setSelectedAnswer('');
+            setInputAnswer('');
+        }
+
+        if (savedResult) {
+            // 如果已有结果，显示结果并锁定
+            setShowResult(true);
+            setIsCorrect(savedResult.isCorrect);
+        } else {
+            // 没有结果则重置为未答题状态
+            setShowResult(false);
+            setIsCorrect(false);
+            setShowStarExplosion(false); // 切换题目时重置特效
+        }
+    }, [quizState.currentQuestionIndex, quizState.answers, quizState.results, quizState.settings.answerType]);
+
     // 处理提交答案
     const handleSubmitAnswer = (answer: string) => {
+        // 如果已经有结果了，不允许重复提交（双重保险）
+        if (quizState.results && quizState.results[quizState.currentQuestionIndex]) {
+            return;
+        }
+
         submitAnswer(answer);
         setShowResult(true);
 
@@ -252,66 +289,76 @@ const UniversalGamePage: React.FC = () => {
     };
 
     // 处理下一题
+    // 完成游戏逻辑
+    const finishQuiz = async () => {
+        // 所有题目完成，显示结果
+        const result = getResult();
+        // 统计数据现在通过后端进度系统管理，无需本地更新
+
+        // 提交答题结果到后端 - 只在非replay模式下提交
+        if (!isReplay) {
+            console.log('[GamePage] 提交答题结果到后端...', quizState.results);
+            const submitResult = await submitResults(quizState.results);
+
+            if (!submitResult.success) {
+                console.warn('[GamePage] 提交答题结果失败:', submitResult.error);
+            } else {
+                console.log('[GamePage] 答题结果提交成功');
+            }
+        }
+
+        // 构建详细的题目结果数据
+        const questionResults = quizState.results?.map((result, index) => ({
+            questionIndex: index,
+            question: quizState.questions[index],
+            userAnswer: result?.answer || '未作答',
+            isCorrect: result?.isCorrect || false,
+            timeSpent: result?.timeSpent // 使用真实的单题计时
+        })) || [];
+
+        // 计算总用时
+        const totalTimeSpent = quizState.startTime
+            ? (Date.now() - quizState.startTime) / 1000
+            : undefined;
+
+        // 导航到结果页
+        navigate(`/games/${gameId}/result`, {
+            state: {
+                result,
+                settings: routeSettings,
+                collectionId,
+                questions: quizState.questions, // 传递本轮单词列表
+                questionResults, // 传递真实的答题结果
+                gameId, // 传递 gameId
+                startTime: quizState.startTime, // 传递开始时间
+                endTime: Date.now(), // 传递结束时间
+                timeSpent: totalTimeSpent // 传递总用时
+            }
+        });
+    };
+
+    // 处理下一题
     const handleNextQuestion = async () => {
         if (quizState.currentQuestionIndex >= quizState.questions.length - 1) {
-            // 所有题目完成，显示结果
-            const result = getResult();
-            // 统计数据现在通过后端进度系统管理，无需本地更新
+            // 检查是否有未作答的题目
+            const unansweredCount = quizState.answers.filter(a => a === null).length;
 
-            // 提交答题结果到后端 - 只在非replay模式下提交
-            if (!isReplay) {
-                console.log('[GamePage] 提交答题结果到后端...', quizState.results);
-                const submitResult = await submitResults(quizState.results);
-
-                if (!submitResult.success) {
-                    console.warn('[GamePage] 提交答题结果失败:', submitResult.error);
-                } else {
-                    console.log('[GamePage] 答题结果提交成功');
-                }
+            if (unansweredCount > 0) {
+                setShowUnansweredModal(true);
+                return;
             }
 
-            // 构建详细的题目结果数据
-            const questionResults = quizState.results?.map((result, index) => ({
-                questionIndex: index,
-                question: quizState.questions[index],
-                userAnswer: result?.answer || '未作答',
-                isCorrect: result?.isCorrect || false,
-                timeSpent: result?.timeSpent // 使用真实的单题计时
-            })) || [];
-
-            // 计算总用时
-            const totalTimeSpent = quizState.startTime 
-                ? (Date.now() - quizState.startTime) / 1000 
-                : undefined;
-
-            // 导航到结果页
-            navigate(`/games/${gameId}/result`, {
-                state: {
-                    result,
-                    settings: routeSettings,
-                    collectionId,
-                    questions: quizState.questions, // 传递本轮单词列表
-                    questionResults, // 传递真实的答题结果
-                    gameId, // 传递 gameId
-                    startTime: quizState.startTime, // 传递开始时间
-                    endTime: Date.now(), // 传递结束时间
-                    timeSpent: totalTimeSpent // 传递总用时
-                }
-            });
+            await finishQuiz();
         } else {
             nextQuestion();
-            setShowResult(false);
-            setSelectedAnswer('');
-            setInputAnswer('');
+            // 注意：状态重置现在由 useEffect 根据 index 变化自动处理
         }
     };
 
     // 处理上一题
     const handlePreviousQuestion = () => {
         previousQuestion();
-        setShowResult(false);
-        setSelectedAnswer('');
-        setInputAnswer('');
+        // 注意：状态重置现在由 useEffect 根据 index 变化自动处理
     };
 
     // 处理返回首页
@@ -486,7 +533,7 @@ const UniversalGamePage: React.FC = () => {
 
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-4 mb-2">
-                            <GameTimer 
+                            <GameTimer
                                 startTime={quizState.startTime}
                                 size="medium"
                                 className="text-text-secondary"
@@ -699,6 +746,42 @@ const UniversalGamePage: React.FC = () => {
                     </div>
                 </Card>
             </div >
+
+            {/* 未作答提示弹窗 */}
+            {showUnansweredModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="max-w-md w-full p-8 bg-white shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="p-3 bg-yellow-100 rounded-full mb-4">
+                                <AlertCircle size={32} className="text-yellow-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                还有题目没做完哦
+                            </h3>
+                            <p className="text-gray-600 mb-8">
+                                你还有 {quizState.answers.filter(a => a === null).length} 道题目没有回答，
+                                确定要直接查看结果吗？
+                            </p>
+
+                            <div className="flex gap-4 w-full">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setShowUnansweredModal(false)}
+                                    className="flex-1 py-3 border-gray-200"
+                                >
+                                    去答题
+                                </Button>
+                                <Button
+                                    onClick={finishQuiz}
+                                    className="flex-1 py-3 bg-primary-500 hover:bg-primary-600 text-white shadow-md hover:shadow-lg transition-all"
+                                >
+                                    查看结果
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </div >
     );
 };

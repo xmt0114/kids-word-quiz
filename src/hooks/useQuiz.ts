@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Word, QuizSettings, QuizState, QuizResult, QuizAnswerResult } from '../types';
 import { useAppStore } from '../stores/appStore';
+import { shuffleArray } from '../utils/dataUtils';
 
 const TOTAL_QUESTIONS = 10;
 
@@ -61,13 +62,20 @@ export function useQuiz() {
         throw new Error('没有有效的题目数据');
       }
 
+      // 随机打乱每个题目的选项顺序
+      // 注意：这里不会影响答案的判定，因为判定是基于 answer 字段的字符串值，而不是索引
+      const shuffledQuestions = validWords.map(word => ({
+        ...word,
+        options: shuffleArray([...word.options]) // 创建副本并打乱
+      }));
+
       const now = Date.now();
       setQuizState({
         settings,
         currentQuestionIndex: 0,
-        questions: validWords,
-        answers: new Array(validWords.length).fill(null),
-        results: new Array(validWords.length).fill(null),
+        questions: shuffledQuestions,
+        answers: new Array(shuffledQuestions.length).fill(null),
+        results: new Array(shuffledQuestions.length).fill(null),
         isCompleted: false,
         score: 0,
         startTime: now,
@@ -127,8 +135,8 @@ export function useQuiz() {
 
       // 计算单题用时
       const now = Date.now();
-      const timeSpent = prev.currentQuestionStartTime 
-        ? (now - prev.currentQuestionStartTime) / 1000 
+      const timeSpent = prev.currentQuestionStartTime
+        ? (now - prev.currentQuestionStartTime) / 1000
         : undefined;
 
       // 创建或更新答题结果记录
