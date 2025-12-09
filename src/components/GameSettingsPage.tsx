@@ -6,7 +6,7 @@ import { QuizSettings, TTSSettings, Game } from '../types';
 import { useQuizSettings } from '../stores/appStore';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
 // useAuth 已替换为直接使用 Zustand store
-import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader } from 'lucide-react';
+import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader, Gamepad2, GraduationCap } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
@@ -209,10 +209,36 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         },
     ];
 
+    const gameModes = [
+        {
+            id: 'practice' as const,
+            name: '练习模式',
+            description: '答题后即时显示正误',
+            detail: '适合初学者，随时掌握学习进度',
+            icon: Gamepad2,
+            color: 'from-green-400 to-green-600',
+        },
+        {
+            id: 'exam' as const,
+            name: '考试模式',
+            description: '答题完毕后统一显示结果',
+            detail: '隐藏提交按钮，模拟真实考试环境',
+            icon: GraduationCap,
+            color: 'from-red-400 to-red-600',
+        },
+    ];
+
     const handleQuestionTypeSelect = (type: string) => {
         setPendingSettings((prev) => ({
             ...(prev || settings),
             questionType: type as 'text' | 'audio'
+        }));
+    };
+
+    const handleGameModeSelect = (mode: string) => {
+        setPendingSettings((prev) => ({
+            ...(prev || settings),
+            gameMode: mode as 'practice' | 'exam'
         }));
     };
 
@@ -506,6 +532,54 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
             {/* 设置选项 */}
             <div className="max-w-4xl mx-auto space-y-xl">
+                {/* 游戏模式选择 */}
+                <section>
+                    <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
+                        选择游戏模式
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+                        {gameModes.map((mode) => {
+                            const Icon = mode.icon;
+                            // 默认练习模式
+                            const currentMode = (pendingSettings || settings).gameMode || 'practice';
+                            const isSelected = currentMode === mode.id;
+
+                            return (
+                                <Card
+                                    key={mode.id}
+                                    className={cn(
+                                        'cursor-pointer transition-all duration-normal border-4',
+                                        isSelected
+                                            ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
+                                            : 'border-gray-200 hover:border-primary-300 hover:scale-102'
+                                    )}
+                                    onClick={() => handleGameModeSelect(mode.id)}
+                                >
+                                    <div className="text-center">
+                                        <div className={cn(
+                                            'w-16 h-16 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
+                                            mode.color
+                                        )}>
+                                            <Icon size={32} className="text-white" />
+                                        </div>
+                                        <h3 className="text-h3 font-bold text-text-primary mb-sm">
+                                            {mode.name}
+                                        </h3>
+                                        <p className="text-body text-text-secondary mb-sm">
+                                            {mode.description}
+                                        </p>
+                                        <div className="bg-gray-50 rounded-lg p-sm">
+                                            <p className="text-small text-text-tertiary">
+                                                {mode.detail}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </section>
+
                 {/* 题干类型选择 */}
                 <section>
                     <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">

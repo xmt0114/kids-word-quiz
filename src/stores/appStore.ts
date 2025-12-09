@@ -143,13 +143,13 @@ export const useAppStore = create<AppState>((set, get) => ({
    */
   clearAllData: async () => {
     console.log('🧹 [AppStore] 清除所有用户数据...');
-    
+
     // 委托给AuthSlice清理认证数据
     get().clearAuthData();
-    
+
     // 委托给ConfigSlice清理用户配置
     get().setUserConfig(null);
-    
+
     // 清理剩余的数据状态
     set({
       userSettings: null,
@@ -269,7 +269,7 @@ export const appStoreSelectors = {
   // 获取完整的设置（合并游客和用户设置）
   getFullSettings: () => {
     const state = useAppStore.getState();
-    
+
     if (state.userConfig) {
       return {
         ...state.guestConfig,
@@ -411,6 +411,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
           voiceName: ttsDefaults.voiceName || 'default',
         },
         showPinyin: gameConfig.showPinyin || false,
+        gameMode: (gameConfig.gameMode as 'practice' | 'exam') || 'practice',
       };
 
       console.log(`📖 [useQuizSettings] 从游客配置/默认配置读取 [${gameId}]:`, mergedSettings);
@@ -435,6 +436,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
           ...defaultConfig.tts
         },
         showPinyin: defaultConfig.showPinyin || false,
+        gameMode: (defaultConfig.gameMode as 'practice' | 'exam') || 'practice',
       } as QuizSettings;
     }
 
@@ -451,6 +453,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
         voiceName: 'default',
       },
       showPinyin: false,
+      gameMode: 'practice',
     };
   }, [userSettings, guestConfig, gameId, defaultConfig]);
 

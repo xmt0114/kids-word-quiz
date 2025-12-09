@@ -108,6 +108,7 @@ export interface QuizSettings {
   selectionStrategy?: WordSelectionStrategy; // 词汇选取策略
   tts?: TTSSettings;     // 语音朗读配置
   showPinyin?: boolean;  // 是否显示拼音（仅中文有效）
+  gameMode?: 'practice' | 'exam'; // 游戏模式：练习模式(默认) | 考试模式
 }
 
 // 答题结果类型

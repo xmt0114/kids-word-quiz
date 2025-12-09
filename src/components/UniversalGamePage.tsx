@@ -7,7 +7,7 @@ import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
 import { QuizSettings, Game } from '../types';
-import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2, Eye, RotateCw, Volume2 } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
 import { AutoSizeText } from './AutoSizeText';
@@ -97,7 +97,8 @@ const UniversalGamePage: React.FC = () => {
                     selectionStrategy: routeSettings.selectionStrategy || 'sequential',
                     showPinyin: routeSettings.showPinyin,
                     tts: routeSettings.tts,
-                    collectionId
+                    collectionId,
+                    gameMode: routeSettings.gameMode || 'practice'
                 };
 
                 console.log('🎮 [UniversalGamePage] 初始化游戏设置:', finalSettings);
@@ -240,6 +241,16 @@ const UniversalGamePage: React.FC = () => {
     const spacing = getDynamicSpacing();
 
     const currentWord = getCurrentQuestion();
+
+    // DEBUG: Check render state
+    console.log('DEBUG RENDER:', {
+        gameMode: quizState.settings.gameMode,
+        answerType: quizState.settings.answerType,
+        showResult,
+        inputAnswer,
+        selectedAnswer,
+        renderPracticeButtons: quizState.settings.gameMode !== 'exam'
+    });
 
     // 监听题目索引变化，恢复答题状态
     useEffect(() => {
@@ -558,8 +569,14 @@ const UniversalGamePage: React.FC = () => {
 
     const handleAnswerSubmit = () => {
         if (showResult) {
-            // 如果已显示结果，点击按钮为重置功能
-            handleResetQuestion();
+            // 如果已显示结果
+            if (isCorrect) {
+                // 如果答对了，去下一题
+                handleNextQuestion();
+            } else {
+                // 如果答错了，重置当前题目（重试）
+                handleResetQuestion();
+            }
         } else {
             // 否则为提交功能
             const answer = quizState.settings.answerType === 'choice' ? selectedAnswer : inputAnswer;
@@ -739,45 +756,55 @@ const UniversalGamePage: React.FC = () => {
                                                 />
                                             }
                                             isSelected={selectedAnswer === option}
-                                            isCorrect={showResult && option === currentWord.answer}
-                                            isWrong={showResult && selectedAnswer === option && option !== currentWord.answer}
-                                            disabled={showResult}
-                                            onClick={() => !showResult && setSelectedAnswer(option)}
+                                            // 考试模式下不显示正误反馈
+                                            isCorrect={quizState.settings.gameMode === 'exam' ? undefined : (showResult && option === currentWord.answer)}
+                                            isWrong={quizState.settings.gameMode === 'exam' ? undefined : (showResult && selectedAnswer === option && option !== currentWord.answer)}
+                                            disabled={showResult && quizState.settings.gameMode !== 'exam'}
+                                            onClick={() => {
+                                                if (showResult && quizState.settings.gameMode !== 'exam') return;
+                                                setSelectedAnswer(option);
+                                                // 考试模式下，点击即选中并自动暂存答案
+                                                if (quizState.settings.gameMode === 'exam') {
+                                                    submitAnswer(option);
+                                                }
+                                            }}
                                         />
                                     ))}
                                 </div>
-
                             ) : (
                                 // 填空题
                                 <div className="space-y-md flex items-center gap-md">
                                     <div className="flex-1">
                                         <Input
                                             value={inputAnswer}
-                                            onChange={(value) => setInputAnswer(value)}
+                                            onChange={(value) => {
+                                                setInputAnswer(value);
+                                                // 考试模式下实时保存
+                                                if (quizState.settings.gameMode === 'exam') {
+                                                    submitAnswer(value);
+                                                }
+                                            }}
                                             placeholder="请输入你的答案..."
-                                            disabled={showResult}
-                                            isCorrect={showResult && isCorrect}
-                                            isWrong={showResult && !isCorrect}
+                                            disabled={showResult && quizState.settings.gameMode !== 'exam'}
+                                            // 考试模式下不显示正误反馈
+                                            isCorrect={quizState.settings.gameMode === 'exam' ? undefined : (showResult && isCorrect)}
+                                            isWrong={quizState.settings.gameMode === 'exam' ? undefined : (showResult && !isCorrect)}
                                             onSubmit={() => {
-                                                if (!showResult) {
-                                                    // 获取最新的 inputAnswer
-                                                    if (inputAnswer.trim()) {
-                                                        handleSubmitAnswer(inputAnswer);
-                                                    }
+                                                if (quizState.settings.gameMode !== 'exam') {
+                                                    // 在练习模式下，回车键行为与提交按钮一致
+                                                    handleAnswerSubmit();
                                                 }
                                             }}
                                         />
                                     </div>
-                                    {/* 填空题错误时显示正确答案 */}
-                                    {showResult && !isCorrect && (
+                                    {/* 填空题错误时显示正确答案 - 仅练习模式 */}
+                                    {showResult && !isCorrect && quizState.settings.gameMode !== 'exam' && (
                                         <div className="text-xl font-bold text-green-600 animate-in fade-in slide-in-from-left-4 shrink-0 whitespace-nowrap">
                                             {currentWord.answer}
                                         </div>
                                     )}
                                 </div>
                             )}
-
-                            {/* 移除原本的反馈信息区域 */}
                         </div>
                     </div>
 
@@ -794,50 +821,67 @@ const UniversalGamePage: React.FC = () => {
                         </Button>
 
                         <div className="flex gap-md">
-                            <Button
-                                onClick={handleAnswerSubmit}
-                                disabled={
-                                    !showResult && (
-                                        (quizState.settings.answerType === 'choice' && !selectedAnswer) ||
-                                        (quizState.settings.answerType === 'fill' && !inputAnswer.trim())
-                                    )
-                                }
-                                className={cn(
-                                    "flex items-center gap-sm transition-all duration-300",
-                                    showResult
-                                        ? isCorrect
-                                            ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
-                                            : "bg-red-50 text-red-500 border-2 border-red-200 hover:bg-red-100" // 错误状态下：红字，淡红背景，红边框
-                                        : "" // 默认样式通过 Button 组件处理
-                                )}
-                            >
-                                {showResult ? (
-                                    isCorrect ? (
+                            {/* 练习模式按钮组 */}
+                            {quizState.settings.gameMode !== 'exam' && (
+                                <>
+                                    <Button
+                                        data-testid="confirm-btn"
+                                        onClick={handleAnswerSubmit}
+                                        disabled={false} // DEBUG: Force enabled to check visibility
+                                        className="px-xl font-bold text-lg min-w-[140px]"
+                                        variant={showResult ? (isCorrect ? 'success' : 'error') : 'primary'}
+                                    >
+                                        {showResult ? (
+                                            isCorrect ? (
+                                                <>
+                                                    <CheckCircle size={24} className="mr-sm" />
+                                                    再来一次
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <RotateCw size={24} className="mr-sm" />
+                                                    再来一次
+                                                </>
+                                            )
+                                        ) : (
+                                            <>
+                                                <CheckCircle size={24} className="mr-sm" />
+                                                提交答案
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <Button
+                                        onClick={handleNextQuestion}
+                                        className="px-xl font-bold text-lg min-w-[140px]"
+                                        variant="primary" // Explicitly Primary for Next
+                                    >
+                                        {isLastQuestion ? '查看结果' : '下一题'}
+                                        <ArrowRight size={24} className="ml-sm" />
+                                    </Button>
+                                </>
+                            )}
+
+                            {/* 考试模式控制按钮 */}
+                            {quizState.settings.gameMode === 'exam' && (
+                                <Button
+                                    onClick={handleNextQuestion}
+                                    className="px-xl font-bold text-lg min-w-[140px]"
+                                    variant="primary"
+                                >
+                                    {isLastQuestion ? (
                                         <>
-                                            <CheckCircle size={20} />
-                                            回答正确
+                                            <CheckCircle size={24} className="mr-sm" />
+                                            完成
                                         </>
                                     ) : (
                                         <>
-                                            <XCircle size={20} />
-                                            再试一次
+                                            下一题
+                                            <ArrowRight size={24} className="ml-sm" />
                                         </>
-                                    )
-                                ) : (
-                                    <>
-                                        <CheckCircle size={20} />
-                                        提交答案
-                                    </>
-                                )}
-                            </Button>
-
-                            <Button
-                                onClick={handleNextQuestion}
-                                className="flex items-center gap-sm"
-                            >
-                                {isLastQuestion ? '查看结果' : '下一题'}
-                                <ArrowRight size={20} />
-                            </Button>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </Card>
