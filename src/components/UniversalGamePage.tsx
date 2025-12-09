@@ -7,7 +7,7 @@ import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
 import { QuizSettings, Game } from '../types';
-import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2 } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2, Eye } from 'lucide-react';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
 import { AutoSizeText } from './AutoSizeText';
@@ -56,6 +56,9 @@ const UniversalGamePage: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState(false);
     const [gameInfo, setGameInfo] = useState<Game | null>(null);
     const [showUnansweredModal, setShowUnansweredModal] = useState(false);
+    const [showHint, setShowHint] = useState(false);
+    const [hintStage, setHintStage] = useState(0); // 0-5: 倒计时阶段
+    const [isAnimating, setIsAnimating] = useState(false); // 控制图标跳动动画
 
     // 从store获取游戏信息
     const { games } = useAppStore();
@@ -266,8 +269,49 @@ const UniversalGamePage: React.FC = () => {
             setShowResult(false);
             setIsCorrect(false);
             setShowStarExplosion(false); // 切换题目时重置特效
+            setShowHint(false); // 切换题目时重置提示状态
+            setHintStage(0); // 重置倒计时阶段
+            setIsAnimating(false);
         }
     }, [quizState.currentQuestionIndex, quizState.answers, quizState.results, quizState.settings.answerType]);
+
+    // 提示信息倒计时逻辑
+    useEffect(() => {
+        // 如果已经显示提示、或者已公布结果（答题结束）、或者不是填空题，停止计时
+        if (showHint || showResult || quizState.settings.answerType !== 'fill') {
+            return;
+        }
+
+        // 定义各阶段等待时间 (毫秒)
+        // 0->1: 9s
+        // 1->2: 8s
+        // 2->3: 7s
+        // 3->4: 6s
+        // 4->5: 5s
+        // 5->6: 4s
+        const delays = [9000, 8000, 7000, 6000, 5000, 4000];
+
+        if (hintStage >= delays.length) {
+            // 倒计时结束，自动展开
+            setShowHint(true);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            const nextStage = hintStage + 1;
+            setHintStage(nextStage);
+
+            // 触发跳动动画 (根据阶段增加紧迫感)
+            // 只有当还未自动展开时才跳动
+            if (nextStage < delays.length) {
+                setIsAnimating(true);
+                // 动画持续一小段时间后停止，等待下一次触发
+                setTimeout(() => setIsAnimating(false), 1500);
+            }
+        }, delays[hintStage]);
+
+        return () => clearTimeout(timer);
+    }, [hintStage, showHint, showResult, quizState.settings.answerType]);
 
     // 处理提交答案
     // 重置当前题目
@@ -638,9 +682,31 @@ const UniversalGamePage: React.FC = () => {
                             )}
 
                             {currentWord.hint && quizState.settings.answerType === 'fill' && (
-                                <p className="text-h1 text-text-tertiary mt-sm italic">
-                                    {currentWord.hint}
-                                </p>
+                                <div className="mt-sm flex justify-center h-12">
+                                    {showHint ? (
+                                        <p className="text-h2 text-text-tertiary italic animate-in fade-in zoom-in duration-300">
+                                            {currentWord.hint}
+                                        </p>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowHint(true)}
+                                            className={cn(
+                                                "group flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-sm hover:shadow-md",
+                                                "bg-orange-100 hover:bg-orange-200 border-2 border-orange-300", // 加深颜色：改为橙色系
+                                                "hover:scale-110 active:scale-95",
+                                                isAnimating && "animate-bounce" // 触发跳动
+                                            )}
+                                            style={{
+                                                // 随着阶段增加，动画跳得更快 (默认0.5s, 最快0.15s)
+                                                animationDuration: isAnimating ? `${Math.max(0.15, 0.5 - (hintStage * 0.08))}s` : '0s'
+                                            }}
+                                            title="点击查看提示"
+                                            aria-label="查看提示"
+                                        >
+                                            <Eye size={24} className="text-orange-600 group-hover:text-orange-700 transition-colors" />
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
 
