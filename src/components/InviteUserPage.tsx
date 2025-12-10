@@ -10,6 +10,7 @@ const InviteUserPage: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [durationDays, setDurationDays] = useState(31); // 默认月卡
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +40,8 @@ const InviteUserPage: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('admin-invite-user', {
         body: {
           email: email,
-          display_name: displayName
+          display_name: displayName,
+          duration_days: durationDays
         }
       });
 
@@ -89,14 +91,7 @@ const InviteUserPage: React.FC = () => {
 
         {/* 邀请表单 */}
         <Card className="p-xl">
-          <div className="mb-lg">
-            <h2 className="text-h2 font-bold text-text-primary mb-sm">
-              发送邀请邮件
-            </h2>
-            <p className="text-body text-text-secondary">
-              输入要邀请的用户邮箱和昵称，系统将自动发送邀请邮件。
-            </p>
-          </div>
+
 
           <form onSubmit={handleSubmit} className="space-y-lg">
             {/* 邮箱输入 */}
@@ -137,6 +132,25 @@ const InviteUserPage: React.FC = () => {
                   disabled={isSubmitting}
                 />
               </div>
+            </div>
+
+            {/* 会员类型选择 */}
+            <div>
+              <label className="block text-body font-bold text-text-primary mb-sm">
+                会员类型 <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={durationDays}
+                onChange={(e) => setDurationDays(Number(e.target.value))}
+                className="w-full px-md py-md border-2 border-gray-200 rounded-lg text-body font-bold text-text-primary focus:border-blue-500 focus:outline-none"
+                disabled={isSubmitting}
+              >
+                <option value={7}>周卡 (7天)</option>
+                <option value={31}>月卡 (31天)</option>
+                <option value={93}>季卡 (93天)</option>
+                <option value={365}>年卡 (365天)</option>
+                <option value={36500}>终身 (100年)</option>
+              </select>
             </div>
 
             {/* 提示信息 */}
