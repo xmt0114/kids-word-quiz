@@ -6,12 +6,13 @@ import { QuizSettings, TTSSettings, Game } from '../types';
 import { useQuizSettings } from '../stores/appStore';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
 // useAuth 已替换为直接使用 Zustand store
-import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader, Gamepad2, GraduationCap } from 'lucide-react';
+import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader, Gamepad2, GraduationCap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
 
 import { ConfirmDialog } from './ConfirmDialog';
+import { Tooltip, TooltipProvider } from './Tooltip';
 
 interface GameSettingsPageProps {
     selectedCollectionId?: string;
@@ -534,177 +535,304 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
             <div className="max-w-4xl mx-auto space-y-xl">
                 {/* 游戏模式选择 */}
                 <section>
-                    <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
-                        选择游戏模式
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                        {gameModes.map((mode) => {
-                            const Icon = mode.icon;
-                            // 默认练习模式
-                            const currentMode = (pendingSettings || settings).gameMode || 'practice';
-                            const isSelected = currentMode === mode.id;
+                    <div className="flex items-center gap-lg">
+                        <h2 className="text-h3 font-bold text-text-primary whitespace-nowrap">
+                            游戏模式
+                        </h2>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-md">
+                            {gameModes.map((mode) => {
+                                const Icon = mode.icon;
+                                const currentMode = (pendingSettings || settings).gameMode || 'practice';
+                                const isSelected = currentMode === mode.id;
 
-                            return (
-                                <Card
-                                    key={mode.id}
-                                    className={cn(
-                                        'cursor-pointer transition-all duration-normal border-4',
-                                        isSelected
-                                            ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
-                                            : 'border-gray-200 hover:border-primary-300 hover:scale-102'
-                                    )}
-                                    onClick={() => handleGameModeSelect(mode.id)}
-                                >
-                                    <div className="text-center">
+                                return (
+                                    <div
+                                        key={mode.id}
+                                        className={cn(
+                                            'flex items-center gap-md p-md rounded-lg cursor-pointer transition-all duration-normal border-2',
+                                            isSelected
+                                                ? 'border-primary-500 bg-primary-50'
+                                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                                        )}
+                                        onClick={() => handleGameModeSelect(mode.id)}
+                                    >
+                                        {/* 单选指示器 */}
+                                        <div className="flex-shrink-0">
+                                            <div className={cn(
+                                                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                                                isSelected
+                                                    ? 'border-primary-500 bg-primary-500'
+                                                    : 'border-gray-300'
+                                            )}>
+                                                {isSelected && (
+                                                    <div className="w-2 h-2 rounded-full bg-white" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 图标 */}
                                         <div className={cn(
-                                            'w-16 h-16 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
+                                            'w-10 h-10 rounded-full bg-gradient-to-r flex items-center justify-center flex-shrink-0',
                                             mode.color
                                         )}>
-                                            <Icon size={32} className="text-white" />
+                                            <Icon size={20} className="text-white" />
                                         </div>
-                                        <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                                            {mode.name}
-                                        </h3>
-                                        <p className="text-body text-text-secondary mb-sm">
-                                            {mode.description}
-                                        </p>
-                                        <div className="bg-gray-50 rounded-lg p-sm">
-                                            <p className="text-small text-text-tertiary">
-                                                {mode.detail}
-                                            </p>
+
+                                        {/* 名称 */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-body font-bold text-text-primary">
+                                                {mode.name}
+                                            </h3>
                                         </div>
+
+                                        {/* 提示图标 */}
+                                        <TooltipProvider>
+                                            <Tooltip
+                                                content={
+                                                    <div className="max-w-xs">
+                                                        <p className="font-semibold mb-1">{mode.description}</p>
+                                                        <p className="text-xs opacity-90">{mode.detail}</p>
+                                                    </div>
+                                                }
+                                                side="left"
+                                            >
+                                                <div className="flex-shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Info size={18} />
+                                                </div>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
-                                </Card>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </section>
 
                 {/* 题干类型选择 */}
                 <section>
-                    <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
-                        选择题目类型
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                        {questionTypes.map((type) => {
-                            const Icon = type.icon;
-                            const isSelected = (pendingSettings || settings).questionType === type.id;
+                    <div className="flex items-center gap-lg">
+                        <h2 className="text-h3 font-bold text-text-primary whitespace-nowrap">
+                            题目类型
+                        </h2>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-md">
+                            {questionTypes.map((type) => {
+                                const Icon = type.icon;
+                                const isSelected = (pendingSettings || settings).questionType === type.id;
 
-                            return (
-                                <Card
-                                    key={type.id}
-                                    className={cn(
-                                        'cursor-pointer transition-all duration-normal border-4',
-                                        isSelected
-                                            ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
-                                            : 'border-gray-200 hover:border-primary-300 hover:scale-102'
-                                    )}
-                                    onClick={() => handleQuestionTypeSelect(type.id)}
-                                >
-                                    <div className="text-center">
+                                return (
+                                    <div
+                                        key={type.id}
+                                        className={cn(
+                                            'flex items-center gap-md p-md rounded-lg cursor-pointer transition-all duration-normal border-2',
+                                            isSelected
+                                                ? 'border-primary-500 bg-primary-50'
+                                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                                        )}
+                                        onClick={() => handleQuestionTypeSelect(type.id)}
+                                    >
+                                        {/* 单选指示器 */}
+                                        <div className="flex-shrink-0">
+                                            <div className={cn(
+                                                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                                                isSelected
+                                                    ? 'border-primary-500 bg-primary-500'
+                                                    : 'border-gray-300'
+                                            )}>
+                                                {isSelected && (
+                                                    <div className="w-2 h-2 rounded-full bg-white" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 图标 */}
                                         <div className={cn(
-                                            'w-16 h-16 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
+                                            'w-10 h-10 rounded-full bg-gradient-to-r flex items-center justify-center flex-shrink-0',
                                             type.color
                                         )}>
-                                            <Icon size={32} className="text-white" />
+                                            <Icon size={20} className="text-white" />
                                         </div>
-                                        <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                                            {type.name}
-                                        </h3>
-                                        <p className="text-body text-text-secondary">
-                                            {type.description}
-                                        </p>
+
+                                        {/* 名称 */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-body font-bold text-text-primary">
+                                                {type.name}
+                                            </h3>
+                                        </div>
+
+                                        {/* 提示图标 */}
+                                        <TooltipProvider>
+                                            <Tooltip
+                                                content={
+                                                    <div className="max-w-xs">
+                                                        <p>{type.description}</p>
+                                                    </div>
+                                                }
+                                                side="left"
+                                            >
+                                                <div className="flex-shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Info size={18} />
+                                                </div>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
-                                </Card>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </section>
 
                 {/* 答题方式选择 */}
                 <section>
-                    <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
-                        选择答题方式
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                        {answerTypes.map((type) => {
-                            const Icon = type.icon;
-                            const isSelected = (pendingSettings || settings).answerType === type.id;
+                    <div className="flex items-center gap-lg">
+                        <h2 className="text-h3 font-bold text-text-primary whitespace-nowrap">
+                            答题方式
+                        </h2>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-md">
+                            {answerTypes.map((type) => {
+                                const Icon = type.icon;
+                                const isSelected = (pendingSettings || settings).answerType === type.id;
 
-                            return (
-                                <Card
-                                    key={type.id}
-                                    className={cn(
-                                        'cursor-pointer transition-all duration-normal border-4',
-                                        isSelected
-                                            ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
-                                            : 'border-gray-200 hover:border-primary-300 hover:scale-102'
-                                    )}
-                                    onClick={() => handleAnswerTypeSelect(type.id)}
-                                >
-                                    <div className="text-center">
+                                return (
+                                    <div
+                                        key={type.id}
+                                        className={cn(
+                                            'flex items-center gap-md p-md rounded-lg cursor-pointer transition-all duration-normal border-2',
+                                            isSelected
+                                                ? 'border-primary-500 bg-primary-50'
+                                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                                        )}
+                                        onClick={() => handleAnswerTypeSelect(type.id)}
+                                    >
+                                        {/* 单选指示器 */}
+                                        <div className="flex-shrink-0">
+                                            <div className={cn(
+                                                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                                                isSelected
+                                                    ? 'border-primary-500 bg-primary-500'
+                                                    : 'border-gray-300'
+                                            )}>
+                                                {isSelected && (
+                                                    <div className="w-2 h-2 rounded-full bg-white" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 图标 */}
                                         <div className={cn(
-                                            'w-16 h-16 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
+                                            'w-10 h-10 rounded-full bg-gradient-to-r flex items-center justify-center flex-shrink-0',
                                             type.color
                                         )}>
-                                            <Icon size={32} className="text-white" />
+                                            <Icon size={20} className="text-white" />
                                         </div>
-                                        <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                                            {type.name}
-                                        </h3>
-                                        <p className="text-body text-text-secondary">
-                                            {type.description}
-                                        </p>
+
+                                        {/* 名称 */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-body font-bold text-text-primary">
+                                                {type.name}
+                                            </h3>
+                                        </div>
+
+                                        {/* 提示图标 */}
+                                        <TooltipProvider>
+                                            <Tooltip
+                                                content={
+                                                    <div className="max-w-xs">
+                                                        <p>{type.description}</p>
+                                                    </div>
+                                                }
+                                                side="left"
+                                            >
+                                                <div className="flex-shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Info size={18} />
+                                                </div>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
-                                </Card>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </section>
 
                 {/* 出题策略选择 */}
                 <section>
-                    <h2 className="text-h2 font-bold text-text-primary mb-lg text-center">
-                        选择出题策略
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                        {selectionStrategies.map((strategy) => {
-                            const Icon = strategy.icon;
-                            const isSelected = (pendingSettings || settings).selectionStrategy === strategy.id;
+                    <div className="flex items-center gap-lg">
+                        <h2 className="text-h3 font-bold text-text-primary whitespace-nowrap">
+                            出题策略
+                        </h2>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-md">
+                            {selectionStrategies.map((strategy) => {
+                                const Icon = strategy.icon;
+                                const isSelected = (pendingSettings || settings).selectionStrategy === strategy.id;
 
-                            return (
-                                <Card
-                                    key={strategy.id}
-                                    className={cn(
-                                        'cursor-pointer transition-all duration-normal border-4',
-                                        isSelected
-                                            ? 'border-primary-500 bg-primary-50 scale-105 shadow-lg'
-                                            : 'border-gray-200 hover:border-primary-300 hover:scale-102'
-                                    )}
-                                    onClick={() => handleStrategySelect(strategy.id)}
-                                >
-                                    <div className="text-center">
+                                return (
+                                    <div
+                                        key={strategy.id}
+                                        className={cn(
+                                            'flex items-center gap-md p-md rounded-lg cursor-pointer transition-all duration-normal border-2',
+                                            isSelected
+                                                ? 'border-primary-500 bg-primary-50'
+                                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                                        )}
+                                        onClick={() => handleStrategySelect(strategy.id)}
+                                    >
+                                        {/* 单选指示器 */}
+                                        <div className="flex-shrink-0">
+                                            <div className={cn(
+                                                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                                                isSelected
+                                                    ? 'border-primary-500 bg-primary-500'
+                                                    : 'border-gray-300'
+                                            )}>
+                                                {isSelected && (
+                                                    <div className="w-2 h-2 rounded-full bg-white" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 图标 */}
                                         <div className={cn(
-                                            'w-16 h-16 mx-auto mb-md rounded-full bg-gradient-to-r flex items-center justify-center',
+                                            'w-10 h-10 rounded-full bg-gradient-to-r flex items-center justify-center flex-shrink-0',
                                             strategy.color
                                         )}>
-                                            <Icon size={32} className="text-white" />
+                                            <Icon size={20} className="text-white" />
                                         </div>
-                                        <h3 className="text-h3 font-bold text-text-primary mb-sm">
-                                            {strategy.name}
-                                        </h3>
-                                        <p className="text-body text-text-secondary mb-sm">
-                                            {strategy.description}
-                                        </p>
-                                        <div className="bg-gray-50 rounded-lg p-sm">
-                                            <p className="text-small text-text-tertiary">
-                                                {strategy.detail}
-                                            </p>
+
+                                        {/* 名称 */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-body font-bold text-text-primary">
+                                                {strategy.name}
+                                            </h3>
                                         </div>
+
+                                        {/* 提示图标 */}
+                                        <TooltipProvider>
+                                            <Tooltip
+                                                content={
+                                                    <div className="max-w-xs">
+                                                        <p className="font-semibold mb-1">{strategy.description}</p>
+                                                        <p className="text-xs opacity-90">{strategy.detail}</p>
+                                                    </div>
+                                                }
+                                                side="left"
+                                            >
+                                                <div className="flex-shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Info size={18} />
+                                                </div>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
-                                </Card>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </section>
 
