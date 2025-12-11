@@ -53,8 +53,8 @@ export function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg flex items-center justify-center">
-            <div className="max-w-md w-full">
+        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg pt-lg md:pt-xl">
+            <div className="max-w-md mx-auto">
                 <div className="text-center mb-lg animate-slide-in-right">
                     <h1 className="text-hero font-bold text-text-primary mb-md">
                         忘记密码？

@@ -18,6 +18,7 @@ import { GameSettingsPage } from './components/GameSettingsPage';
 import { UniversalGamePage } from './components/UniversalGamePage';
 import { UniversalResultPage } from './components/UniversalResultPage';
 import { LoginModal } from './components/auth/LoginModal';
+import { RegisterModal } from './components/auth/RegisterModal';
 import { useAppStore } from './stores/appStore';
 
 // 数据管理页面路由保护 - 仅管理员可访问
@@ -77,48 +78,50 @@ function AppContent() {
   const { session, profile, authLoading: loading } = useAppStore();
   const user = session?.user ?? null;
   
-  // 从 useAuthState 获取 checkPasswordSet 方法
-  const { checkPasswordSet } = useAuthState();
-  const { loginModal, closeLoginModal } = useAppStore();
+  const { 
+    loginModal, 
+    closeLoginModal, 
+    registerModal, 
+    closeRegisterModal,
+    openLoginModal,
+    openRegisterModal 
+  } = useAppStore();
 
   // 检查用户是否需要设置密码或重置密码
   useEffect(() => {
-    const checkPassword = async () => {
-      // 检查 URL 是否包含重置密码参数
-      // 检查 URL 是否包含重置密码参数
-      // 注意：新的重置密码流程使用 /reset-password 页面，不再使用模态框
-      // const urlParams = new URLSearchParams(window.location.search);
-      // const token = urlParams.get('token');
-      // const type = urlParams.get('type');
-      //
-      // if (token && type === 'recovery') {
-      //   console.log('🔑 [App] 检测到密码重置请求');
-      //   setNeedsPasswordReset(true);
-      //   setCheckingPassword(false);
-      //   return;
-      // }
+    // 检查 URL 是否包含重置密码参数
+    // 检查 URL 是否包含重置密码参数
+    // 注意：新的重置密码流程使用 /reset-password 页面，不再使用模态框
+    // const urlParams = new URLSearchParams(window.location.search);
+    // const token = urlParams.get('token');
+    // const type = urlParams.get('type');
+    //
+    // if (token && type === 'recovery') {
+    //   console.log('🔑 [App] 检测到密码重置请求');
+    //   setNeedsPasswordReset(true);
+    //   setCheckingPassword(false);
+    //   return;
+    // }
 
-      // 普通密码设置检查
-      if (!loading && user && profile) {
-        setCheckingPassword(true);
-        try {
-          const hasPassword = await checkPasswordSet();
-          console.log('🔐 [App] 密码检查结果:', hasPassword);
-          setNeedsPasswordSetup(!hasPassword);
-        } catch (error) {
-          console.error('检查密码失败:', error);
-          // 如果检查失败，暂时允许访问
-          setNeedsPasswordSetup(false);
-        } finally {
-          setCheckingPassword(false);
-        }
-      } else if (!loading) {
+    // 普通密码设置检查
+    if (!loading && user && profile) {
+      setCheckingPassword(true);
+      try {
+        // 直接从 profile 中读取 has_password_set 字段，避免函数依赖导致的无限重渲染
+        const hasPassword = Boolean(profile.has_password_set);
+        console.log('🔐 [App] 密码检查结果:', hasPassword);
+        setNeedsPasswordSetup(!hasPassword);
+      } catch (error) {
+        console.error('检查密码失败:', error);
+        // 如果检查失败，暂时允许访问
+        setNeedsPasswordSetup(false);
+      } finally {
         setCheckingPassword(false);
       }
-    };
-
-    checkPassword();
-  }, [user, profile, loading, checkPasswordSet]);
+    } else if (!loading) {
+      setCheckingPassword(false);
+    }
+  }, [user, profile, loading]);
 
   // 处理密码设置成功的回调
   const handlePasswordSetupSuccess = () => {
@@ -127,6 +130,17 @@ function AppContent() {
   };
 
   // 已移除：handlePasswordResetSuccess
+
+  // 处理登录注册模态框切换
+  const handleSwitchToRegister = () => {
+    closeLoginModal();
+    openRegisterModal();
+  };
+
+  const handleSwitchToLogin = () => {
+    closeRegisterModal();
+    openLoginModal();
+  };
 
   // 如果正在加载认证或检查密码，显示加载状态
   if (loading || checkingPassword) {
@@ -177,6 +191,14 @@ function AppContent() {
           isOpen={loginModal.isOpen}
           onClose={closeLoginModal}
           action={loginModal.action}
+          onSwitchToRegister={handleSwitchToRegister}
+        />
+
+        {/* 全局注册弹框 */}
+        <RegisterModal
+          isOpen={registerModal.isOpen}
+          onClose={closeRegisterModal}
+          onSwitchToLogin={handleSwitchToLogin}
         />
       </div>
     </Router>

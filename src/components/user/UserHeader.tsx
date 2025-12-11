@@ -86,6 +86,13 @@ export function UserHeader() {
                   <LogIn size={16} />
                   登录
                 </button>
+                <button
+                  className="header-button header-button-secondary flex items-center gap-2"
+                  onClick={() => useAppStore.getState().openRegisterModal()}
+                >
+                  <User size={16} />
+                  注册
+                </button>
               </>
             )}
           </div>

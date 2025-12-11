@@ -17,3 +17,6 @@ export { GameTimer } from './GameTimer';
 export { UniversalGamePage } from './UniversalGamePage';
 export { HomePage } from './HomePage';
 export { DataManagementPage } from './DataManagementPage';
+
+// Auth components
+export { RegisterModal } from './auth/RegisterModal';

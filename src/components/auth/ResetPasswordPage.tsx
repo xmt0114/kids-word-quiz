@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../Button';
 import { Card } from '../Card';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 export function ResetPasswordPage() {
     const [password, setPassword] = useState('');
@@ -52,7 +52,18 @@ export function ResetPasswordPage() {
             });
 
             if (error) {
-                setError(error.message || '重置密码失败');
+                // 处理英文错误信息，转换为中文
+                let errorMsg = error.message || '重置密码失败';
+                if (errorMsg.includes('Password should be at least')) {
+                    errorMsg = '密码至少需要6个字符';
+                } else if (errorMsg.includes('New password should be different')) {
+                    errorMsg = '新密码不能与当前密码相同';
+                } else if (errorMsg.includes('same password as current')) {
+                    errorMsg = '新密码不能与当前密码相同';
+                } else if (errorMsg.includes('New password should be different from the old password')) {
+                    errorMsg = '新密码不能与原密码相同';
+                }
+                setError(errorMsg);
             } else {
                 setSuccess(true);
 
@@ -78,8 +89,8 @@ export function ResetPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg flex items-center justify-center">
-            <div className="max-w-md w-full">
+        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg pt-lg md:pt-xl">
+            <div className="max-w-md mx-auto">
                 <div className="text-center mb-lg animate-slide-in-right">
                     <h1 className="text-hero font-bold text-text-primary mb-md">
                         重置密码
@@ -155,7 +166,7 @@ export function ResetPasswordPage() {
                                 </div>
                             </div>
 
-                            <div className="pt-md">
+                            <div className="pt-md space-y-md">
                                 <Button
                                     type="submit"
                                     className="w-full"
@@ -163,6 +174,15 @@ export function ResetPasswordPage() {
                                 >
                                     {loading ? '提交中...' : '重置密码'}
                                 </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/')}
+                                    className="flex items-center justify-center w-full text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+                                >
+                                    <ArrowLeft size={16} className="mr-xs" />
+                                    返回主页
+                                </button>
                             </div>
                         </form>
                     )}

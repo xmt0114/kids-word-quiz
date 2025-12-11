@@ -105,7 +105,12 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         // 这样可以确保我们使用了正确的默认配置（来自 gameInfo）
         // 如果 loadingGame 为 true，settings 可能还是通用的默认值，所以要等加载完
         if (!pendingSettings && !loadingGame) {
-            setPendingSettings(settings);
+            // 确保 gameMode 类型正确
+            const safeSettings = {
+                ...settings,
+                gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
+            };
+            setPendingSettings(safeSettings);
         }
     }, [settings, loadingGame]);
 
@@ -126,7 +131,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                     if (!isValid && collections.length > 0) {
                         console.log('Smart Default: Auto-selecting first collection', collections[0].name);
                         setPendingSettings(prev => ({
-                            ...(prev || settings),
+                            ...(prev || ensureSafeSettings(settings)),
                             collectionId: collections[0].id
                         }));
                         // 同时更新 textbookInfo 以便即时显示
@@ -210,6 +215,12 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         },
     ];
 
+    // 辅助函数：确保设置类型安全
+    const ensureSafeSettings = (settings: any): QuizSettings => ({
+        ...settings,
+        gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
+    });
+
     const gameModes = [
         {
             id: 'practice' as const,
@@ -231,35 +242,35 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
     const handleQuestionTypeSelect = (type: string) => {
         setPendingSettings((prev) => ({
-            ...(prev || settings),
+            ...(prev || ensureSafeSettings(settings)),
             questionType: type as 'text' | 'audio'
         }));
     };
 
-    const handleGameModeSelect = (mode: string) => {
+    const handleGameModeSelect = (mode: 'practice' | 'exam') => {
         setPendingSettings((prev) => ({
-            ...(prev || settings),
-            gameMode: mode as 'practice' | 'exam'
+            ...(prev || ensureSafeSettings(settings)),
+            gameMode: mode
         }));
     };
 
     const handleAnswerTypeSelect = (type: string) => {
         setPendingSettings((prev) => ({
-            ...(prev || settings),
+            ...(prev || ensureSafeSettings(settings)),
             answerType: type as 'choice' | 'fill'
         }));
     };
 
     const handleStrategySelect = (strategy: string) => {
         setPendingSettings((prev) => ({
-            ...(prev || settings),
+            ...(prev || ensureSafeSettings(settings)),
             selectionStrategy: strategy as 'sequential' | 'random'
         }));
     };
 
     const handleTtsSettingChange = (key: keyof TTSSettings, value: string | number) => {
         setPendingSettings((prev) => {
-            const current = prev || settings;
+            const current = prev || ensureSafeSettings(settings);
             return {
                 ...current,
                 tts: {
@@ -871,7 +882,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
                                         // 一次性更新两个值，避免状态更新冲突
                                         setPendingSettings((prev) => {
-                                            const current = prev || settings;
+                                            const current = prev || ensureSafeSettings(settings);
                                             return {
                                                 ...current,
                                                 tts: {
@@ -1044,7 +1055,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                         className="sr-only peer"
                                         checked={(pendingSettings || settings).showPinyin || false}
                                         onChange={(e) => setPendingSettings(prev => ({
-                                            ...(prev || settings),
+                                            ...(prev || ensureSafeSettings(settings)),
                                             showPinyin: e.target.checked
                                         }))}
                                     />

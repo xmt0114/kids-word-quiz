@@ -1,4 +1,5 @@
 import { User, Session } from '@supabase/supabase-js'
+import { useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAppStore } from '../stores/appStore'
 
@@ -9,6 +10,18 @@ interface UserProfile {
   avatar_url?: string
   settings?: any // JSONB 格式，可存储用户偏好，如 preferred_textbook_id
   has_password_set?: boolean // 是否已设置密码
+}
+
+export interface RegisterFormData {
+  email: string
+  password: string
+  displayName: string
+  inviteCode: string
+}
+
+interface AuthResult {
+  success: boolean
+  error?: string
 }
 
 // useAuth 现在直接使用 useAuthState，不再需要 Context
@@ -60,6 +73,105 @@ export function useAuthState() {
       return { success: true }
     } catch (error) {
       return { success: false, error: '登录失败，请重试' }
+    }
+  }
+
+  // 注册
+  const signUp = async (formData: RegisterFormData): Promise<AuthResult> => {
+    try {
+      console.log('📝 [useAuth] 开始用户注册:', { email: formData.email, displayName: formData.displayName })
+
+      // 调用 user-signup Edge Function
+      const { data, error } = await supabase.functions.invoke('user-signup', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          display_name: formData.displayName,
+          invite_code: formData.inviteCode
+        }
+      })
+
+      console.log('📝 [useAuth] Edge Function 响应:', { 
+        data, 
+        error, 
+        dataType: typeof data,
+        errorType: typeof error,
+        errorContext: error?.context 
+      })
+
+      // 处理 Edge Function 错误
+      if (error) {
+        console.error('❌ [useAuth] 注册失败 - Edge Function 错误:', error)
+        
+        // 尝试从 Response 对象中读取错误信息
+        if (error.context && error.context instanceof Response) {
+          try {
+            // 克隆 Response 对象以避免重复读取
+            const response = error.context.clone()
+            const responseText = await response.text()
+            console.log('📝 [useAuth] Response 内容:', responseText)
+            
+            try {
+              const responseJson = JSON.parse(responseText)
+              if (responseJson.error) {
+                return { success: false, error: responseJson.error }
+              } else if (responseJson.message) {
+                return { success: false, error: responseJson.message }
+              }
+            } catch (jsonError) {
+              // 如果不是 JSON，直接使用文本内容
+              if (responseText.trim()) {
+                return { success: false, error: responseText }
+              }
+            }
+          } catch (readError) {
+            console.error('❌ [useAuth] 读取 Response 失败:', readError)
+          }
+        }
+        
+        // 备用错误处理逻辑
+        let errorMessage = '注册失败，请检查输入信息'
+        
+        // 1. 检查 data 中的错误信息
+        if (data && typeof data === 'object') {
+          if (data.error) {
+            errorMessage = data.error
+          } else if (data.message) {
+            errorMessage = data.message
+          }
+        }
+        // 2. 如果 data 是字符串
+        else if (typeof data === 'string' && data.trim()) {
+          try {
+            const parsedData = JSON.parse(data)
+            if (parsedData.error) {
+              errorMessage = parsedData.error
+            } else {
+              errorMessage = data
+            }
+          } catch (e) {
+            errorMessage = data
+          }
+        }
+        // 3. 检查其他 error 属性
+        else if (error.message && !error.message.includes('non-2xx status code') && !error.message.includes('FunctionsHttpError')) {
+          errorMessage = error.message
+        }
+        
+        return { success: false, error: errorMessage }
+      }
+
+      // 检查响应数据中的错误
+      if (data && data.error) {
+        console.error('❌ [useAuth] 注册失败 - 服务器错误:', data.error)
+        return { success: false, error: data.error }
+      }
+
+      console.log('✅ [useAuth] 注册成功')
+      return { success: true }
+    } catch (error) {
+      console.error('❌ [useAuth] 注册异常:', error)
+      return { success: false, error: '注册失败，请重试' }
     }
   }
 
@@ -207,7 +319,7 @@ export function useAuthState() {
   }
 
   // 检查用户是否已设置密码
-  const checkPasswordSet = async (): Promise<boolean> => {
+  const checkPasswordSet = useCallback(async (): Promise<boolean> => {
     if (!authUser || !authProfile) {
       return false;
     }
@@ -226,7 +338,7 @@ export function useAuthState() {
       console.error('检查密码设置失败:', error);
       return false;
     }
-  };
+  }, [authUser, authProfile]);
 
   // 设置密码
   const setPassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
@@ -275,6 +387,7 @@ export function useAuthState() {
     session,
     loading: authLoading,
     signIn,
+    signUp,
     signOut,
     updateProfile,
     updatePreferredTextbook,

@@ -8,9 +8,10 @@ interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
   action: string
+  onSwitchToRegister?: () => void
 }
 
-export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
+export function LoginModal({ isOpen, onClose, action, onSwitchToRegister }: LoginModalProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,6 +34,14 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
     }
 
     setLoading(false)
+  }
+
+  const handleSwitchToRegister = () => {
+    // 清空表单和错误状态
+    setEmail('')
+    setPassword('')
+    setError('')
+    onSwitchToRegister?.()
   }
 
   if (!isOpen) return null
@@ -114,9 +123,19 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
             </Button>
 
             <div className="text-center">
-              <p className="text-small text-text-tertiary">
-                需要账户请联系管理员获取邀请
-              </p>
+              {onSwitchToRegister ? (
+                <button
+                  type="button"
+                  onClick={handleSwitchToRegister}
+                  className="text-small text-primary-600 hover:text-primary-700 hover:underline"
+                >
+                  还没有账户？注册
+                </button>
+              ) : (
+                <p className="text-small text-text-tertiary">
+                  需要账户请联系管理员获取邀请
+                </p>
+              )}
             </div>
           </div>
         </form>

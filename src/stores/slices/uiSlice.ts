@@ -24,6 +24,9 @@ export interface UISlice {
     isOpen: boolean;
     action: string;
   };
+  registerModal: {
+    isOpen: boolean;
+  };
   passwordSetupModal: {
     isOpen: boolean;
     mode: 'setup' | 'reset';
@@ -39,6 +42,8 @@ export interface UISlice {
   // Actions
   openLoginModal: (action?: string) => void;
   closeLoginModal: () => void;
+  openRegisterModal: () => void;
+  closeRegisterModal: () => void;
   openPasswordSetupModal: (mode: 'setup' | 'reset') => void;
   closePasswordSetupModal: () => void;
   setGlobalLoading: (loading: boolean, message?: string) => void;
@@ -59,6 +64,9 @@ export const createUISlice = (
     isOpen: false,
     action: '登录',
   },
+  registerModal: {
+    isOpen: false,
+  },
   passwordSetupModal: {
     isOpen: false,
     mode: 'setup',
@@ -70,12 +78,23 @@ export const createUISlice = (
   // 登录模态框 Actions
   openLoginModal: (action = '登录') => {
     console.log('🔓 [UISlice] 打开登录模态框:', action);
-    set({ loginModal: { isOpen: true, action } });
+    set({ loginModal: { isOpen: true, action }, registerModal: { isOpen: false } });
   },
 
   closeLoginModal: () => {
     console.log('🔒 [UISlice] 关闭登录模态框');
     set({ loginModal: { isOpen: false, action: '登录' } });
+  },
+
+  // 注册模态框 Actions
+  openRegisterModal: () => {
+    console.log('📝 [UISlice] 打开注册模态框');
+    set({ registerModal: { isOpen: true }, loginModal: { isOpen: false, action: '登录' } });
+  },
+
+  closeRegisterModal: () => {
+    console.log('📝 [UISlice] 关闭注册模态框');
+    set({ registerModal: { isOpen: false } });
   },
 
   // 密码设置模态框 Actions
@@ -97,7 +116,7 @@ export const createUISlice = (
 
   // 通知 Actions
   addNotification: (notification: Omit<Notification, 'id'>) => {
-    const id = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `notification-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const newNotification: Notification = { ...notification, id };
     
     console.log('📢 [UISlice] 添加通知:', newNotification);

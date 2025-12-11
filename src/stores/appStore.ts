@@ -460,9 +460,14 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
   // 【服务器优先】更新设置的函数
   const setSettings = async (newSettings: Partial<QuizSettings> | ((prev: Partial<QuizSettings>) => Partial<QuizSettings>)) => {
     // 计算新设置
+    const safeSettings = {
+      ...settings,
+      gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
+    };
+    
     const computedSettings = newSettings instanceof Function
-      ? newSettings(settings)
-      : { ...settings, ...newSettings };
+      ? newSettings(safeSettings)
+      : { ...safeSettings, ...newSettings };
 
     console.log(`🔄 [useQuizSettings] 准备更新设置 [${gameId}] (服务器优先):`, computedSettings);
 
