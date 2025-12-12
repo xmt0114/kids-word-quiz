@@ -18,6 +18,7 @@ import { useQuiz } from '../hooks/useQuiz';
 import { wordAPI } from '../utils/api';
 import useAppStore from '@/stores/appStore';
 
+
 const UniversalGamePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -60,8 +61,12 @@ const UniversalGamePage: React.FC = () => {
     const [hintStage, setHintStage] = useState(0); // 0-5: 倒计时阶段
     const [isAnimating, setIsAnimating] = useState(false); // 控制图标跳动动画
 
+    const [membershipExpired, setMembershipExpired] = useState(false); // 会员过期状态
+
     // 从store获取游戏信息
     const { games } = useAppStore();
+
+
 
     useEffect(() => {
         if (!gameId || !games) return;
@@ -127,6 +132,14 @@ const UniversalGamePage: React.FC = () => {
                 }))
 
                 if (!sessionResp || !sessionResp.success) {
+                    console.log('[GamePage] API调用失败，错误信息:', sessionResp?.error);
+                    // 检查是否是会员过期错误
+                    if (sessionResp?.error && sessionResp.error.includes('MEMBERSHIP_EXPIRED')) {
+                        console.log('[GamePage] 检测到会员过期，显示提示页面');
+                        setMembershipExpired(true);
+                        setIsInitializing(false); // 重要：停止加载状态
+                        return;
+                    }
                     throw new Error(`获取学习会话失败${sessionResp?.error ? `: ${sessionResp.error}` : ''}`);
                 }
 
@@ -527,6 +540,51 @@ const UniversalGamePage: React.FC = () => {
         );
     }
 
+    // 会员过期状态 - 显示会员过期提示页面
+    if (membershipExpired) {
+        return (
+            <div className={`min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 ${spacing.container}`}>
+                <div className="max-w-4xl mx-auto">
+                    {/* 导航栏 */}
+                    <div className={`flex items-center justify-between ${spacing.navbar}`}>
+                        <Button
+                            variant="secondary"
+                            onClick={handleBackToHome}
+                            className="flex items-center gap-2 px-6 py-3 text-base font-medium"
+                            style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
+                        >
+                            <Home size={22} />
+                            返回首页
+                        </Button>
+                        <div className="text-center">
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                                {gameInfo?.title || '猜单词'}
+                            </h1>
+                        </div>
+                        <div></div>
+                    </div>
+
+                    {/* 会员过期提示卡片 */}
+                    <Card className="p-xl text-center">
+                        <div className="flex justify-center mb-lg">
+                            <div className="p-md bg-orange-100 rounded-full">
+                                <AlertCircle size={48} className="text-orange-500" />
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-orange-600 mb-md">
+                            会员已过期
+                        </h2>
+                        <p className="text-lg text-text-secondary">
+                            您的会员已过期，请及时续费以继续使用学习功能
+                        </p>
+                    </Card>
+
+
+                </div>
+            </div>
+        );
+    }
+
     // 加载状态
     if (!currentWord || isLoading) {
         return (
@@ -922,6 +980,7 @@ const UniversalGamePage: React.FC = () => {
                     </Card>
                 </div>
             )}
+
         </div >
     );
 };
