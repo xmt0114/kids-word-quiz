@@ -20,3 +20,8 @@ export { DataManagementPage } from './DataManagementPage';
 
 // Auth components
 export { RegisterModal } from './auth/RegisterModal';
+
+// Membership components
+export { MembershipStatusIcon } from './MembershipStatusIcon';
+export { UserDropdownMenu } from './UserDropdownMenu';
+export { MembershipRenewalModal } from './MembershipRenewalModal';

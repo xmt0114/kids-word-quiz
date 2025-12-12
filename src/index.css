@@ -338,3 +338,204 @@ img {
       rgba(16, 185, 129, 0.1) 100%);
   }
 }
+
+/* ===== 会员状态相关样式 ===== */
+
+/* 会员状态图标样式 */
+.membership-status-icon {
+  transition: all 0.2s ease-in-out;
+}
+
+.membership-status-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 用户下拉菜单样式 */
+.user-dropdown-menu {
+  animation: slideDown 0.2s ease-out;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 用户信息点击区域样式 */
+.user-info-clickable {
+  transition: all 0.2s ease-in-out;
+  border-radius: 0.5rem;
+  position: relative;
+}
+
+.user-info-clickable:hover {
+  background-color: rgba(243, 244, 246, 0.8);
+  transform: translateY(-1px);
+}
+
+.user-info-clickable:active {
+  transform: translateY(0);
+}
+
+/* 会员状态指示器 */
+.membership-status-active {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.3));
+}
+
+.membership-status-expired {
+  color: #9ca3af;
+}
+
+/* 续费按钮样式 */
+.renewal-button {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.renewal-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.renewal-button:hover::before {
+  left: 100%;
+}
+
+.renewal-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+/* 续费模态框样式 */
+.renewal-modal {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.renewal-modal-content {
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 激活码输入框样式 */
+.activation-code-input {
+  transition: all 0.2s ease-in-out;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.activation-code-input:focus {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: #8b5cf6;
+}
+
+/* 会员状态提示样式 */
+.membership-warning {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-left: 4px solid #f59e0b;
+}
+
+.membership-success {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-left: 4px solid #10b981;
+}
+
+.membership-expired {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-left: 4px solid #ef4444;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .user-dropdown-menu {
+    width: 90vw;
+    max-width: 320px;
+    right: 5vw;
+  }
+  
+  .renewal-modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .user-info-clickable {
+    padding: 0.5rem;
+  }
+}
+
+/* 加载状态样式 */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 会员徽章动画 */
+.vip-badge-pulse {
+  animation: vipPulse 2s ease-in-out infinite;
+}
+
+@keyframes vipPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.3));
+  }
+  50% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
+  }
+}
+
+/* 过期提醒样式 */
+.expiry-warning {
+  animation: gentleBlink 3s ease-in-out infinite;
+}
+
+@keyframes gentleBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

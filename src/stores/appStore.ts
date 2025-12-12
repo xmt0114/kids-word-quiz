@@ -34,6 +34,7 @@ export interface UserProfile {
   avatar_url?: string
   settings?: any // JSONB 格式，可存储用户偏好
   has_password_set?: boolean // 是否已设置密码
+  membership_expires_at?: string | null // 会员到期时间戳
 }
 
 // 应用状态接口 - 集成所有slice

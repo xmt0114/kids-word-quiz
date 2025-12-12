@@ -322,3 +322,50 @@ export interface TooltipContent {
   isCorrect: boolean;
   timeSpent?: string;
 }
+
+// ===== 会员状态相关类型 =====
+
+// 会员状态类型
+export type MembershipStatus = 'active' | 'expired' | 'unknown';
+
+// 会员状态信息
+export interface MembershipInfo {
+  status: MembershipStatus;
+  expiresAt?: Date;
+  isExpired: boolean;
+  daysRemaining?: number;
+}
+
+// 续费接口参数
+export interface RenewalRequest {
+  activationCode: string;
+}
+
+// 续费接口响应
+export interface RenewalResponse {
+  success: boolean;
+  message: string;
+  newExpiryDate?: string;
+}
+
+// 会员状态图标组件Props
+export interface MembershipStatusIconProps {
+  status: MembershipStatus;
+  className?: string;
+}
+
+// 用户下拉菜单组件Props（UserProfile从authSlice导入）
+export interface UserDropdownMenuProps {
+  user: any; // 将在组件中从authSlice导入UserProfile类型
+  membershipInfo: MembershipInfo;
+  onRenewal?: () => void;
+  onClose?: () => void;
+}
+
+// 续费模态框组件Props
+export interface MembershipRenewalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (newExpiryDate: string) => void;
+}
+

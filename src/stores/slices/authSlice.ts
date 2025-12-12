@@ -1,4 +1,5 @@
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 
 // 用户资料接口
 export interface UserProfile {
@@ -8,6 +9,7 @@ export interface UserProfile {
   avatar_url?: string;
   settings?: any; // JSONB 格式，可存储用户偏好
   has_password_set?: boolean; // 是否已设置密码
+  membership_expires_at?: string | null; // 会员到期时间戳
 }
 
 /**
@@ -33,6 +35,7 @@ export interface AuthSlice {
   loadUserData: (session: Session) => Promise<void>;
   clearAuthData: () => void;
   checkPasswordSet: () => Promise<boolean>;
+  refreshUserProfile: () => Promise<void>; // 刷新用户资料（包括会员信息）
 }
 
 /**
@@ -119,6 +122,58 @@ export const createAuthSlice = (
     } catch (error) {
       console.error('❌ [AuthSlice] 检查密码设置失败:', error);
       return false;
+    }
+  },
+
+  /**
+   * 刷新用户资料（包括会员信息）
+   */
+  refreshUserProfile: async (): Promise<void> => {
+    const state = get();
+    if (!state.session?.user) {
+      console.warn('🔍 [AuthSlice] 无法刷新用户资料：用户未登录');
+      return;
+    }
+
+    try {
+      console.log('🔄 [AuthSlice] 开始刷新用户资料...');
+      
+      // 从数据库获取最新的用户资料
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', state.session.user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ [AuthSlice] 刷新用户资料失败:', error);
+        throw error;
+      }
+
+      if (profile) {
+        // 转换数据库字段到前端格式
+        const updatedProfile: UserProfile = {
+          id: profile.id,
+          role: profile.role,
+          display_name: profile.display_name,
+          avatar_url: profile.avatar_url,
+          settings: profile.settings,
+          has_password_set: profile.has_password_set,
+          membership_expires_at: profile.membership_expires_at
+        };
+
+        // 更新状态
+        set({ profile: updatedProfile });
+        console.log('✅ [AuthSlice] 用户资料刷新成功:', {
+          userId: updatedProfile.id,
+          membershipExpiresAt: updatedProfile.membership_expires_at
+        });
+      } else {
+        console.warn('⚠️ [AuthSlice] 未找到用户资料');
+      }
+    } catch (error) {
+      console.error('❌ [AuthSlice] 刷新用户资料过程中发生错误:', error);
+      throw error;
     }
   },
 });

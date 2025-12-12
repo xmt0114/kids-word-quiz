@@ -1,16 +1,25 @@
+import { useState } from 'react'
 import { useAuthState } from '../../hooks/useAuth'
 import { useAppStore } from '../../stores/appStore'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '../Button'
+
 import { LogIn, User, LogOut, Mail, Database } from 'lucide-react'
+import { MembershipStatusIcon } from '../MembershipStatusIcon'
+import { UserDropdownMenu } from '../UserDropdownMenu'
+import { MembershipRenewalModal } from '../MembershipRenewalModal'
+import { MembershipService } from '../../utils/membershipService'
 
 export function UserHeader() {
   // 直接使用 Zustand store 和 useAuthState
-  const { session, profile } = useAppStore();
+  const { session, profile, refreshUserProfile } = useAppStore();
   const user = session?.user ?? null;
   const { signOut } = useAuthState();
   const { openLoginModal } = useAppStore()
   const navigate = useNavigate()
+
+  // 会员功能状态
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false)
 
   // 角色映射函数
   const getRoleDisplayName = (role: string) => {
@@ -26,6 +35,44 @@ export function UserHeader() {
   const handleSignOut = async () => {
     await signOut()
     navigate('/')
+  }
+
+  // 计算会员状态
+  const membershipInfo = profile 
+    ? MembershipService.getMembershipInfo(profile.membership_expires_at)
+    : { status: 'expired' as const, isExpired: true }
+
+  // 处理用户信息点击
+  const handleUserInfoClick = () => {
+    setIsDropdownOpen(!isDropdownOpen)
+  }
+
+  // 处理续费按钮点击
+  const handleRenewalClick = () => {
+    setIsRenewalModalOpen(true)
+  }
+
+  // 处理续费成功
+  const handleRenewalSuccess = async () => {
+    const { addNotification } = useAppStore.getState();
+    
+    try {
+      // 刷新用户资料以获取最新的会员信息
+      await refreshUserProfile();
+      
+      // 显示成功消息
+      addNotification({
+        type: 'success',
+        message: '续费成功！您的会员已延长。'
+      });
+    } catch (error) {
+      console.error('刷新用户信息失败:', error);
+      // 即使刷新失败，也显示成功消息，因为续费本身是成功的
+      addNotification({
+        type: 'success',
+        message: '续费成功！您的会员已延长。'
+      });
+    }
   }
 
   return (
@@ -59,14 +106,30 @@ export function UserHeader() {
                   </div>
                 )}
 
-                <div className="flex items-center space-x-3">
-                  <User size={18} className="text-purple-500" />
-                  <span className="user-info font-semibold">
-                    {profile.display_name}
-                  </span>
-                  <span className="user-role-badge">
-                    {getRoleDisplayName(profile.role)}
-                  </span>
+                <div className="relative">
+                  <div 
+                    className="user-info-clickable flex items-center space-x-3 cursor-pointer px-3 py-2"
+                    onClick={handleUserInfoClick}
+                  >
+                    <MembershipStatusIcon 
+                      status={membershipInfo.status}
+                    />
+                    <span className="user-info font-semibold">
+                      {profile.display_name}
+                    </span>
+                    <span className="user-role-badge">
+                      {getRoleDisplayName(profile.role)}
+                    </span>
+                  </div>
+                  
+                  {/* 用户下拉菜单 */}
+                  <UserDropdownMenu
+                    user={profile}
+                    membershipInfo={membershipInfo}
+                    isOpen={isDropdownOpen}
+                    onClose={() => setIsDropdownOpen(false)}
+                    onRenewal={handleRenewalClick}
+                  />
                 </div>
                 <button
                   onClick={handleSignOut}
@@ -98,6 +161,13 @@ export function UserHeader() {
           </div>
         </div>
       </div>
+      
+      {/* 续费模态框 */}
+      <MembershipRenewalModal
+        isOpen={isRenewalModalOpen}
+        onClose={() => setIsRenewalModalOpen(false)}
+        onSuccess={handleRenewalSuccess}
+      />
     </header>
   )
 }
