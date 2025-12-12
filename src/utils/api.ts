@@ -47,7 +47,6 @@ export interface WordAPI {
     limit?: number;
     offset?: number;
     collectionId?: string;
-    selectionStrategy?: 'sequential' | 'random';
     sortBy?: 'word' | 'created_at';
     sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse>;

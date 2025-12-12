@@ -5,7 +5,7 @@ import { ApiResponse, WordApiResponse, WordAPI, WordCollection } from './api'
 import { Game } from '../types'
 
 // 注意：游戏常量现在从 lib/config.ts 导入
-// 实际项目中，建议在组件中使用 useAppConfig hook 获取数据库配置
+// TOTAL_QUESTIONS 已不再用于 getWords 方法，保留用于其他功能
 const TOTAL_QUESTIONS = GAME_CONFIG.TOTAL_QUESTIONS;
 
 // 类型转换：Supabase数据 → 前端数据格式
@@ -262,84 +262,90 @@ export class SupabaseWordAPI implements WordAPI {
     }
   }
 
+  /**
+   * 获取单词列表 - 专为数据管理页面设计的简化版本
+   * 
+   * @param filters 过滤和排序选项
+   * @param filters.collectionId 教材集合ID，默认使用DEFAULT_COLLECTION_ID
+   * @param filters.limit 每页数量，默认20，范围1-1000
+   * @param filters.offset 偏移量，默认0，用于分页
+   * @param filters.sortBy 排序字段，'word'或'created_at'，默认'word'
+   * @param filters.sortOrder 排序方向，'asc'或'desc'，默认'asc'
+   * @returns Promise<WordApiResponse> 包含单词列表的响应
+   * 
+   * @example
+   * // 获取第一页单词，按字母升序排列
+   * const response = await getWords({ collectionId: 'abc123', limit: 20, offset: 0 });
+   * 
+   * // 获取按创建时间降序排列的单词
+   * const response = await getWords({ 
+   *   collectionId: 'abc123', 
+   *   sortBy: 'created_at', 
+   *   sortOrder: 'desc' 
+   * });
+   */
   async getWords(filters?: {
     limit?: number;
     offset?: number;
-    collectionId?: string; // 支持指定教材
-    selectionStrategy?: 'sequential' | 'random'; // 新增：词汇选取策略
+    collectionId?: string;
     sortBy?: 'word' | 'created_at';
     sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse> {
     try {
+      // 参数验证
+      if (filters?.sortBy && !['word', 'created_at'].includes(filters.sortBy)) {
+        return {
+          success: false,
+          error: 'sortBy参数必须是 "word" 或 "created_at"'
+        }
+      }
+
+      if (filters?.sortOrder && !['asc', 'desc'].includes(filters.sortOrder)) {
+        return {
+          success: false,
+          error: 'sortOrder参数必须是 "asc" 或 "desc"'
+        }
+      }
+
+      if (filters?.limit !== undefined && (filters.limit < 1 || filters.limit > 1000)) {
+        return {
+          success: false,
+          error: 'limit参数必须在1-1000之间'
+        }
+      }
+
+      if (filters?.offset !== undefined && filters.offset < 0) {
+        return {
+          success: false,
+          error: 'offset参数不能为负数'
+        }
+      }
+
       // 使用指定的collectionId或默认ID
       const collectionId = filters?.collectionId || DEFAULT_COLLECTION_ID
 
       console.log('[SupabaseAPI] getWords called with filters:', filters)
 
-      // 随机选取：使用数据库的RPC函数
-      if (filters?.selectionStrategy === 'random') {
-        const limit = filters.limit || TOTAL_QUESTIONS
-        console.log('[SupabaseAPI] Using RPC get_random_words:', { collectionId, limit })
-
-        const { data, error } = await supabase.rpc('get_random_words', {
-          p_collection_id: collectionId,
-          p_limit: limit
-        })
-
-        if (error) {
-          console.error('Supabase getWords RPC error:', error)
-          return {
-            success: false,
-            error: `获取随机单词失败: ${error.message}`
-          }
-        }
-
-        // 转换数据格式
-        const words = (data || []).map(transformWord)
-        console.log('[SupabaseAPI] Returning random words:', { count: words.length })
-
-        return {
-          success: true,
-          data: words,
-          message: `获取到${words.length}个随机单词`
-        }
-      }
-
-      // 非随机选取：使用普通查询
+      // 构建查询
       let query = supabase
         .from('words')
         .select('*')
         .eq('collection_id', collectionId)
 
-      // 根据选取策略排序
-      if (filters?.selectionStrategy === 'sequential') {
-        // 顺序选取：按创建时间排序（最新添加的在前）
-        query = query.order('created_at', { ascending: false })
-      } else if (filters?.sortBy && filters?.sortOrder) {
-        // 使用自定义排序
-        const ascending = filters.sortOrder === 'asc'
-        query = query.order(filters.sortBy, { ascending })
-      } else {
-        // 默认按word排序
-        query = query.order('word', { ascending: true })
-      }
+      // 排序逻辑
+      const sortBy = filters?.sortBy || 'word'
+      const sortOrder = filters?.sortOrder || 'asc'
+      const ascending = sortOrder === 'asc'
+      query = query.order(sortBy, { ascending })
 
-      // 分页：优先使用offset，如果没有则使用limit
+      // 分页逻辑
+      const limit = filters?.limit || 20 // 默认每页20条
       if (filters?.offset !== undefined && filters.offset > 0) {
         // 使用offset分页：从offset位置开始，取limit个
-        console.log('[SupabaseAPI] Using range:', { offset: filters.offset, limit: filters.limit || TOTAL_QUESTIONS })
-        query = query.range(
-          filters.offset,
-          filters.offset + (filters.limit || TOTAL_QUESTIONS) - 1
-        )
-      } else if (filters?.limit) {
-        // 使用limit：从第0个开始，取limit个
-        console.log('[SupabaseAPI] Using limit only:', { limit: filters.limit })
-        query = query.limit(filters.limit)
+        query = query.range(filters.offset, filters.offset + limit - 1)
       } else {
-        // 默认取TOTAL_QUESTIONS个
-        console.log('[SupabaseAPI] Using default TOTAL_QUESTIONS:', { TOTAL_QUESTIONS })
-        query = query.limit(TOTAL_QUESTIONS)
+        // 使用limit：从第0个开始，取limit个
+        query = query.limit(limit)
       }
 
       const { data, error } = await query
@@ -353,9 +359,9 @@ export class SupabaseWordAPI implements WordAPI {
       }
 
       // 转换数据格式
-      let words = (data || []).map(transformWord)
+      const words = (data || []).map(transformWord)
 
-      console.log('[SupabaseAPI] Returning words:', { count: words.length, totalRequested: filters?.limit || TOTAL_QUESTIONS })
+      console.log('[SupabaseAPI] Returning words:', { count: words.length, sortBy, sortOrder })
 
       return {
         success: true,
