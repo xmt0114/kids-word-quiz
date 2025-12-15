@@ -17,6 +17,10 @@ export { GameTimer } from './GameTimer';
 export { UniversalGamePage } from './UniversalGamePage';
 export { HomePage } from './HomePage';
 export { DataManagementPage } from './DataManagementPage';
+export { WordReviewModal } from './WordReviewModal';
+export { WordEditor } from './WordEditor';
+export { WordNavigator } from './WordNavigator';
+export { BatchSaveManager } from './BatchSaveManager';
 
 // Auth components
 export { RegisterModal } from './auth/RegisterModal';

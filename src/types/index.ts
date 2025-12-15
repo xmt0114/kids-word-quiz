@@ -8,6 +8,8 @@ export interface Word {
   options: string[];
   answer: string;
   hint: string;
+  word_order?: number;
+  created_at?: string;
 }
 
 export interface QuestionType {

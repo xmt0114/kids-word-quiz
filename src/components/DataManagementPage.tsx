@@ -7,7 +7,8 @@ import { WordFormModal } from './WordFormModal';
 import { CollectionFormModal } from './CollectionFormModal';
 import { BatchAddWordsModal } from './BatchAddWordsModal';
 import { GameFormModal } from './GameFormModal';
-import { ArrowLeft, BookOpen, BookMarked, Plus, Edit, Edit2, Trash2, Database, Gamepad2, Filter, Upload, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { WordReviewModal } from './WordReviewModal';
+import { ArrowLeft, BookOpen, BookMarked, Plus, Edit, Edit2, Trash2, Database, Gamepad2, Filter, Upload, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { WordCollection, Game } from '../types';
@@ -29,6 +30,8 @@ interface WordData {
   options: string[];
   answer: string;
   hint: string;
+  word_order?: number;
+  created_at?: string;
 }
 
 // 优化的单词行组件（memo化以避免不必要的重新渲染）
@@ -52,14 +55,24 @@ const WordRow = memo<{
           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
         />
       </td>
+      <td className="py-md px-md text-center text-text-secondary">
+        {word.word_order ?? '-'}
+      </td>
       <td className="py-md px-md">
         <span className="font-bold text-text-primary">{word.word}</span>
       </td>
       <td className="py-md px-md text-text-secondary">
         <span className="line-clamp-2">{word.definition}</span>
       </td>
-      <td className="py-md px-md text-text-secondary">
-        {word.options?.length || 0} 个选项
+      <td className="py-md px-md text-center">
+        <span className={cn(
+          "px-2 py-0.5 rounded-full text-xs font-bold",
+          word.difficulty === 'easy' ? "bg-success/10 text-success" :
+            word.difficulty === 'medium' ? "bg-warning/10 text-warning" :
+              "bg-error/10 text-error"
+        )}>
+          {word.difficulty === 'easy' ? '简单' : word.difficulty === 'medium' ? '中等' : '困难'}
+        </span>
       </td>
       <td className="py-md px-md">
         <div className="flex items-center justify-center gap-sm">
@@ -110,7 +123,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedWordIds, setSelectedWordIds] = useState<number[]>([]);
-  const [sortBy, setSortBy] = useState<'word' | 'created_at'>('word');
+  const [sortBy, setSortBy] = useState<'word' | 'created_at' | 'word_order'>('word');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Modals State
@@ -118,6 +131,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
   const [isWordModalOpen, setIsWordModalOpen] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isBatchAddModalOpen, setIsBatchAddModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   // Editing State
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -412,6 +426,14 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
       return;
     }
     setIsBatchAddModalOpen(true);
+  };
+
+  const handleReviewWords = () => {
+    if (!selectedCollectionId) {
+      toast.error('请先选择教材');
+      return;
+    }
+    setIsReviewModalOpen(true);
   };
 
   const handleBatchSubmitWords = async (
@@ -920,6 +942,15 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
                   按时间
                 </button>
                 <button
+                  onClick={() => setSortBy('word_order')}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-full transition-all",
+                    sortBy === 'word_order' ? "bg-accent-500 text-text-primary shadow-sm" : "text-text-tertiary hover:text-text-primary"
+                  )}
+                >
+                  按序号
+                </button>
+                <button
                   onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
                   className="px-2 py-1 text-text-tertiary hover:text-text-primary ml-1"
                   title={sortOrder === 'asc' ? "升序" : "降序"}
@@ -945,6 +976,15 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
                 <Plus size={16} />
                 添加
               </Button>
+              <Button
+                variant="secondary"
+                onClick={handleReviewWords}
+                disabled={!selectedCollectionId}
+                className="flex items-center gap-1 px-3 py-1 min-h-[40px]"
+              >
+                <Eye size={16} />
+                审阅教材
+              </Button>
             </div>
           </div>
 
@@ -969,69 +1009,37 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
                   </div>
                 ) : (
                   <div className="bg-white rounded-lg shadow-sm border-2 border-gray-100 overflow-hidden">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 p-sm bg-gray-50 border-b-2 border-gray-100 text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <div className="col-span-1 flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={words.length > 0 && selectedWordIds.length === words.length}
-                          onChange={toggleSelectAll}
-                          className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="col-span-3">{texts.itemFieldLabel}</div>
-                      <div className="col-span-4">{texts.definitionLabel}</div>
-                      <div className="col-span-2">难度</div>
-                      <div className="col-span-2 text-right">操作</div>
-                    </div>
-
-                    {/* Table Body */}
-                    <div className="divide-y divide-gray-100">
-                      {words.map((word) => (
-                        <div key={word.id} className="grid grid-cols-12 gap-4 p-sm hover:bg-primary-50 transition-colors group items-center text-sm">
-                          <div className="col-span-1 flex items-center justify-center">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b-2 border-gray-100">
+                        <tr>
+                          <th className="py-md px-md text-left">
                             <input
                               type="checkbox"
-                              checked={selectedWordIds.includes(word.id)}
-                              onChange={() => toggleWordSelection(word.id)}
-                              className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                              checked={words.length > 0 && selectedWordIds.length === words.length}
+                              onChange={toggleSelectAll}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                             />
-                          </div>
-                          <div className="col-span-3 font-bold text-text-primary truncate font-display text-lg" title={word.word}>
-                            {word.word}
-                          </div>
-                          <div className="col-span-4 text-text-secondary truncate" title={word.definition}>
-                            {word.definition}
-                          </div>
-                          <div className="col-span-2">
-                            <span className={cn(
-                              "px-2 py-0.5 rounded-full text-xs font-bold",
-                              word.difficulty === 'easy' ? "bg-success/10 text-success" :
-                                word.difficulty === 'medium' ? "bg-warning/10 text-warning" :
-                                  "bg-error/10 text-error"
-                            )}>
-                              {word.difficulty === 'easy' ? '简单' : word.difficulty === 'medium' ? '中等' : '困难'}
-                            </span>
-                          </div>
-                          <div className="col-span-2 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleEditWord(word)}
-                              className="p-1.5 text-secondary-500 hover:bg-secondary-50 rounded-full transition-colors"
-                              title="编辑"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteWord(word)}
-                              className="p-1.5 text-error hover:bg-error/10 rounded-full transition-colors"
-                              title="删除"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          </th>
+                          <th className="py-md px-md text-center text-xs font-bold text-text-secondary uppercase tracking-wider">序号</th>
+                          <th className="py-md px-md text-left text-xs font-bold text-text-secondary uppercase tracking-wider">{texts.itemFieldLabel}</th>
+                          <th className="py-md px-md text-left text-xs font-bold text-text-secondary uppercase tracking-wider">{texts.definitionLabel}</th>
+                          <th className="py-md px-md text-center text-xs font-bold text-text-secondary uppercase tracking-wider">难度</th>
+                          <th className="py-md px-md text-center text-xs font-bold text-text-secondary uppercase tracking-wider">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {words.map((word) => (
+                          <WordRow
+                            key={word.id}
+                            word={word}
+                            selectedWordIds={selectedWordIds}
+                            onToggleSelection={toggleWordSelection}
+                            onEdit={handleEditWord}
+                            onDelete={handleDeleteWord}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
@@ -1111,6 +1119,37 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({ onBack }
         onSubmit={handleBatchSubmitWords}
         collectionId={selectedCollectionId || ''}
         gameId={selectedGameId || ''}
+      />
+
+      <WordReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        collectionId={selectedCollectionId || ''}
+        onDataChange={async () => {
+          // 刷新单词列表和教材信息
+          if (selectedCollectionId && selectedGameId) {
+            // 重新加载教材列表以更新计数
+            await loadCollections(selectedGameId);
+            
+            // 检查当前页是否还有效
+            const collection = collections.find(c => c.id === selectedCollectionId);
+            if (collection) {
+              const wordCount = collection.word_count || 0;
+              const maxPages = Math.ceil(wordCount / wordsPerPage);
+              const adjustedPage = currentPage > maxPages ? Math.max(1, maxPages) : currentPage;
+              
+              if (adjustedPage !== currentPage) {
+                setCurrentPage(adjustedPage);
+              }
+              
+              // 刷新单词列表
+              loadWords(selectedCollectionId, adjustedPage, wordsPerPage);
+            } else {
+              // 如果教材不存在了，直接刷新当前页
+              loadWords(selectedCollectionId, currentPage, wordsPerPage);
+            }
+          }
+        }}
       />
 
       {/* Confirm Dialog */}

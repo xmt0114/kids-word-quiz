@@ -18,7 +18,9 @@ function transformWord(dbWord: any): any {
     difficulty: dbWord.difficulty,
     options: dbWord.options,
     answer: dbWord.answer,
-    hint: dbWord.hint
+    hint: dbWord.hint,
+    word_order: dbWord.word_order,
+    created_at: dbWord.created_at
   }
 }
 
@@ -269,7 +271,7 @@ export class SupabaseWordAPI implements WordAPI {
    * @param filters.collectionId 教材集合ID，默认使用DEFAULT_COLLECTION_ID
    * @param filters.limit 每页数量，默认20，范围1-1000
    * @param filters.offset 偏移量，默认0，用于分页
-   * @param filters.sortBy 排序字段，'word'或'created_at'，默认'word'
+   * @param filters.sortBy 排序字段，'word'、'created_at'或'word_order'，默认'word'
    * @param filters.sortOrder 排序方向，'asc'或'desc'，默认'asc'
    * @returns Promise<WordApiResponse> 包含单词列表的响应
    * 
@@ -283,20 +285,27 @@ export class SupabaseWordAPI implements WordAPI {
    *   sortBy: 'created_at', 
    *   sortOrder: 'desc' 
    * });
+   * 
+   * // 获取按序号升序排列的单词
+   * const response = await getWords({ 
+   *   collectionId: 'abc123', 
+   *   sortBy: 'word_order', 
+   *   sortOrder: 'asc' 
+   * });
    */
   async getWords(filters?: {
     limit?: number;
     offset?: number;
     collectionId?: string;
-    sortBy?: 'word' | 'created_at';
+    sortBy?: 'word' | 'created_at' | 'word_order';
     sortOrder?: 'asc' | 'desc';
   }): Promise<WordApiResponse> {
     try {
       // 参数验证
-      if (filters?.sortBy && !['word', 'created_at'].includes(filters.sortBy)) {
+      if (filters?.sortBy && !['word', 'created_at', 'word_order'].includes(filters.sortBy)) {
         return {
           success: false,
-          error: 'sortBy参数必须是 "word" 或 "created_at"'
+          error: 'sortBy参数必须是 "word"、"created_at" 或 "word_order"'
         }
       }
 
@@ -336,7 +345,14 @@ export class SupabaseWordAPI implements WordAPI {
       const sortBy = filters?.sortBy || 'word'
       const sortOrder = filters?.sortOrder || 'asc'
       const ascending = sortOrder === 'asc'
-      query = query.order(sortBy, { ascending })
+      
+      if (sortBy === 'word_order') {
+        // 对于word_order排序，需要特殊处理null值
+        // 使用nullsLast确保null值排在最后
+        query = query.order(sortBy, { ascending, nullsFirst: false })
+      } else {
+        query = query.order(sortBy, { ascending })
+      }
 
       // 分页逻辑
       const limit = filters?.limit || 20 // 默认每页20条

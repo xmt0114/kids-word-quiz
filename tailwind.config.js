@@ -32,8 +32,8 @@ module.exports = {
 		'gap-sm', 'gap-md', 'gap-lg', 'gap-xl',
 
 		// 网格和布局
-		'grid', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4',
-		'col-span-1', 'col-span-2', 'col-span-3', 'col-span-4',
+		'grid', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-12', 'grid-cols-13',
+		'col-span-1', 'col-span-2', 'col-span-3', 'col-span-4', 'col-span-12', 'col-span-13',
 		'flex', 'items-center', 'justify-center', 'justify-between',
 		'inline-flex', 'flex-col', 'flex-row', 'gap-sm', 'gap-md',
 
