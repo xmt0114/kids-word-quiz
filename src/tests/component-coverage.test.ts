@@ -199,5 +199,16 @@ describe('组件功能覆盖验证', () => {
       'default_config', // 默认配置
     ];
 
-    [
+    [gameSettingsContent, universalGameContent].forEach((content, index) => {
+      const componentName = index === 0 ? 'GameSettingsPage' : 'UniversalGamePage';
+      
+      multiGameFeatures.forEach(feature => {
+        const hasFeature = content.includes(feature);
+        if (!hasFeature) {
+          throw new Error(`${componentName} 缺少多游戏支持功能: ${feature}`);
+        }
+      });
+    });
+  });
+});
     

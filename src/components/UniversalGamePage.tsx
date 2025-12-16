@@ -7,8 +7,8 @@ import { Input } from './Input';
 import { ProgressBar } from './ProgressBar';
 import { StarExplosion } from './StarExplosion';
 import { QuizSettings, Game } from '../types';
-import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2, Eye, RotateCw, Volume2 } from 'lucide-react';
-import { TextToSpeechButton } from './TextToSpeechButton';
+import { CheckCircle, XCircle, ArrowRight, ArrowLeft, Home, Trophy, Smile, BookOpen, AlertCircle, Gamepad2, Eye, RotateCw } from 'lucide-react';
+import { TextToSpeechButton, TextToSpeechButtonRef } from './TextToSpeechButton';
 import { PinyinText } from './PinyinText';
 import { AutoSizeText } from './AutoSizeText';
 import { GameTimer } from './GameTimer';
@@ -62,6 +62,10 @@ const UniversalGamePage: React.FC = () => {
     const [isAnimating, setIsAnimating] = useState(false); // 控制图标跳动动画
 
     const [membershipExpired, setMembershipExpired] = useState(false); // 会员过期状态
+
+    // 音频题干自动播放相关
+    const audioTTSRef = useRef<TextToSpeechButtonRef>(null);
+    const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
 
     // 从store获取游戏信息
     const { games } = useAppStore();
@@ -297,7 +301,34 @@ const UniversalGamePage: React.FC = () => {
             setHintStage(0); // 重置倒计时阶段
             setIsAnimating(false);
         }
+
+        // 重置自动播放状态，允许新题目自动播放
+        setHasAutoPlayed(false);
     }, [quizState.currentQuestionIndex, quizState.answers, quizState.results, quizState.settings.answerType]);
+
+    // 音频题干自动播放逻辑
+    useEffect(() => {
+        // 只在音频题干模式下且未自动播放过时自动播放
+        if (quizState.settings.questionType === 'audio' && currentWord && audioTTSRef.current && !hasAutoPlayed) {
+            console.log('🔊 [UniversalGamePage] 准备自动播放音频题干，题目索引:', quizState.currentQuestionIndex);
+            
+            // 延迟一小段时间确保组件完全渲染
+            const timer = setTimeout(() => {
+                if (audioTTSRef.current) {
+                    console.log('🔊 [UniversalGamePage] 题目切换，执行自动播放新题目');
+                    audioTTSRef.current.autoPlayNewQuestion(); // 使用autoPlayNewQuestion停止旧播放并开始新播放
+                    setHasAutoPlayed(true);
+                } else {
+                    console.warn('🔊 [UniversalGamePage] audioTTSRef.current 不存在，无法自动播放');
+                }
+            }, 500);
+
+            return () => {
+                console.log('🔊 [UniversalGamePage] 清理自动播放定时器');
+                clearTimeout(timer);
+            };
+        }
+    }, [quizState.currentQuestionIndex, quizState.settings.questionType, currentWord, hasAutoPlayed]);
 
     // 提示信息倒计时逻辑
     useEffect(() => {
@@ -698,6 +729,7 @@ const UniversalGamePage: React.FC = () => {
                             {quizState.settings.questionType === 'audio' ? (
                                 <div className="bg-yellow-50 border-2 border-gray-200 rounded-lg p-lg mb-md">
                                     <TextToSpeechButton
+                                        ref={audioTTSRef}
                                         text={currentWord.audioText}
                                         size="large"
                                     />

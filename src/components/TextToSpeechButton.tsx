@@ -13,13 +13,19 @@ interface TextToSpeechButtonProps {
   ttsSettings?: TTSSettings;
 }
 
-const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
+export interface TextToSpeechButtonRef {
+  handlePlay: () => void;
+  autoPlay: () => void; // 专门用于自动播放，不会停止当前播放
+  autoPlayNewQuestion: () => void; // 新增：题目切换时的自动播放，会停止当前播放
+}
+
+const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechButtonProps>(({
   text,
   className,
   size = 'medium',
   textRef,
   ttsSettings: propTtsSettings
-}) => {
+}, ref) => {
   const { settings } = useQuizSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -79,14 +85,8 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
     checkSupport();
   }, []);
 
-  const handlePlay = () => {
-    if (isPlaying) {
-      // 如果正在播放，则停止播放
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-      return;
-    }
-
+  // 通用的播放逻辑
+  const startSpeech = (shouldCancelPrevious = true) => {
     // 优先从textRef读取文本，否则使用text属性
     let textToSpeak = '';
     if (textRef?.current) {
@@ -109,8 +109,10 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
     }
 
     try {
-      // 取消之前的播放
-      window.speechSynthesis.cancel();
+      // 只有在需要时才取消之前的播放
+      if (shouldCancelPrevious) {
+        window.speechSynthesis.cancel();
+      }
 
       // 等待一小段时间确保之前的语音完全停止
       setTimeout(() => {
@@ -183,6 +185,36 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
     }
   };
 
+  // 手动播放（会停止当前播放）
+  const handlePlay = () => {
+    if (isPlaying) {
+      // 如果正在播放，则停止播放
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
+
+    startSpeech(true); // 停止之前的播放并开始新的播放
+  };
+
+  // 自动播放（不会停止当前播放）
+  const autoPlay = () => {
+    // 如果已经在播放，则不执行自动播放
+    if (isPlaying) {
+      console.log('🔊 [TextToSpeechButton] 已在播放中，跳过自动播放');
+      return;
+    }
+
+    console.log('🔊 [TextToSpeechButton] 执行自动播放');
+    startSpeech(false); // 不停止当前播放，直接开始播放
+  };
+
+  // 题目切换时的自动播放（会停止当前播放）
+  const autoPlayNewQuestion = () => {
+    console.log('🔊 [TextToSpeechButton] 题目切换，停止旧播放并开始新播放');
+    startSpeech(true); // 停止当前播放并开始新的播放
+  };
+
   const getIconSize = () => {
     switch (size) {
       case 'small':
@@ -204,6 +236,13 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
         return 'w-12 h-12';
     }
   };
+
+  // 暴露方法给父组件
+  React.useImperativeHandle(ref, () => ({
+    handlePlay,
+    autoPlay,
+    autoPlayNewQuestion
+  }));
 
   // 如果浏览器不支持语音合成或语音列表未加载完成，则不显示按钮
   if (!isSupported || !isVoicesLoaded) {
@@ -246,6 +285,8 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({
       </div>
     </div>
   );
-};
+});
+
+TextToSpeechButton.displayName = 'TextToSpeechButton';
 
 export { TextToSpeechButton };
