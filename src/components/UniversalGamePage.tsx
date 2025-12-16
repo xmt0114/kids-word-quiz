@@ -724,7 +724,7 @@ const UniversalGamePage: React.FC = () => {
                                                 className={cn(
                                                     "block text-center",
                                                     gameInfo?.language === 'zh'
-                                                        ? "font-serif font-bold text-3xl leading-relaxed"
+                                                        ? "font-serif font-semibold text-3xl leading-relaxed"
                                                         : "text-4xl leading-tight"
                                                 )}
                                                 style={gameInfo?.language === 'en' ? {
@@ -745,7 +745,7 @@ const UniversalGamePage: React.FC = () => {
                                                 language={gameInfo?.language as 'zh' | 'en'}
                                                 className="font-medium"
                                                 style={gameInfo?.language === 'zh' ? {
-                                                    fontWeight: '600'
+                                                    fontWeight: '500'
                                                 } : {
                                                     fontWeight: '400',
                                                     letterSpacing: '0.01em'
@@ -800,16 +800,16 @@ const UniversalGamePage: React.FC = () => {
                                                     size="medium"
                                                     language={gameInfo?.language as 'zh' | 'en'}
                                                     className={cn(
-                                                        "text-3xl font-bold",
+                                                        "text-3xl font-semibold",
                                                         gameInfo?.language === 'zh' ? "font-serif" : ""
                                                     )}
                                                     style={gameInfo?.language === 'en' ? {
                                                         fontFamily: 'Fredoka, sans-serif',
                                                         letterSpacing: '0.02em',
-                                                        fontWeight: '800'
+                                                        fontWeight: '600'
                                                     } : {
                                                         fontFamily: 'KaiTi, STKaiti, 楷体, serif',
-                                                        fontWeight: '700'
+                                                        fontWeight: '600'
                                                     }}
                                                 />
                                             }

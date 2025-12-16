@@ -18,7 +18,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
     'bg-white',
     'border-4 border-gray-200',
     'rounded-2xl',
-    'font-bold text-text-primary',
+    'font-semibold text-text-primary',
     'transition-all duration-300',
     'focus:outline-none focus:ring-4 focus:ring-primary-500 focus:ring-opacity-50',
     'active:scale-95',
