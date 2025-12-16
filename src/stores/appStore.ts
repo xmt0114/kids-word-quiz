@@ -59,6 +59,9 @@ interface AppState extends GameTextsSlice, ConfigSlice, UISlice, AuthSlice {
   refreshProgress: (collectionId: string) => Promise<UserProgress | null>;
   submitSessionResults: (results: Array<{ word_id: string; is_correct: boolean }>) => Promise<{ success: boolean; error?: string }>;
 
+  // Actions - 首页数据管理
+  loadHomepageData: () => Promise<void>;
+
   // UI状态和认证状态现在由slice管理，无需重复定义
 }
 
@@ -254,6 +257,37 @@ export const useAppStore = create<AppState>((set, get) => ({
         success: false,
         error: error instanceof Error ? error.message : '未知错误'
       };
+    }
+  },
+
+  // ==================== Actions - 首页数据管理 ====================
+
+  /**
+   * 加载首页数据（包含游戏信息、当前教材和学习进度）
+   */
+  loadHomepageData: async () => {
+    console.log('🏠 [AppStore] 开始加载首页数据...');
+    try {
+      set({ gamesLoading: true });
+
+      const resp = await wordAPI.getHomepageData?.();
+      if (!resp || !resp.success) {
+        console.error('❌ [AppStore] 首页数据加载失败:', resp?.error);
+        set({ gamesLoading: false });
+        return;
+      }
+
+      const homepageGames = resp.data || [];
+      console.log('✅ [AppStore] 首页数据加载完成:', homepageGames.length, '个游戏');
+
+      // 更新games状态
+      set({ 
+        games: homepageGames,
+        gamesLoading: false 
+      });
+    } catch (error) {
+      console.error('❌ [AppStore] 首页数据加载异常:', error);
+      set({ gamesLoading: false });
     }
   },
 

@@ -891,4 +891,31 @@ export class SupabaseWordAPI implements WordAPI {
       return { success: false, error: error instanceof Error ? error.message : '未知错误' }
     }
   }
+
+  // 获取首页数据 - 包含游戏信息、当前教材和学习进度
+  async getHomepageData(): Promise<ApiResponse<any[]>> {
+    try {
+      const { data, error } = await supabase.rpc('get_homepage_data')
+
+      if (error) {
+        console.error('Supabase getHomepageData error:', error)
+        return {
+          success: false,
+          error: `获取首页数据失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: data || [],
+        message: `获取到${(data || []).length}个游戏的首页数据`
+      }
+    } catch (error) {
+      console.error('Unexpected error in getHomepageData:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
 }

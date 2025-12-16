@@ -87,6 +87,8 @@ export interface WordAPI {
   updateGame?(id: string, game: Partial<Game>): Promise<ApiResponse<Game>>;
 
   deleteGame?(id: string): Promise<ApiResponse<void>>;
+
+  getHomepageData?(): Promise<ApiResponse<any[]>>;
 }
 
 // 本地数据API实现

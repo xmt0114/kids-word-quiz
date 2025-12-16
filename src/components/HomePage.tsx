@@ -2,21 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from './Card';
 import { Button } from './Button';
+import { LearningProgressBar } from './ProgressBar';
+import { TextbookSelector } from './TextbookSelector';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAppStore } from '../stores/appStore';
-// useAuth 已替换为直接使用 Zustand store
-import { QuizSettings, Game } from '../types';
+import { useAuthState } from '../hooks/useAuth';
+import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   // 直接使用 Zustand store
-  const { session, profile, games, gamesLoading, openLoginModal } = useAppStore();
+  const { session, profile, games, gamesLoading, openLoginModal, loadHomepageData, updateSettings } = useAppStore();
+  // 使用useAuthState获取updateUserSettings方法
+  const { updateUserSettings } = useAuthState();
   const user = session?.user ?? null;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [switchingTextbook, setSwitchingTextbook] = useState<string | null>(null);
 
-  // 游戏列表现在由 Gatekeeper 统一加载到 store 中，无需重复请求
+  // 加载首页数据
+  useEffect(() => {
+    loadHomepageData();
+  }, [loadHomepageData]);
 
   // 监听用户状态变化，登录后自动执行pendingAction
   useEffect(() => {
@@ -30,8 +38,74 @@ const HomePage: React.FC = () => {
     }
   }, [user, profile, pendingAction, games]);
 
+  // 处理教材切换
+  const handleTextbookChange = async (gameId: string, collectionId: string) => {
+    console.log('HomePage: 开始切换教材', { gameId, collectionId, user: !!user, profile: !!profile });
+    
+    if (!user || !profile) {
+      console.log('HomePage: 用户未登录，弹出登录框');
+      openLoginModal('切换教材');
+      return;
+    }
+
+    setSwitchingTextbook(gameId);
+    try {
+      // 使用updateUserSettings方法更新设置到服务器（参考设置页面的做法）
+      const updates = { [gameId]: { collectionId } };
+      console.log('HomePage: 更新设置', updates);
+      const result = await updateUserSettings(updates);
+      
+      if (!result.success) {
+        console.error('HomePage: 设置更新失败:', result.error);
+        return;
+      }
+      console.log('HomePage: 设置更新成功');
+      
+      // 获取新教材的名称，用于更新本地显示
+      const response = await wordAPI.getCollections?.(gameId);
+      let newTextbookName = collectionId;
+      if (response?.success && response.data) {
+        const newTextbook = response.data.find(t => t.id === collectionId);
+        if (newTextbook) {
+          newTextbookName = newTextbook.name;
+        }
+      }
+      
+      // 只更新本地游戏数据中的教材信息，不重新加载整个页面
+      const updatedGames = games.map(game => {
+        if (game.id === gameId) {
+          const homepageGame = game as HomepageGameData;
+          if (homepageGame.collection) {
+            return {
+              ...game,
+              collection: {
+                ...homepageGame.collection,
+                id: collectionId,
+                name: newTextbookName,
+                // 重置进度数据，因为切换了教材
+                mastered_count: 0,
+                learning_count: 0,
+                remaining_count: homepageGame.collection.total_count,
+              }
+            };
+          }
+        }
+        return game;
+      });
+      
+      // 更新本地状态
+      useAppStore.setState({ games: updatedGames });
+      
+    } catch (error) {
+      console.error('切换教材失败:', error);
+      // 可以在这里添加用户友好的错误提示
+    } finally {
+      setSwitchingTextbook(null);
+    }
+  };
+
   // 开始游戏函数 - 检查登录状态
-  const handleStartGame = async (game: Game) => {
+  const handleStartGame = async (game: Game | HomepageGameData) => {
     if (!user || !profile) {
       // 用户未登录，弹出登录弹框
       setPendingAction(game.id);
@@ -55,35 +129,30 @@ const HomePage: React.FC = () => {
       ...(userSettings || {})
     };
 
-    // 确保有 collectionId
+    // 从首页数据中获取当前教材ID
+    const homepageGame = game as HomepageGameData;
+    if (homepageGame.collection && homepageGame.collection.id) {
+      finalSettings.collectionId = homepageGame.collection.id;
+    }
+
+    // 如果仍然没有 collectionId，尝试自动获取
     if (!finalSettings.collectionId) {
-      // 尝试自动获取该游戏的教材列表
       try {
-        // 显示加载状态（可选，这里为了流畅体验暂时不做全屏loading）
         const response = await wordAPI.getCollections?.(game.id);
         if (response?.success && response.data && response.data.length > 0) {
-          // 智能选择：默认使用第一个教材
           const defaultCollection = response.data[0];
           console.log('Smart Start: Auto-selecting collection', defaultCollection.name);
-
           finalSettings.collectionId = defaultCollection.id;
-
-          // 跳转到通用游戏页面
-          navigate(`/games/${game.id}/play`, {
-            state: {
-              settings: finalSettings,
-              collectionId: finalSettings.collectionId
-            }
-          });
+        } else {
+          // 如果没有可用教材，跳转到设置页面
+          navigate(`/games/${game.id}/settings`);
           return;
         }
       } catch (err) {
         console.error('Smart Start failed:', err);
+        navigate(`/games/${game.id}/settings`);
+        return;
       }
-
-      // 如果没有选择教材且自动获取失败，跳转到设置页面
-      navigate(`/games/${game.id}/settings`);
-      return;
     }
 
     // 跳转到通用游戏页面
@@ -207,7 +276,7 @@ const HomePage: React.FC = () => {
                   <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
                   <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
 
-                  <div className="relative p-lg">
+                  <div className="relative p-md">
                     {/* 游戏图标 */}
                     <div className="text-center mb-md">
                       <div className={cn(
@@ -224,16 +293,45 @@ const HomePage: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* 游戏信息 */}
-                    <div className="flex justify-between items-center mb-md text-small text-text-tertiary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
-                      <div className="flex items-center gap-xs">
-                        <LucideIcons.BarChart3 size={16} />
-                        <span>初级到高级</span>
-                      </div>
-                      <div className="flex items-center gap-xs">
-                        <LucideIcons.Clock size={16} />
-                        <span>5-15分钟</span>
-                      </div>
+                    {/* 教材信息和进度条 */}
+                    <div className="mb-sm space-y-xs">
+                      {(game as HomepageGameData).collection ? (
+                        <>
+                          {/* 教材选择器 */}
+                          <div className="flex items-center justify-center">
+                            {switchingTextbook === game.id ? (
+                              <div className="flex items-center gap-xs text-small text-text-secondary">
+                                <LucideIcons.Loader size={14} className="animate-spin" />
+                                <span>切换中...</span>
+                              </div>
+                            ) : (
+                              <TextbookSelector
+                                currentTextbook={(game as HomepageGameData).collection.id}
+                                currentTextbookName={(game as HomepageGameData).collection.name}
+                                gameId={game.id}
+                                onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
+                              />
+                            )}
+                          </div>
+                          
+                          {/* 学习进度条 */}
+                          <div className="px-xs">
+                            <LearningProgressBar
+                              mastered={(game as HomepageGameData).collection.mastered_count}
+                              learning={(game as HomepageGameData).collection.learning_count}
+                              remaining={(game as HomepageGameData).collection.remaining_count}
+                              total={(game as HomepageGameData).collection.total_count}
+                              className="h-1.5"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        /* 教材数据不可用时的后备内容 */
+                        <div className="flex items-center justify-center text-small text-text-tertiary">
+                          <LucideIcons.BookOpen size={14} className="mr-xs" />
+                          <span>暂无教材数据</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* 操作按钮 */}

@@ -90,6 +90,37 @@ export interface Game {
   text_config?: GameTextConfig; // 文本配置(可选,用于自定义显示文本)
 }
 
+// 首页游戏数据类型 (基于新的 get_homepage_data API)
+export interface HomepageGameData {
+  id: string;
+  icon: string;
+  type: string;
+  title: string;
+  language: string;
+  is_active: boolean;
+  description: string;
+  text_config: GameTextConfig;
+  default_config: QuizSettings;
+  collection: {
+    id: string;
+    name: string;
+    total_count: number;
+    learning_count: number;
+    mastered_count: number;
+    remaining_count: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+// 教材下拉菜单状态
+export interface TextbookDropdownState {
+  isOpen: boolean;
+  gameId: string | null;
+  availableTextbooks: WordCollection[];
+  isLoading: boolean;
+}
+
 // 词汇选取策略类型
 export type WordSelectionStrategy = 'sequential' | 'random';
 

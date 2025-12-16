@@ -16,6 +16,8 @@ export { OptionButton } from './OptionButton';
 export { GameTimer } from './GameTimer';
 export { UniversalGamePage } from './UniversalGamePage';
 export { HomePage } from './HomePage';
+export { LearningProgressBar, ProgressBar } from './ProgressBar';
+export { TextbookSelector } from './TextbookSelector';
 export { DataManagementPage } from './DataManagementPage';
 export { WordReviewModal } from './WordReviewModal';
 export { WordEditor } from './WordEditor';
