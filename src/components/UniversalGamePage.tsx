@@ -17,6 +17,7 @@ import { useQuiz } from '../hooks/useQuiz';
 // localStorage统计已移除，使用后端进度系统
 import { wordAPI } from '../utils/api';
 import useAppStore from '@/stores/appStore';
+import { useSound } from '../contexts/SoundContext';
 
 
 const UniversalGamePage: React.FC = () => {
@@ -47,6 +48,8 @@ const UniversalGamePage: React.FC = () => {
         setError,
         resetQuestion,
     } = useQuiz();
+
+    const { playSound } = useSound();
 
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
     const [inputAnswer, setInputAnswer] = useState<string>('');
@@ -311,7 +314,7 @@ const UniversalGamePage: React.FC = () => {
         // 只在音频题干模式下且未自动播放过时自动播放
         if (quizState.settings.questionType === 'audio' && currentWord && audioTTSRef.current && !hasAutoPlayed) {
             console.log('🔊 [UniversalGamePage] 准备自动播放音频题干，题目索引:', quizState.currentQuestionIndex);
-            
+
             // 延迟一小段时间确保组件完全渲染
             const timer = setTimeout(() => {
                 if (audioTTSRef.current) {
@@ -397,14 +400,18 @@ const UniversalGamePage: React.FC = () => {
         setIsCorrect(correct);
 
         if (correct) {
+            playSound('correct');
             setShowStarExplosion(true);
             setTimeout(() => setShowStarExplosion(false), 2000);
+        } else {
+            playSound('wrong');
         }
     };
 
     // 处理下一题
     // 完成游戏逻辑
     const finishQuiz = async () => {
+        playSound('success');
         // 所有题目完成，显示结果
         const result = getResult();
         // 统计数据现在通过后端进度系统管理，无需本地更新
@@ -696,6 +703,7 @@ const UniversalGamePage: React.FC = () => {
                         返回首页
                     </Button>
 
+
                     <div className="text-center">
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
                             {gameInfo?.title || '猜单词'}
@@ -852,12 +860,14 @@ const UniversalGamePage: React.FC = () => {
                                             disabled={showResult && quizState.settings.gameMode !== 'exam'}
                                             onClick={() => {
                                                 if (showResult && quizState.settings.gameMode !== 'exam') return;
+                                                playSound('click');
                                                 setSelectedAnswer(option);
                                                 // 考试模式下，点击即选中并自动暂存答案
                                                 if (quizState.settings.gameMode === 'exam') {
                                                     submitAnswer(option);
                                                 }
                                             }}
+                                            onMouseEnter={() => playSound('hover')}
                                         />
                                     ))}
                                 </div>

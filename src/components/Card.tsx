@@ -2,7 +2,7 @@ import React from 'react';
 import { CardProps } from '../types';
 import { cn } from '../lib/utils';
 
-const Card = React.forwardRef<HTMLDivElement, CardProps & { onClick?: () => void }>(
+const Card = React.forwardRef<HTMLDivElement, CardProps & React.HTMLAttributes<HTMLDivElement>>(
   ({ children, className, hover = true, onClick, ...props }, ref) => {
     const baseClasses = [
       'bg-background-secondary',

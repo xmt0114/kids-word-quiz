@@ -10,6 +10,8 @@ import { useAppStore } from '../stores/appStore';
 import { useAuthState } from '../hooks/useAuth';
 import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
+import { useSound } from '../contexts/SoundContext';
+
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const HomePage: React.FC = () => {
   const { session, profile, games, gamesLoading, openLoginModal, loadHomepageData, updateSettings } = useAppStore();
   // 使用useAuthState获取updateUserSettings方法
   const { updateUserSettings } = useAuthState();
+  const { playSound } = useSound();
   const user = session?.user ?? null;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [switchingTextbook, setSwitchingTextbook] = useState<string | null>(null);
@@ -41,7 +44,7 @@ const HomePage: React.FC = () => {
   // 处理教材切换
   const handleTextbookChange = async (gameId: string, collectionId: string) => {
     console.log('HomePage: 开始切换教材', { gameId, collectionId, user: !!user, profile: !!profile });
-    
+
     if (!user || !profile) {
       console.log('HomePage: 用户未登录，弹出登录框');
       openLoginModal('切换教材');
@@ -54,13 +57,13 @@ const HomePage: React.FC = () => {
       const updates = { [gameId]: { collectionId } };
       console.log('HomePage: 更新设置', updates);
       const result = await updateUserSettings(updates);
-      
+
       if (!result.success) {
         console.error('HomePage: 设置更新失败:', result.error);
         return;
       }
       console.log('HomePage: 设置更新成功');
-      
+
       // 获取新教材的名称，用于更新本地显示
       const response = await wordAPI.getCollections?.(gameId);
       let newTextbookName = collectionId;
@@ -70,7 +73,7 @@ const HomePage: React.FC = () => {
           newTextbookName = newTextbook.name;
         }
       }
-      
+
       // 只更新本地游戏数据中的教材信息，不重新加载整个页面
       const updatedGames = games.map(game => {
         if (game.id === gameId) {
@@ -92,10 +95,10 @@ const HomePage: React.FC = () => {
         }
         return game;
       });
-      
+
       // 更新本地状态
       useAppStore.setState({ games: updatedGames });
-      
+
     } catch (error) {
       console.error('切换教材失败:', error);
       // 可以在这里添加用户友好的错误提示
@@ -106,6 +109,7 @@ const HomePage: React.FC = () => {
 
   // 开始游戏函数 - 检查登录状态
   const handleStartGame = async (game: Game | HomepageGameData) => {
+    playSound('click');
     if (!user || !profile) {
       // 用户未登录，弹出登录弹框
       setPendingAction(game.id);
@@ -261,17 +265,18 @@ const HomePage: React.FC = () => {
                     'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
                     styles.borderColor
                   )}
+                  onMouseEnter={() => playSound('hover')}
                 >
                   {/* 背景渐变 */}
                   <div className={cn(
                     'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
                     styles.bgColor
                   )} />
-                  
+
                   {/* 装饰性圆点 */}
                   <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
                   <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
-                  
+
                   {/* 左上角装饰线 */}
                   <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
                   <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
@@ -313,7 +318,7 @@ const HomePage: React.FC = () => {
                               />
                             )}
                           </div>
-                          
+
                           {/* 学习进度条 */}
                           <div className="px-xs">
                             <LearningProgressBar
@@ -350,8 +355,8 @@ const HomePage: React.FC = () => {
                             className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
                             title="游戏设置"
                           >
-                            <LucideIcons.Settings 
-                              size={36} 
+                            <LucideIcons.Settings
+                              size={36}
                               className="text-gray-500 hover:text-gray-700 gear-3d"
                             />
                           </button>

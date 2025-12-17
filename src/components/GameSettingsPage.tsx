@@ -10,7 +10,7 @@ import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Sh
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
-
+import { useSound } from '../contexts/SoundContext';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Tooltip, TooltipProvider } from './Tooltip';
 
@@ -46,6 +46,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
     // 获取文本配置
     const texts = useGameTexts(gameId || '');
+    const { playSound } = useSound();
 
 
     const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);
@@ -241,6 +242,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     ];
 
     const handleQuestionTypeSelect = (type: string) => {
+        playSound('toggle');
         setPendingSettings((prev) => ({
             ...(prev || ensureSafeSettings(settings)),
             questionType: type as 'text' | 'audio'
@@ -248,6 +250,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleGameModeSelect = (mode: 'practice' | 'exam') => {
+        playSound('toggle');
         setPendingSettings((prev) => ({
             ...(prev || ensureSafeSettings(settings)),
             gameMode: mode
@@ -255,6 +258,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleAnswerTypeSelect = (type: string) => {
+        playSound('toggle');
         setPendingSettings((prev) => ({
             ...(prev || ensureSafeSettings(settings)),
             answerType: type as 'choice' | 'fill'
@@ -262,6 +266,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleStrategySelect = (strategy: string) => {
+        playSound('toggle');
         setPendingSettings((prev) => ({
             ...(prev || ensureSafeSettings(settings)),
             selectionStrategy: strategy as 'sequential' | 'random'
@@ -390,6 +395,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleSaveSettings = async () => {
+        playSound('click');
         // 【服务器优先】保存待处理的设置
         if (pendingSettings) {
             console.log(`💾 [GameSettings] 用户点击保存设置 [${gameId}] (服务器优先):`, pendingSettings);
@@ -401,10 +407,12 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleDataManagement = () => {
+        playSound('click');
         navigate('/admin/data');
     };
 
     const handleSelectTextbook = () => {
+        playSound('click');
         // 传递 gameId 给教材选择页，以便过滤教材
         navigate('/textbook-selection', { state: { gameId } });
     };

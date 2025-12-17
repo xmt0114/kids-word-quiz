@@ -8,6 +8,7 @@ import { MembershipStatusIcon } from '../MembershipStatusIcon'
 import { UserDropdownMenu } from '../UserDropdownMenu'
 import { MembershipRenewalModal } from '../MembershipRenewalModal'
 import { MembershipService } from '../../utils/membershipService'
+import { SoundToggle } from '../SoundToggle'
 
 export function UserHeader() {
   // 直接使用 Zustand store 和 useAuthState
@@ -38,7 +39,7 @@ export function UserHeader() {
   }
 
   // 计算会员状态
-  const membershipInfo = profile 
+  const membershipInfo = profile
     ? MembershipService.getMembershipInfo(profile.membership_expires_at)
     : { status: 'expired' as const, isExpired: true }
 
@@ -55,11 +56,11 @@ export function UserHeader() {
   // 处理续费成功
   const handleRenewalSuccess = async () => {
     const { addNotification } = useAppStore.getState();
-    
+
     try {
       // 刷新用户资料以获取最新的会员信息
       await refreshUserProfile();
-      
+
       // 显示成功消息
       addNotification({
         type: 'success',
@@ -85,6 +86,7 @@ export function UserHeader() {
             </Link>
           </div>
           <div className="flex items-center space-x-6">
+            <SoundToggle />
             {user && profile ? (
               // 已登录状态
               <>
@@ -107,11 +109,11 @@ export function UserHeader() {
                 )}
 
                 <div className="relative">
-                  <div 
+                  <div
                     className="user-info-clickable flex items-center space-x-3 cursor-pointer px-3 py-2"
                     onClick={handleUserInfoClick}
                   >
-                    <MembershipStatusIcon 
+                    <MembershipStatusIcon
                       status={membershipInfo.status}
                     />
                     <span className="user-info font-semibold">
@@ -121,7 +123,7 @@ export function UserHeader() {
                       {getRoleDisplayName(profile.role)}
                     </span>
                   </div>
-                  
+
                   {/* 用户下拉菜单 */}
                   <UserDropdownMenu
                     user={profile}
@@ -161,7 +163,7 @@ export function UserHeader() {
           </div>
         </div>
       </div>
-      
+
       {/* 续费模态框 */}
       <MembershipRenewalModal
         isOpen={isRenewalModalOpen}

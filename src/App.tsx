@@ -20,6 +20,7 @@ import { UniversalResultPage } from './components/UniversalResultPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { useAppStore } from './stores/appStore';
+import { SoundProvider } from './contexts/SoundContext';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -77,14 +78,14 @@ function AppContent() {
   // 直接使用 Zustand store 替代 useAuth
   const { session, profile, authLoading: loading } = useAppStore();
   const user = session?.user ?? null;
-  
-  const { 
-    loginModal, 
-    closeLoginModal, 
-    registerModal, 
+
+  const {
+    loginModal,
+    closeLoginModal,
+    registerModal,
     closeRegisterModal,
     openLoginModal,
-    openRegisterModal 
+    openRegisterModal
   } = useAppStore();
 
   // 检查用户是否需要设置密码或重置密码
@@ -215,7 +216,9 @@ function App() {
 
   return (
     <Gatekeeper>
-      <AppContent />
+      <SoundProvider>
+        <AppContent />
+      </SoundProvider>
     </Gatekeeper>
   );
 }

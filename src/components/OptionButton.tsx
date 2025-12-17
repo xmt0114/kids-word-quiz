@@ -3,13 +3,14 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { OptionButtonProps } from '../types';
 import { cn } from '../lib/utils';
 
-const OptionButton: React.FC<OptionButtonProps> = ({
+const OptionButton: React.FC<OptionButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>> = ({
   option,
   isSelected = false,
   isCorrect = false,
   isWrong = false,
   onClick,
   disabled = false,
+  ...props
 }) => {
   const baseClasses = [
     'inline-flex items-center justify-center',
@@ -71,6 +72,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={isSelected}
+      {...props}
     >
       <span
         className={cn(

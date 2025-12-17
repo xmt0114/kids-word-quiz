@@ -6,9 +6,9 @@ import { StarResultCard } from './StarResultCard';
 import { DetailedStatsGrid } from './DetailedStatsGrid';
 import { QuestionOverviewSection } from './QuestionOverviewSection';
 import { Trophy, RotateCcw, Home, Target } from 'lucide-react';
-import { 
-  calculateGrade, 
-  calculateDetailedStats, 
+import {
+  calculateGrade,
+  calculateDetailedStats,
   shouldShowCelebration,
   getEncouragementMessage,
   validateQuizResult,
@@ -16,11 +16,12 @@ import {
   getAchievementInfo,
   sanitizeDetailedStats
 } from '../utils/resultCalculations';
-import { 
-  EnhancedQuizResult, 
-  QuestionResult, 
-  QuizResult 
+import {
+  EnhancedQuizResult,
+  QuestionResult,
+  QuizResult
 } from '../types/index';
+import { useSound } from '../contexts/SoundContext';
 
 interface UniversalResultPageProps {
   // 如果没有通过路由状态传递结果，可以作为props传入
@@ -31,38 +32,39 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
+  const { playSound } = useSound();
 
   // 从路由状态获取结果和设置
-  const { 
-    result: routeResult, 
-    settings, 
-    collectionId, 
+  const {
+    result: routeResult,
+    settings,
+    collectionId,
     questions,
     questionResults,
     startTime,
     endTime,
     timeSpent
   } = location.state || {};
-  
+
   const result = propResult || routeResult;
 
   // 如果没有questionResults但有questions，创建模拟的questionResults
   const createMockQuestionResults = (): QuestionResult[] => {
     if (!questions || !Array.isArray(questions)) return [];
-    
+
     // 创建一个随机分布的正确/错误答案模式，而不是简单的前N个正确
     const correctCount = result.correctAnswers;
     const totalCount = result.totalQuestions;
-    
+
     // 创建一个包含正确答案索引的数组
     const correctIndices = new Set<number>();
-    
+
     // 随机选择正确答案的位置
     while (correctIndices.size < correctCount && correctIndices.size < totalCount) {
       const randomIndex = Math.floor(Math.random() * totalCount);
       correctIndices.add(randomIndex);
     }
-    
+
     return questions.slice(0, totalCount).map((question, index) => {
       const isCorrect = correctIndices.has(index);
       return {
@@ -98,8 +100,8 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
 
   // 处理和清理题目结果数据
   const sanitizedQuestionResults = sanitizeQuestionResults(
-    questionResults, 
-    result.totalQuestions, 
+    questionResults,
+    result.totalQuestions,
     result.correctAnswers
   );
 
@@ -123,7 +125,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
   // 重新开始游戏（使用相同单词，不更新进度）
   const handleRestart = () => {
     if (!gameId) return;
-    
+
     // 直接跳转到游戏页面，传递相同的单词和设置
     navigate(`/games/${gameId}/play`, {
       state: {
@@ -138,7 +140,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
   // 继续游戏（获取新的单词）
   const handleContinueGame = () => {
     if (!gameId) return;
-    
+
     // 继续游戏：跳转到游戏页面，传递设置和collectionId，但不传递questions（触发重新获取）
     navigate(`/games/${gameId}/play`, {
       state: {
@@ -188,7 +190,10 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
         <div className="flex flex-col md:flex-row gap-sm justify-center pt-md">
           <Button
             size="default"
-            onClick={handleRestart}
+            onClick={() => {
+              playSound('click');
+              handleRestart();
+            }}
             className="flex items-center gap-sm"
           >
             <RotateCcw size={16} />
@@ -198,7 +203,10 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
           <Button
             variant="secondary"
             size="default"
-            onClick={handleBackToHome}
+            onClick={() => {
+              playSound('click');
+              handleBackToHome();
+            }}
             className="flex items-center gap-sm"
           >
             <Home size={16} />
@@ -208,7 +216,10 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
           <Button
             size="default"
             variant="primary"
-            onClick={handleContinueGame}
+            onClick={() => {
+              playSound('click');
+              handleContinueGame();
+            }}
             className="flex items-center gap-sm bg-green-600 hover:bg-green-700"
           >
             <Target size={16} />
