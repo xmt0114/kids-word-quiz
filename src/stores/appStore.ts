@@ -10,6 +10,7 @@ import { getDefaultTextConfig } from '../utils/gameTextConfig';
 import { createConfigSlice, ConfigSlice } from './slices/configSlice';
 import { createUISlice, UISlice } from './slices/uiSlice';
 import { createAuthSlice, AuthSlice } from './slices/authSlice';
+import { createSoundSlice, SoundSlice } from './slices/soundSlice';
 
 // ==================== 类型定义 ====================
 
@@ -38,7 +39,7 @@ export interface UserProfile {
 }
 
 // 应用状态接口 - 集成所有slice
-interface AppState extends GameTextsSlice, ConfigSlice, UISlice, AuthSlice {
+interface AppState extends GameTextsSlice, ConfigSlice, UISlice, AuthSlice, SoundSlice {
   // ==================== Data 状态（保留现有数据管理） ====================
   dataLoading: boolean; // 数据加载状态（默认为 false）
   userSettings: any | null;
@@ -82,6 +83,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   ...createConfigSlice(set, get),
   ...createUISlice(set, get),
   ...createAuthSlice(set, get),
+  ...createSoundSlice(set, get),
 
   // ==================== 保留的数据状态 ====================
   // Data 状态初始值
@@ -104,6 +106,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // 委托给ConfigSlice处理
       await get().loadGuestConfig();
+
+      // 初始化音效系统 (无论游客还是用户都初始化)
+      get().initSounds();
 
       set({ dataLoading: false });
     } catch (error) {
@@ -135,6 +140,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // 设置用户设置（保留现有逻辑）
       set({ userSettings: userData.settings, dataLoading: false });
+
+      // 初始化音效系统
+      get().initSounds();
     } catch (error) {
       console.error('❌ [AppStore] 用户数据加载失败:', error);
       set({ dataLoading: false });

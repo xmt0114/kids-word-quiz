@@ -10,7 +10,6 @@ import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Sh
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
-import { useSound } from '../contexts/SoundContext';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Tooltip, TooltipProvider } from './Tooltip';
 
@@ -36,7 +35,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
     const { voices, isLoaded: isVoicesLoaded } = useAvailableVoices();
     // 直接使用 Zustand store
-    const { session, profile } = useAppStore();
+    const { session, profile, playSound } = useAppStore();
     const user = session?.user ?? null;
     const isLoggedIn = !!(user && profile);
     const isAdmin = profile?.role === 'admin';
@@ -46,7 +45,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
     // 获取文本配置
     const texts = useGameTexts(gameId || '');
-    const { playSound } = useSound();
+
 
 
     const [textbookInfo, setTextbookInfo] = useState<{ name: string; grade_level?: string | null; word_count?: number } | null>(null);

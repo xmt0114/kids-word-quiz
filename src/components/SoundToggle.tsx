@@ -1,6 +1,6 @@
 import React from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
-import { useSound } from '../contexts/SoundContext';
+import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
 interface SoundToggleProps {
@@ -9,7 +9,7 @@ interface SoundToggleProps {
 }
 
 export const SoundToggle: React.FC<SoundToggleProps> = ({ className, variant = 'ghost' }) => {
-    const { isMuted, toggleMute, playSound } = useSound();
+    const { isMuted, toggleMute, playSound } = useAppStore();
 
     const handleClick = () => {
         toggleMute();

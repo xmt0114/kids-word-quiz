@@ -17,7 +17,6 @@ import { useQuiz } from '../hooks/useQuiz';
 // localStorage统计已移除，使用后端进度系统
 import { wordAPI } from '../utils/api';
 import useAppStore from '@/stores/appStore';
-import { useSound } from '../contexts/SoundContext';
 
 
 const UniversalGamePage: React.FC = () => {
@@ -49,7 +48,7 @@ const UniversalGamePage: React.FC = () => {
         resetQuestion,
     } = useQuiz();
 
-    const { playSound } = useSound();
+
 
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
     const [inputAnswer, setInputAnswer] = useState<string>('');
@@ -71,7 +70,7 @@ const UniversalGamePage: React.FC = () => {
     const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
 
     // 从store获取游戏信息
-    const { games } = useAppStore();
+    const { games, playSound } = useAppStore();
 
 
 

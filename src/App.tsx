@@ -20,7 +20,6 @@ import { UniversalResultPage } from './components/UniversalResultPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { useAppStore } from './stores/appStore';
-import { SoundProvider } from './contexts/SoundContext';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -216,9 +215,7 @@ function App() {
 
   return (
     <Gatekeeper>
-      <SoundProvider>
-        <AppContent />
-      </SoundProvider>
+      <AppContent />
     </Gatekeeper>
   );
 }

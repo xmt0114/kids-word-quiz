@@ -10,16 +10,25 @@ import { useAppStore } from '../stores/appStore';
 import { useAuthState } from '../hooks/useAuth';
 import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
-import { useSound } from '../contexts/SoundContext';
+
 
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   // 直接使用 Zustand store
-  const { session, profile, games, homepageGroups, gamesLoading, openLoginModal, loadHomepageData, updateSettings } = useAppStore();
+  const {
+    session,
+    profile,
+    games,
+    homepageGroups,
+    gamesLoading,
+    openLoginModal,
+    loadHomepageData,
+    updateSettings,
+    playSound
+  } = useAppStore();
   // 使用useAuthState获取updateUserSettings方法
   const { updateUserSettings } = useAuthState();
-  const { playSound } = useSound();
   const user = session?.user ?? null;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [switchingTextbook, setSwitchingTextbook] = useState<string | null>(null);

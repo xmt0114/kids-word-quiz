@@ -21,7 +21,7 @@ import {
   QuestionResult,
   QuizResult
 } from '../types/index';
-import { useSound } from '../contexts/SoundContext';
+import { useAppStore } from '../stores/appStore';
 
 interface UniversalResultPageProps {
   // 如果没有通过路由状态传递结果，可以作为props传入
@@ -32,7 +32,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
-  const { playSound } = useSound();
+  const { playSound } = useAppStore();
 
   // 从路由状态获取结果和设置
   const {
