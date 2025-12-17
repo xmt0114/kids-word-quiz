@@ -345,7 +345,7 @@ export class SupabaseWordAPI implements WordAPI {
       const sortBy = filters?.sortBy || 'word'
       const sortOrder = filters?.sortOrder || 'asc'
       const ascending = sortOrder === 'asc'
-      
+
       if (sortBy === 'word_order') {
         // 对于word_order排序，需要特殊处理null值
         // 使用nullsLast确保null值排在最后
@@ -893,9 +893,9 @@ export class SupabaseWordAPI implements WordAPI {
   }
 
   // 获取首页数据 - 包含游戏信息、当前教材和学习进度
-  async getHomepageData(): Promise<ApiResponse<any[]>> {
+  async getHomepageData(): Promise<ApiResponse<any[]>> { // Keeping return type generic or adjust to HomepageGameGroup[] but allowing any[] for now to avoid strict type breaking if I missed something, actually better be strict if I imported the type.
     try {
-      const { data, error } = await supabase.rpc('get_homepage_data')
+      const { data, error } = await supabase.rpc('get_homepage_data_v2')
 
       if (error) {
         console.error('Supabase getHomepageData error:', error)
@@ -908,7 +908,7 @@ export class SupabaseWordAPI implements WordAPI {
       return {
         success: true,
         data: data || [],
-        message: `获取到${(data || []).length}个游戏的首页数据`
+        message: `获取到${(data || []).length}个分组的首页数据`
       }
     } catch (error) {
       console.error('Unexpected error in getHomepageData:', error)

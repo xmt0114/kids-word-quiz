@@ -113,6 +113,11 @@ export interface HomepageGameData {
   updated_at: string;
 }
 
+export interface HomepageGameGroup {
+  group_title: string;
+  games: HomepageGameData[];
+}
+
 // 教材下拉菜单状态
 export interface TextbookDropdownState {
   isOpen: boolean;

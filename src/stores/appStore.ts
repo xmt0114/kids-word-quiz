@@ -277,13 +277,24 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
 
-      const homepageGames = resp.data || [];
-      console.log('✅ [AppStore] 首页数据加载完成:', homepageGames.length, '个游戏');
+      // data now returns HomepageGameGroup[], we need to flatten it for 'games' state 
+      // but keep structure for 'homepageGroups' state if we want to use it in UI
+      const groups = resp.data || [];
+      console.log('✅ [AppStore] 首页数据加载完成:', groups.length, '个分组');
+
+      // Flatten for legacy compatibility
+      const allGames: any[] = [];
+      groups.forEach((group: any) => {
+        if (group.games && Array.isArray(group.games)) {
+          allGames.push(...group.games);
+        }
+      });
 
       // 更新games状态
-      set({ 
-        games: homepageGames,
-        gamesLoading: false 
+      set({
+        games: allGames,
+        homepageGroups: groups,
+        gamesLoading: false
       });
     } catch (error) {
       console.error('❌ [AppStore] 首页数据加载异常:', error);
@@ -499,7 +510,7 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
       ...settings,
       gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
     };
-    
+
     const computedSettings = newSettings instanceof Function
       ? newSettings(safeSettings)
       : { ...safeSettings, ...newSettings };

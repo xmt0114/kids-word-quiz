@@ -16,7 +16,7 @@ import { useSound } from '../contexts/SoundContext';
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   // 直接使用 Zustand store
-  const { session, profile, games, gamesLoading, openLoginModal, loadHomepageData, updateSettings } = useAppStore();
+  const { session, profile, games, homepageGroups, gamesLoading, openLoginModal, loadHomepageData, updateSettings } = useAppStore();
   // 使用useAuthState获取updateUserSettings方法
   const { updateUserSettings } = useAuthState();
   const { playSound } = useSound();
@@ -234,17 +234,19 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50 p-sm md:p-lg">
-      {/* 页面标题 */}
-      <div className="mb-lg">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
-              热门游戏
-            </h2>
+      {/* 页面标题 - 仅在没有分组数据时显示 */}
+      {(!homepageGroups || homepageGroups.length === 0) && !gamesLoading && (
+        <div className="mb-lg">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                热门游戏
+              </h2>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 游戏列表 */}
       <div className="max-w-6xl mx-auto">
@@ -253,120 +255,259 @@ const HomePage: React.FC = () => {
             <LucideIcons.Loader size={48} className="text-primary-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-            {games.map((game) => {
-              const Icon = getIconComponent(game.icon);
-              const styles = getGameStyles(game.id);
 
-              return (
-                <Card
-                  key={game.id}
-                  className={cn(
-                    'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
-                    styles.borderColor
-                  )}
-                  onMouseEnter={() => playSound('hover')}
-                >
-                  {/* 背景渐变 */}
-                  <div className={cn(
-                    'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
-                    styles.bgColor
-                  )} />
-
-                  {/* 装饰性圆点 */}
-                  <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
-                  <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
-
-                  {/* 左上角装饰线 */}
-                  <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
-                  <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
-
-                  <div className="relative p-md">
-                    {/* 游戏图标 */}
-                    <div className="text-center mb-md">
-                      <div className={cn(
-                        'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
-                        styles.iconBg
-                      )}>
-                        <Icon size={40} className={styles.iconColor} />
-                      </div>
-                      <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
-                        {game.title}
-                      </h3>
-                      <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
-                        {game.description}
-                      </p>
-                    </div>
-
-                    {/* 教材信息和进度条 */}
-                    <div className="mb-sm space-y-xs">
-                      {(game as HomepageGameData).collection ? (
-                        <>
-                          {/* 教材选择器 */}
-                          <div className="flex items-center justify-center">
-                            {switchingTextbook === game.id ? (
-                              <div className="flex items-center gap-xs text-small text-text-secondary">
-                                <LucideIcons.Loader size={14} className="animate-spin" />
-                                <span>切换中...</span>
-                              </div>
-                            ) : (
-                              <TextbookSelector
-                                currentTextbook={(game as HomepageGameData).collection.id}
-                                currentTextbookName={(game as HomepageGameData).collection.name}
-                                gameId={game.id}
-                                onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
-                              />
-                            )}
-                          </div>
-
-                          {/* 学习进度条 */}
-                          <div className="px-xs">
-                            <LearningProgressBar
-                              mastered={(game as HomepageGameData).collection.mastered_count}
-                              learning={(game as HomepageGameData).collection.learning_count}
-                              remaining={(game as HomepageGameData).collection.remaining_count}
-                              total={(game as HomepageGameData).collection.total_count}
-                              className="h-1.5"
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        /* 教材数据不可用时的后备内容 */
-                        <div className="flex items-center justify-center text-small text-text-tertiary">
-                          <LucideIcons.BookOpen size={14} className="mr-xs" />
-                          <span>暂无教材数据</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 操作按钮 */}
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-sm">
-                        <Button
-                          size="default"
-                          className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
-                          onClick={() => handleStartGame(game)}
-                        >
-                          <LucideIcons.Gamepad2 size={16} />
-                          开始游戏
-                        </Button>
-                        <Link to={`/games/${game.id}/settings`}>
-                          <button
-                            className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
-                            title="游戏设置"
-                          >
-                            <LucideIcons.Settings
-                              size={36}
-                              className="text-gray-500 hover:text-gray-700 gear-3d"
-                            />
-                          </button>
-                        </Link>
+          <div className="space-y-12">
+            {homepageGroups && homepageGroups.length > 0 ? (
+              homepageGroups.map((group, groupIndex) => (
+                <div key={groupIndex}>
+                  {/* 分组标题 */}
+                  <div className="mb-6">
+                    <div className="max-w-6xl mx-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
+                        <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                          {group.group_title}
+                        </h2>
                       </div>
                     </div>
                   </div>
-                </Card>
-              );
-            })}
+
+                  {/* 分组游戏列表 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+                    {group.games.map((game) => {
+                      const Icon = getIconComponent(game.icon);
+                      const styles = getGameStyles(game.id);
+
+                      return (
+                        <Card
+                          key={game.id}
+                          className={cn(
+                            'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
+                            styles.borderColor
+                          )}
+                          onMouseEnter={() => playSound('hover')}
+                        >
+                          {/* 背景渐变 */}
+                          <div className={cn(
+                            'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
+                            styles.bgColor
+                          )} />
+
+                          {/* 装饰性圆点 */}
+                          <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
+                          <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
+
+                          {/* 左上角装饰线 */}
+                          <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
+                          <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
+
+                          <div className="relative p-md">
+                            {/* 游戏图标 */}
+                            <div className="text-center mb-md">
+                              <div className={cn(
+                                'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
+                                styles.iconBg
+                              )}>
+                                <Icon size={40} className={styles.iconColor} />
+                              </div>
+                              <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                                {game.title}
+                              </h3>
+                              <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                                {game.description}
+                              </p>
+                            </div>
+
+                            {/* 教材信息和进度条 */}
+                            <div className="mb-sm space-y-xs">
+                              {(game as HomepageGameData).collection ? (
+                                <>
+                                  {/* 教材选择器 */}
+                                  <div className="flex items-center justify-center">
+                                    {switchingTextbook === game.id ? (
+                                      <div className="flex items-center gap-xs text-small text-text-secondary">
+                                        <LucideIcons.Loader size={14} className="animate-spin" />
+                                        <span>切换中...</span>
+                                      </div>
+                                    ) : (
+                                      <TextbookSelector
+                                        currentTextbook={(game as HomepageGameData).collection.id}
+                                        currentTextbookName={(game as HomepageGameData).collection.name}
+                                        gameId={game.id}
+                                        onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
+                                      />
+                                    )}
+                                  </div>
+
+                                  {/* 学习进度条 */}
+                                  <div className="px-xs">
+                                    <LearningProgressBar
+                                      mastered={(game as HomepageGameData).collection.mastered_count}
+                                      learning={(game as HomepageGameData).collection.learning_count}
+                                      remaining={(game as HomepageGameData).collection.remaining_count}
+                                      total={(game as HomepageGameData).collection.total_count}
+                                      className="h-1.5"
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                /* 教材数据不可用时的后备内容 */
+                                <div className="flex items-center justify-center text-small text-text-tertiary">
+                                  <LucideIcons.BookOpen size={14} className="mr-xs" />
+                                  <span>暂无教材数据</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 操作按钮 */}
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-sm">
+                                <Button
+                                  size="default"
+                                  className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
+                                  onClick={() => handleStartGame(game)}
+                                >
+                                  <LucideIcons.Gamepad2 size={16} />
+                                  开始游戏
+                                </Button>
+                                <Link to={`/games/${game.id}/settings`}>
+                                  <button
+                                    className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                    title="游戏设置"
+                                  >
+                                    <LucideIcons.Settings
+                                      size={36}
+                                      className="text-gray-500 hover:text-gray-700 gear-3d"
+                                    />
+                                  </button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Fallback for flat list or empty state
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+                {games.map((game) => {
+                  const Icon = getIconComponent(game.icon);
+                  const styles = getGameStyles(game.id);
+
+                  return (
+                    <Card
+                      key={game.id}
+                      className={cn(
+                        'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
+                        styles.borderColor
+                      )}
+                      onMouseEnter={() => playSound('hover')}
+                    >
+                      {/* 背景渐变 */}
+                      <div className={cn(
+                        'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
+                        styles.bgColor
+                      )} />
+
+                      {/* 装饰性圆点 */}
+                      <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
+                      <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
+
+                      {/* 左上角装饰线 */}
+                      <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
+                      <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
+
+                      <div className="relative p-md">
+                        {/* 游戏图标 */}
+                        <div className="text-center mb-md">
+                          <div className={cn(
+                            'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
+                            styles.iconBg
+                          )}>
+                            <Icon size={40} className={styles.iconColor} />
+                          </div>
+                          <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            {game.title}
+                          </h3>
+                          <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            {game.description}
+                          </p>
+                        </div>
+
+                        {/* 教材信息和进度条 */}
+                        <div className="mb-sm space-y-xs">
+                          {(game as HomepageGameData).collection ? (
+                            <>
+                              {/* 教材选择器 */}
+                              <div className="flex items-center justify-center">
+                                {switchingTextbook === game.id ? (
+                                  <div className="flex items-center gap-xs text-small text-text-secondary">
+                                    <LucideIcons.Loader size={14} className="animate-spin" />
+                                    <span>切换中...</span>
+                                  </div>
+                                ) : (
+                                  <TextbookSelector
+                                    currentTextbook={(game as HomepageGameData).collection.id}
+                                    currentTextbookName={(game as HomepageGameData).collection.name}
+                                    gameId={game.id}
+                                    onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
+                                  />
+                                )}
+                              </div>
+
+                              {/* 学习进度条 */}
+                              <div className="px-xs">
+                                <LearningProgressBar
+                                  mastered={(game as HomepageGameData).collection.mastered_count}
+                                  learning={(game as HomepageGameData).collection.learning_count}
+                                  remaining={(game as HomepageGameData).collection.remaining_count}
+                                  total={(game as HomepageGameData).collection.total_count}
+                                  className="h-1.5"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            /* 教材数据不可用时的后备内容 */
+                            <div className="flex items-center justify-center text-small text-text-tertiary">
+                              <LucideIcons.BookOpen size={14} className="mr-xs" />
+                              <span>暂无教材数据</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 操作按钮 */}
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-sm">
+                            <Button
+                              size="default"
+                              className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
+                              onClick={() => handleStartGame(game)}
+                            >
+                              <LucideIcons.Gamepad2 size={16} />
+                              开始游戏
+                            </Button>
+                            <Link to={`/games/${game.id}/settings`}>
+                              <button
+                                className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                title="游戏设置"
+                              >
+                                <LucideIcons.Settings
+                                  size={36}
+                                  className="text-gray-500 hover:text-gray-700 gear-3d"
+                                />
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

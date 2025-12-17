@@ -1,4 +1,4 @@
-import { Game, GameTextConfig } from '../types';
+import { Game, GameTextConfig, HomepageGameGroup } from '../types';
 import { getDefaultTextConfig } from '../utils/gameTextConfig';
 
 /**
@@ -12,11 +12,13 @@ import { getDefaultTextConfig } from '../utils/gameTextConfig';
 export interface GameTextsSlice {
     // 状态
     games: Game[];
+    homepageGroups: HomepageGameGroup[];
     gamesLoading: boolean;
     gamesError: string | null;
 
     // Actions
     setGames: (games: Game[]) => void;
+    setHomepageGroups: (groups: HomepageGameGroup[]) => void;
     setGamesLoading: (loading: boolean) => void;
     setGamesError: (error: string | null) => void;
 
@@ -37,6 +39,7 @@ export const createGameTextsSlice = (
 ): GameTextsSlice => ({
     // 初始状态
     games: [],
+    homepageGroups: [],
     gamesLoading: false,
     gamesError: null,
 
@@ -44,6 +47,10 @@ export const createGameTextsSlice = (
     setGames: (games) => {
         console.log('🎮 [GameTextsSlice] 设置游戏列表:', games.length, '个游戏');
         set({ games });
+    },
+
+    setHomepageGroups: (groups) => {
+        set({ homepageGroups: groups });
     },
 
     setGamesLoading: (loading) => {
@@ -57,7 +64,7 @@ export const createGameTextsSlice = (
     // 业务方法
     loadGames: async () => {
         const state = get();
-        
+
         // 如果已经有游戏数据且不在加载中，跳过重复请求
         if (state.games && state.games.length > 0 && !state.gamesLoading) {
             console.log('⏭️ [GameTextsSlice] 游戏列表已存在，跳过重复加载');
