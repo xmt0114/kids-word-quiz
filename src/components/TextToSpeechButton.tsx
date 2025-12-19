@@ -11,12 +11,13 @@ interface TextToSpeechButtonProps {
   size?: 'small' | 'medium' | 'large';
   textRef?: React.RefObject<HTMLElement>;
   ttsSettings?: TTSSettings;
+  autoPlay?: boolean;
 }
 
 export interface TextToSpeechButtonRef {
   handlePlay: () => void;
-  autoPlay: () => void; // 专门用于自动播放，不会停止当前播放
-  autoPlayNewQuestion: () => void; // 新增：题目切换时的自动播放，会停止当前播放
+  triggerAutoPlay: () => void; // 重命名：避免与 autoPlay 属性冲突
+  autoPlayNewQuestion: () => void;
 }
 
 const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechButtonProps>(({
@@ -24,7 +25,8 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
   className,
   size = 'medium',
   textRef,
-  ttsSettings: propTtsSettings
+  ttsSettings: propTtsSettings,
+  autoPlay = false
 }, ref) => {
   const { settings } = useQuizSettings();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -84,6 +86,20 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
 
     checkSupport();
   }, []);
+
+  // 新增：检测文本变化或 autoPlay 变化时自动播放
+  useEffect(() => {
+    if (autoPlay && isSupported && isVoicesLoaded && text) {
+      // 延迟一小段时间确保 TTS 引擎准备就绪
+      const timer = setTimeout(() => {
+        startSpeech(true); // 题目切换/加载时，停止旧的朗读新的
+      }, 300);
+      return () => {
+        clearTimeout(timer);
+        window.speechSynthesis.cancel(); // 组件销毁或文本变化时停止
+      };
+    }
+  }, [autoPlay, isSupported, isVoicesLoaded, text]);
 
   // 通用的播放逻辑
   const startSpeech = (shouldCancelPrevious = true) => {
@@ -198,7 +214,7 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
   };
 
   // 自动播放（不会停止当前播放）
-  const autoPlay = () => {
+  const triggerAutoPlay = () => {
     // 如果已经在播放，则不执行自动播放
     if (isPlaying) {
       console.log('🔊 [TextToSpeechButton] 已在播放中，跳过自动播放');
@@ -240,7 +256,7 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
   // 暴露方法给父组件
   React.useImperativeHandle(ref, () => ({
     handlePlay,
-    autoPlay,
+    triggerAutoPlay,
     autoPlayNewQuestion
   }));
 

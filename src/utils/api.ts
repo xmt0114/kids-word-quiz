@@ -89,6 +89,7 @@ export interface WordAPI {
   deleteGame?(id: string): Promise<ApiResponse<void>>;
 
   getHomepageData?(): Promise<ApiResponse<any[]>>;
+  getTrialGameData?(): Promise<ApiResponse<any>>;
 }
 
 // 本地数据API实现

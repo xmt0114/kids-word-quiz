@@ -10,6 +10,8 @@ import { useAppStore } from '../stores/appStore';
 import { useAuthState } from '../hooks/useAuth';
 import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
+import TrialGameModal from './TrialGameModal';
+import { AlertCircle, User, Zap } from 'lucide-react';
 
 
 
@@ -32,6 +34,9 @@ const HomePage: React.FC = () => {
   const user = session?.user ?? null;
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [switchingTextbook, setSwitchingTextbook] = useState<string | null>(null);
+  const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [selectedGameForChoice, setSelectedGameForChoice] = useState<Game | HomepageGameData | null>(null);
 
   // 加载首页数据
   useEffect(() => {
@@ -120,9 +125,9 @@ const HomePage: React.FC = () => {
   const handleStartGame = async (game: Game | HomepageGameData) => {
     playSound('click');
     if (!user || !profile) {
-      // 用户未登录，弹出登录弹框
-      setPendingAction(game.id);
-      openLoginModal('开始游戏');
+      // 用户未登录，弹出选项弹窗（立即体验 vs 账号登录）
+      setSelectedGameForChoice(game);
+      setIsChoiceModalOpen(true);
       return;
     }
 
@@ -533,6 +538,81 @@ const HomePage: React.FC = () => {
           </Card>
         </div>
       </div>
+      {/* 体验模式弹窗 */}
+      <TrialGameModal
+        isOpen={isTrialModalOpen}
+        onClose={() => setIsTrialModalOpen(false)}
+        onLoginClick={() => {
+          setIsTrialModalOpen(false);
+          openLoginModal('从试炼场登录');
+        }}
+      />
+
+      {/* 登录/体验选择弹窗 */}
+      {isChoiceModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <Card className="max-w-md w-full p-8 md:p-10 text-center space-y-8 transform animate-in zoom-in-95 duration-300 border-4 border-primary-100 shadow-2xl relative overflow-hidden">
+            {/* 顶部分类装饰 */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 via-secondary-400 to-accent-400"></div>
+
+            <div className="space-y-4">
+              <div className="w-20 h-20 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto text-primary-600 rotate-6 shadow-md">
+                <LucideIcons.Gamepad2 size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-gray-800">欢迎来到语智乐园！</h3>
+                <p className="text-gray-500 font-medium">尚未登录，你可以选择：</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <button
+                onClick={() => {
+                  setIsChoiceModalOpen(false);
+                  setIsTrialModalOpen(true);
+                  playSound('success');
+                }}
+                className="group relative flex items-center gap-4 p-5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl font-bold text-lg hover:scale-[1.03] active:scale-95 transition-all shadow-xl"
+              >
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                  <Zap size={24} fill="currentColor" />
+                </div>
+                <div className="text-left">
+                  <div className="text-sm opacity-80 font-medium">全能关卡 (免登录)</div>
+                  <div className="text-xl">立即开始试炼</div>
+                </div>
+                <LucideIcons.ArrowRight className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsChoiceModalOpen(false);
+                  if (selectedGameForChoice) {
+                    setPendingAction(selectedGameForChoice.id);
+                  }
+                  openLoginModal('从选择弹窗登录');
+                }}
+                className="group relative flex items-center gap-4 p-5 bg-white border-2 border-primary-100 text-gray-700 rounded-2xl font-bold text-lg hover:bg-primary-50 hover:border-primary-200 active:scale-95 transition-all shadow-md"
+              >
+                <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform text-primary-500">
+                  <User size={24} />
+                </div>
+                <div className="text-left">
+                  <div className="text-sm text-gray-400 font-medium">同步学习进度</div>
+                  <div className="text-xl">账号登录/注册</div>
+                </div>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsChoiceModalOpen(false)}
+              className="text-gray-400 text-sm hover:text-gray-600 transition-colors py-2"
+            >
+              稍后再说
+            </button>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

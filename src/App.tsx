@@ -205,6 +205,8 @@ function AppContent() {
   );
 }
 
+import MobileGuard from './components/MobileGuard';
+
 // 根组件
 function App() {
   // 应用启动时清理旧的localStorage数据
@@ -215,6 +217,7 @@ function App() {
 
   return (
     <Gatekeeper>
+      <MobileGuard />
       <AppContent />
     </Gatekeeper>
   );

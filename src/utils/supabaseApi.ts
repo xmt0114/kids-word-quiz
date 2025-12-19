@@ -918,4 +918,31 @@ export class SupabaseWordAPI implements WordAPI {
       }
     }
   }
+
+  // 获取体验模式数据
+  async getTrialGameData(): Promise<ApiResponse<any>> {
+    try {
+      const { data, error } = await supabase.rpc('get_trial_game_data')
+
+      if (error) {
+        console.error('Supabase getTrialGameData error:', error)
+        return {
+          success: false,
+          error: `获取试炼数据失败: ${error.message}`
+        }
+      }
+
+      return {
+        success: true,
+        data: data || {},
+        message: '获取试炼数据成功'
+      }
+    } catch (error) {
+      console.error('Unexpected error in getTrialGameData:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
 }

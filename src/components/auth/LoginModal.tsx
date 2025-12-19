@@ -51,7 +51,7 @@ export function LoginModal({ isOpen, onClose, action, onSwitchToRegister }: Logi
       <div className="bg-white rounded-lg p-lg max-w-md w-full animate-scale-in">
         <div className="flex justify-between items-center mb-lg">
           <h3 className="text-h3 font-bold text-text-primary">
-            登录以继续{action}
+            登录
           </h3>
           <button
             onClick={onClose}
