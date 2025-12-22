@@ -11,6 +11,7 @@ import { createConfigSlice, ConfigSlice } from './slices/configSlice';
 import { createUISlice, UISlice } from './slices/uiSlice';
 import { createAuthSlice, AuthSlice } from './slices/authSlice';
 import { createSoundSlice, SoundSlice } from './slices/soundSlice';
+import { BUILTIN_DEFAULTS } from '../lib/config';
 
 // ==================== 类型定义 ====================
 
@@ -406,6 +407,77 @@ export { useAppStore as default };
  * 专门用于答题设置的 Hook
  * 从 Zustand Store 读取设置，优先级：userSettings > guestConfig > 默认值
  */
+/**
+ * 核心逻辑：合并获取完整设置
+ * 这是一个纯函数，确保在任何地方（设置页、首页开始游戏）逻辑完全一致
+ */
+export const getMergedQuizSettings = (
+  gameId: string,
+  userSettings: any,
+  guestConfig: any,
+  defaultConfig?: Partial<QuizSettings>
+): QuizSettings => {
+  // 1. 确定保底的基础默认值 (BUILTIN_DEFAULTS.guess_word_settings)
+  // 注意：我们将 BUILTIN_DEFAULTS 中的 learningStrategy 统一为 selectionStrategy
+  const globalBaseDefaults = {
+    ...(BUILTIN_DEFAULTS.guess_word_settings || {}),
+    selectionStrategy: BUILTIN_DEFAULTS.guess_word_settings?.selectionStrategy ||
+      BUILTIN_DEFAULTS.guess_word_settings?.learningStrategy || 'sequential',
+    collectionId: BUILTIN_DEFAULTS.default_collection_id || '',
+    tts: { ...BUILTIN_DEFAULTS.tts_defaults },
+    showPinyin: false,
+    gameMode: 'practice'
+  };
+
+  // 2. 确定该游戏的特定默认配置 (来自数据库 games 表的 default_config 或传入的 defaultConfig)
+  const gameDefaultConfig = defaultConfig || guestConfig?.games?.[gameId]?.default_config || {};
+
+  // 3. 确定用户针对该游戏的特定设置
+  let savedSettings = {};
+  if (userSettings && userSettings[gameId]) {
+    savedSettings = userSettings[gameId];
+  } else if (userSettings && gameId === 'guess_word' && (userSettings as any).questionType) {
+    // 兼容旧版扁平化存储
+    savedSettings = userSettings;
+  }
+
+  // 4. 执行多层级合并：全局默认 < 游戏默认 < 用户设置
+  const merged = {
+    ...globalBaseDefaults,
+    ...gameDefaultConfig,
+    ...savedSettings,
+  } as any;
+
+  // 5. 确保 TTS 和字段命名的最终补全（深度补全）
+  // 处理 selectionStrategy vs learningStrategy 的历史遗留问题
+  const finalSelectionStrategy = merged.selectionStrategy || merged.learningStrategy || 'sequential';
+
+  // 确保 TTS 结构完整
+  const finalTts = {
+    ...globalBaseDefaults.tts,
+    ...(gameDefaultConfig.tts || {}),
+    ...(merged.tts || {})
+  };
+
+  const finalSettings: QuizSettings = {
+    ...merged,
+    selectionStrategy: finalSelectionStrategy,
+    tts: finalTts,
+    // 强制校验枚举值防止脏数据
+    gameMode: (merged.gameMode === 'exam' ? 'exam' : 'practice'),
+    questionType: (merged.questionType === 'audio' ? 'audio' : 'text'),
+    answerType: (merged.answerType === 'fill' ? 'fill' : 'choice'),
+  };
+
+  return finalSettings;
+};
+
+// ==================== 答题设置 Hook ====================
+
+/**
+ * 专门用于答题设置的 Hook
+ * 从 Zustand Store 读取设置，优先级：userSettings > guestConfig > 默认值
+ */
 export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: Partial<QuizSettings>) => {
   // 直接使用 Zustand store 和 useAuthState
   const { session, profile: storeProfile } = useAppStore();
@@ -416,99 +488,13 @@ export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: P
   // 从 Zustand Store 订阅设置（服务器优先缓存）
   const userSettings = useAppStore(state => state.userSettings);
   const guestConfig = useAppStore(state => state.guestConfig);
-  const userConfig = useAppStore(state => state.userConfig);
 
   // 合并获取完整设置
   const settings = useMemo(() => {
-    console.log(`🔍 [useQuizSettings] 开始读取设置 [${gameId}]`, {
-      hasUserSettings: !!userSettings,
-      userSettingsKeys: userSettings ? Object.keys(userSettings) : [],
-      hasGuestConfig: !!guestConfig,
-      hasDefaultConfig: !!defaultConfig
-    });
-
-    // 1. 尝试获取特定游戏的设置
-    if (userSettings && userSettings[gameId]) {
-      console.log(`📖 [useQuizSettings] 从用户设置读取 [${gameId}]:`, userSettings[gameId]);
-      return userSettings[gameId] as QuizSettings;
-    }
-
-    // 2. 兼容旧数据（如果 userSettings 是扁平结构且 gameId 为 guess_word）
-    if (gameId === 'guess_word' && userSettings && userSettings.questionType) {
-      console.log('📖 [useQuizSettings] 从旧版用户设置读取:', userSettings);
-      return userSettings as QuizSettings;
-    }
-
-    // 3. 否则使用游客配置或默认值
-    if (guestConfig) {
-      // 尝试从 guestConfig 获取特定游戏的默认配置
-      // 假设 guestConfig 中有 games 配置，或者使用 guess_word_settings 作为默认
-      // 优先使用传入的 defaultConfig (来自 GameSettingsPage 的 gameInfo)
-      const gameConfig = defaultConfig || guestConfig.games?.[gameId]?.default_config || guestConfig.guess_word_settings || {};
-      const ttsDefaults = guestConfig.tts_defaults || {};
-      const defaultCollectionId = guestConfig.default_collection_id || '';
-
-      // 根据游戏语言设置默认语速：中文1.0（正常），英文0.8（稍慢）
-      const gameLang = gameConfig.language || 'en';
-      const defaultRate = gameLang === 'zh' ? 1.0 : 0.8;
-
-      const mergedSettings = {
-        questionType: gameConfig.questionType || 'text',
-        answerType: gameConfig.answerType || 'choice',
-        selectionStrategy: gameConfig.learningStrategy || 'sequential',
-        collectionId: defaultCollectionId,
-        tts: {
-          lang: ttsDefaults.lang || 'en-US',
-          rate: ttsDefaults.rate !== undefined ? ttsDefaults.rate : defaultRate,
-          pitch: ttsDefaults.pitch || 1.0,
-          volume: ttsDefaults.volume || 1.0,
-          voiceName: ttsDefaults.voiceName || 'default',
-        },
-        showPinyin: gameConfig.showPinyin || false,
-        gameMode: (gameConfig.gameMode as 'practice' | 'exam') || 'practice',
-      };
-
-      console.log(`📖 [useQuizSettings] 从游客配置/默认配置读取 [${gameId}]:`, mergedSettings);
-      return mergedSettings as QuizSettings;
-    }
-
-    // 4. 兜底：内置默认值
-    console.log('📖 [useQuizSettings] 使用内置默认值');
-    // 如果有传入 defaultConfig，优先使用
-    if (defaultConfig) {
-      return {
-        questionType: defaultConfig.questionType || 'text',
-        answerType: defaultConfig.answerType || 'choice',
-        selectionStrategy: defaultConfig.selectionStrategy || 'sequential',
-        collectionId: defaultConfig.collectionId || '',
-        tts: {
-          lang: 'en-US',
-          rate: 0.8,
-          pitch: 1.0,
-          volume: 1.0,
-          voiceName: 'default',
-          ...defaultConfig.tts
-        },
-        showPinyin: defaultConfig.showPinyin || false,
-        gameMode: (defaultConfig.gameMode as 'practice' | 'exam') || 'practice',
-      } as QuizSettings;
-    }
-
-    return {
-      questionType: 'text' as const,
-      answerType: 'choice' as const,
-      selectionStrategy: 'sequential' as const,
-      collectionId: '',
-      tts: {
-        lang: 'en-US',
-        rate: 0.8,
-        pitch: 1.0,
-        volume: 1.0,
-        voiceName: 'default',
-      },
-      showPinyin: false,
-      gameMode: 'practice',
-    };
+    console.log(`🔍 [useQuizSettings] 开始读取设置 [${gameId}]`);
+    const finalSettings = getMergedQuizSettings(gameId, userSettings, guestConfig, defaultConfig);
+    console.log(`📖 [useQuizSettings] 最终合并设置 [${gameId}]:`, finalSettings);
+    return finalSettings;
   }, [userSettings, guestConfig, gameId, defaultConfig]);
 
   // 【服务器优先】更新设置的函数

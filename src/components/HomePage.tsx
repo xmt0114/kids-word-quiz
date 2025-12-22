@@ -6,7 +6,7 @@ import { LearningProgressBar } from './ProgressBar';
 import { TextbookSelector } from './TextbookSelector';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useAppStore } from '../stores/appStore';
+import { useAppStore, getMergedQuizSettings } from '../stores/appStore';
 import { useAuthState } from '../hooks/useAuth';
 import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
@@ -141,13 +141,15 @@ const HomePage: React.FC = () => {
       userSettings = store.userSettings;
     }
 
-    // 合并默认设置
-    const finalSettings: QuizSettings = {
-      ...game.default_config,
-      ...(userSettings || {})
-    };
+    // 使用统一的合并逻辑获取完整设置
+    const finalSettings = getMergedQuizSettings(
+      game.id,
+      store.userSettings,
+      store.guestConfig,
+      game.default_config
+    );
 
-    // 从首页数据中获取当前教材ID
+    // 从首页数据中获取当前教材ID (优先级高于保存的设置，因为用户在首页可以切换教材)
     const homepageGame = game as HomepageGameData;
     if (homepageGame.collection && homepageGame.collection.id) {
       finalSettings.collectionId = homepageGame.collection.id;

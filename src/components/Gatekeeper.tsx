@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAppStore, UserProfile } from '../stores/appStore';
+import { BUILTIN_DEFAULTS } from '../lib/config';
 
 /**
  * 守门人（Gatekeeper）组件 - 唯一的状态源
@@ -200,88 +201,7 @@ export async function fetchGuestConfig() {
       throw fetchError;
     }
 
-    // 内置默认值（与 useAppConfig 中的 BUILTIN_DEFAULTS 一致）
-    const BUILTIN_DEFAULTS: Record<string, any> = {
-      app_settings: {
-        defaultLanguage: 'zh-CN',
-        theme: 'light',
-        enableSound: true,
-        autoSave: true,
-      },
-      default_stats: {
-        totalGames: 0,
-        totalCorrect: 0,
-        bestScore: 0,
-        averageScore: 0,
-        lastPlayed: null,
-      },
-      game_constants: {
-        totalQuestions: 10,
-        optionCount: 3,
-        shuffleWords: true,
-        defaultTimeLimit: 300,
-      },
-      default_collection_id: '11111111-1111-1111-1111-111111111111',
-      tts_defaults: {
-        lang: 'en-US',
-        rate: 0.8,
-        pitch: 1.0,
-        volume: 1.0,
-        voiceName: 'default',
-      },
-      supported_games: [
-        {
-          id: 'guess_word',
-          name: '猜单词',
-          description: '根据提示猜测单词',
-          category: 'vocabulary',
-          enabled: true,
-        },
-        {
-          id: 'spelling_bee',
-          name: '拼写蜜蜂',
-          description: '听音拼词游戏',
-          category: 'spelling',
-          enabled: false,
-        },
-        {
-          id: 'word_match',
-          name: '单词匹配',
-          description: '单词与释义匹配',
-          category: 'comprehension',
-          enabled: false,
-        },
-      ],
-      guess_word_settings: {
-        questionType: 'text',
-        answerType: 'choice',
-        learningStrategy: 'sequential',
-        hintsEnabled: true,
-        showPhonetic: true,
-        showDefinition: true,
-      },
-      difficulty_levels: [
-        { id: 'easy', name: '简单', description: '适合初学者' },
-        { id: 'medium', name: '中等', description: '适合有一定基础的学习者' },
-        { id: 'hard', name: '困难', description: '适合高级学习者' },
-      ],
-      question_types: [
-        { id: 'text', name: '文字题干', description: '在屏幕上显示题目描述' },
-        { id: 'image', name: '图片题干', description: '通过图片显示题目' },
-        { id: 'audio', name: '音频题干', description: '通过语音播放题目' },
-      ],
-      answer_types: [
-        { id: 'choice', name: '选择题', description: '从选项中选择答案' },
-        { id: 'input', name: '填空题', description: '手动输入答案' },
-        { id: 'audio', name: '语音答题', description: '通过语音回答' },
-      ],
-      learning_strategies: [
-        { id: 'sequential', name: '顺序学习', description: '按顺序学习内容' },
-        { id: 'random', name: '随机学习', description: '随机选择内容' },
-        { id: 'spaced_repetition', name: '间隔重复', description: '根据记忆曲线重复学习' },
-        { id: 'adaptive', name: '自适应学习', description: '根据表现调整难度' },
-      ],
-    };
+    // 内置默认值已移动到 src/lib/config.ts
 
     let guestConfig: Record<string, any>;
     let dataSource: 'cloud' | 'builtin';
@@ -315,87 +235,6 @@ export async function fetchGuestConfig() {
     console.error('❌ [Gatekeeper] 加载配置失败:', errorMessage);
     console.warn('⚠️ [Gatekeeper] 使用内置默认配置');
 
-    // 返回内置默认值（与 useAppConfig 中的 BUILTIN_DEFAULTS 一致）
-    return {
-      app_settings: {
-        defaultLanguage: 'zh-CN',
-        theme: 'light',
-        enableSound: true,
-        autoSave: true,
-      },
-      default_stats: {
-        totalGames: 0,
-        totalCorrect: 0,
-        bestScore: 0,
-        averageScore: 0,
-        lastPlayed: null,
-      },
-      game_constants: {
-        totalQuestions: 10,
-        optionCount: 3,
-        shuffleWords: true,
-        defaultTimeLimit: 300,
-      },
-      default_collection_id: '11111111-1111-1111-1111-111111111111',
-      tts_defaults: {
-        lang: 'en-US',
-        rate: 0.8,
-        pitch: 1.0,
-        volume: 1.0,
-        voiceName: 'default',
-      },
-      supported_games: [
-        {
-          id: 'guess_word',
-          name: '猜单词',
-          description: '根据提示猜测单词',
-          category: 'vocabulary',
-          enabled: true,
-        },
-        {
-          id: 'spelling_bee',
-          name: '拼写蜜蜂',
-          description: '听音拼词游戏',
-          category: 'spelling',
-          enabled: false,
-        },
-        {
-          id: 'word_match',
-          name: '单词匹配',
-          description: '单词与释义匹配',
-          category: 'comprehension',
-          enabled: false,
-        },
-      ],
-      guess_word_settings: {
-        questionType: 'text',
-        answerType: 'choice',
-        learningStrategy: 'sequential',
-        hintsEnabled: true,
-        showPhonetic: true,
-        showDefinition: true,
-      },
-      difficulty_levels: [
-        { id: 'easy', name: '简单', description: '适合初学者' },
-        { id: 'medium', name: '中等', description: '适合有一定基础的学习者' },
-        { id: 'hard', name: '困难', description: '适合高级学习者' },
-      ],
-      question_types: [
-        { id: 'text', name: '文字题干', description: '在屏幕上显示题目描述' },
-        { id: 'image', name: '图片题干', description: '通过图片显示题目' },
-        { id: 'audio', name: '音频题干', description: '通过语音播放题目' },
-      ],
-      answer_types: [
-        { id: 'choice', name: '选择题', description: '从选项中选择答案' },
-        { id: 'input', name: '填空题', description: '手动输入答案' },
-        { id: 'audio', name: '语音答题', description: '通过语音回答' },
-      ],
-      learning_strategies: [
-        { id: 'sequential', name: '顺序学习', description: '按顺序学习内容' },
-        { id: 'random', name: '随机学习', description: '随机选择内容' },
-        { id: 'spaced_repetition', name: '间隔重复', description: '根据记忆曲线重复学习' },
-        { id: 'adaptive', name: '自适应学习', description: '根据表现调整难度' },
-      ],
-    };
+    return BUILTIN_DEFAULTS;
   }
 }
