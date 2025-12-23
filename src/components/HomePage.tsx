@@ -11,7 +11,9 @@ import { useAuthState } from '../hooks/useAuth';
 import { QuizSettings, Game, HomepageGameData } from '../types';
 import { wordAPI } from '../utils/api';
 import TrialGameModal from './TrialGameModal';
-import { AlertCircle, User, Zap } from 'lucide-react';
+import { AlertCircle, User, Zap, VolumeX } from 'lucide-react';
+import { isTTSSupported } from '../utils/tts';
+import { ConfirmDialog } from './ConfirmDialog';
 
 
 
@@ -37,6 +39,7 @@ const HomePage: React.FC = () => {
   const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [selectedGameForChoice, setSelectedGameForChoice] = useState<Game | HomepageGameData | null>(null);
+  const [showTTSWarning, setShowTTSWarning] = useState(false);
 
   // 加载首页数据
   useEffect(() => {
@@ -173,6 +176,12 @@ const HomePage: React.FC = () => {
         navigate(`/games/${game.id}/settings`);
         return;
       }
+    }
+
+    // 检查 TTS 支持情况（针对音频题干）
+    if (finalSettings.questionType === 'audio' && !isTTSSupported()) {
+      setShowTTSWarning(true);
+      return;
     }
 
     // 跳转到通用游戏页面
@@ -615,6 +624,18 @@ const HomePage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* TTS 支持警告弹窗 */}
+      <ConfirmDialog
+        isOpen={showTTSWarning}
+        title="语音朗读不可用"
+        message="您的浏览器不支持语音播放功能，无法进行“音频题干”模式。请尝试更换浏览器（推荐使用 Chrome 或 Edge）或在设置中修改题目类型为“文字题干”。"
+        confirmText="我知道了"
+        cancelText="" // 隐藏取消按钮
+        variant="warning"
+        onConfirm={() => setShowTTSWarning(false)}
+        onCancel={() => setShowTTSWarning(false)}
+      />
     </div>
   );
 };

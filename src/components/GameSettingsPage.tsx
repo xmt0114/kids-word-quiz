@@ -6,7 +6,8 @@ import { QuizSettings, TTSSettings, Game } from '../types';
 import { useQuizSettings } from '../stores/appStore';
 import { useAvailableVoices } from '../hooks/useAvailableVoices';
 // useAuth 已替换为直接使用 Zustand store
-import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader, Gamepad2, GraduationCap, Info } from 'lucide-react';
+import { Volume2, Type, MousePointer, Edit3, Database, BookOpen, ListOrdered, Shuffle, RotateCcw, TrendingUp, Speaker, Loader, Gamepad2, GraduationCap, Info, VolumeX, AlertCircle } from 'lucide-react';
+import { isTTSSupported } from '../utils/tts';
 import { cn } from '../lib/utils';
 import { wordAPI } from '../utils/api';
 import { useAppStore, useGameTexts } from '../stores/appStore';
@@ -241,6 +242,11 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     ];
 
     const handleQuestionTypeSelect = (type: string) => {
+        // 如果选择音频题干但不支持 TTS，显示提示
+        if (type === 'audio' && !isTTSSupported()) {
+            return;
+        }
+
         playSound('toggle');
         setPendingSettings((prev) => ({
             ...(prev || ensureSafeSettings(settings)),
@@ -643,12 +649,15 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                                     <div
                                         key={type.id}
                                         className={cn(
-                                            'flex items-center gap-md p-md rounded-lg cursor-pointer transition-all duration-normal border-2',
+                                            'flex items-center gap-md p-md rounded-lg transition-all duration-normal border-2',
                                             isSelected
                                                 ? 'border-primary-500 bg-primary-50'
-                                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                                                : (type.id === 'audio' && !isTTSSupported())
+                                                    ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                                                    : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50 cursor-pointer'
                                         )}
                                         onClick={() => handleQuestionTypeSelect(type.id)}
+                                        title={type.id === 'audio' && !isTTSSupported() ? '您的浏览器不支持语音朗读' : ''}
                                     >
                                         {/* 单选指示器 */}
                                         <div className="flex-shrink-0">
@@ -860,7 +869,16 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                         语音朗读设置
                     </h2>
                     <Card className="p-lg">
-                        <div className="space-y-lg">
+                        {!isTTSSupported() && (
+                            <div className="mb-lg p-md bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-md text-orange-700">
+                                <AlertCircle size={24} className="flex-shrink-0" />
+                                <div>
+                                    <p className="font-bold">您的浏览器不支持语音播放功能</p>
+                                    <p className="text-sm">无法使用语音引擎选择和朗读测试，部分音频相关游戏模式将受限。</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className={cn("space-y-lg", !isTTSSupported() && "opacity-50 pointer-events-none")}>
                             {/* 语音引擎选择 */}
                             <div>
                                 <label className="text-body font-bold text-text-primary mb-sm block">

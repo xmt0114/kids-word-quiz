@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, MapPin, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { X, MapPin, ChevronRight, AlertCircle, Loader2, VolumeX } from 'lucide-react';
+import { isTTSSupported } from '../utils/tts';
+import { ConfirmDialog } from './ConfirmDialog';
 import { Card } from './Card';
 import { Button } from './Button';
 import { wordAPI } from '../utils/api';
@@ -50,6 +52,7 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+    const [showTTSWarning, setShowTTSWarning] = useState(false);
 
     const { playSound } = useAppStore();
 
@@ -112,6 +115,15 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
     const handleNext = () => {
         playSound('click');
         if (currentIndex < words.length - 1) {
+            const nextWord = words[currentIndex + 1];
+            const nextConfig = TRIAL_CONFIG_MAP[nextWord.theme];
+
+            // 检查下一个关卡是否是音频题且不支持 TTS
+            if (nextConfig.questionType === 'audio' && !isTTSSupported()) {
+                setShowTTSWarning(true);
+                return;
+            }
+
             setCurrentIndex(prev => prev + 1);
             setIsCorrect(null);
         } else {
@@ -148,6 +160,14 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
                             <div key={word.id} className="flex items-center">
                                 <button
                                     onClick={() => {
+                                        const targetWord = words[idx];
+                                        const targetConfig = TRIAL_CONFIG_MAP[targetWord.theme];
+
+                                        if (targetConfig.questionType === 'audio' && !isTTSSupported()) {
+                                            setShowTTSWarning(true);
+                                            return;
+                                        }
+
                                         playSound('pop');
                                         setCurrentIndex(idx);
                                         setIsCorrect(null);
@@ -415,6 +435,18 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
                     </Card>
                 </div>
             )}
+
+            {/* TTS 支持警告弹窗 */}
+            <ConfirmDialog
+                isOpen={showTTSWarning}
+                title="语音功能受限"
+                message="您的浏览器不支持语音播放功能，无法进行该试炼关卡。建议更换 Chrome 或 Edge 浏览器以获得完整体验。"
+                confirmText="我知道了"
+                cancelText=""
+                variant="warning"
+                onConfirm={() => setShowTTSWarning(false)}
+                onCancel={() => setShowTTSWarning(false)}
+            />
         </div>
     );
 };

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useQuizSettings } from '../stores/appStore';
-
 import { TTSSettings } from '../types';
+import { isTTSSupported } from '../utils/tts';
 
 interface TextToSpeechButtonProps {
   text?: string;
@@ -38,7 +38,7 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
   useEffect(() => {
     const checkSupport = () => {
       // 检查是否支持Speech Synthesis API
-      const supported = 'speechSynthesis' in window;
+      const supported = isTTSSupported();
       setIsSupported(supported);
 
       if (!supported) {
@@ -170,6 +170,9 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
 
           if (selectedVoice) {
             utterance.voice = selectedVoice;
+            console.log('🔊 [TextToSpeechButton] 使用选定语音:', selectedVoice.name);
+          } else {
+            console.log('⚠️ [TextToSpeechButton] 未找到匹配语音引擎，回退到默认语音:', ttsSettings.voiceName);
           }
         }
 
