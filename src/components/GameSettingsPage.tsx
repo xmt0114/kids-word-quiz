@@ -40,6 +40,34 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     // 注意：gameInfo 加载前 default_config 为 undefined，加载后会触发 settings 更新
     const { settings, setSettings } = useQuizSettings(gameId, gameInfo?.default_config);
 
+    // 辅助函数：深度规范化配置对象，用于稳定对比
+    const normalizeSettings = React.useCallback((s: any): QuizSettings => {
+        if (!s) return {} as QuizSettings;
+
+        // 核心字段提取与规范化，排除旧字段如 learningStrategy
+        const base = {
+            gameMode: s.gameMode === 'exam' ? 'exam' : 'practice',
+            questionType: s.questionType === 'audio' ? 'audio' : 'text',
+            answerType: s.answerType === 'fill' ? 'fill' : 'choice',
+            selectionStrategy: s.selectionStrategy || s.learningStrategy || 'sequential',
+            collectionId: s.collectionId || '',
+            showPinyin: !!s.showPinyin,
+            tts: {
+                lang: s.tts?.lang || 'en-US',
+                rate: typeof s.tts?.rate === 'number' ? s.tts.rate : 0.8,
+                pitch: typeof s.tts?.pitch === 'number' ? s.tts.pitch : 1.0,
+                volume: typeof s.tts?.volume === 'number' ? s.tts.volume : 1.0,
+                voiceName: s.tts?.voiceName || ''
+            }
+        };
+
+        // 确保属性顺序一致（通过重新构建对象）
+        return JSON.parse(JSON.stringify(base));
+    }, []);
+
+    // 状态管理：对比基准
+    const [baselineSettings, setBaselineSettings] = useState<QuizSettings | null>(null);
+
     const { voices, isLoaded: isVoicesLoaded } = useAvailableVoices();
     // 直接使用 Zustand store
     const { session, profile, playSound } = useAppStore();
@@ -106,25 +134,23 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         }
     }, [selectedCollectionId]);
 
-    // 初始化 pendingSettings
+    // 初始化 pendingSettings 和 baseline
     useEffect(() => {
         // 只有当 pendingSettings 为空且游戏已加载完成时才初始化
         // 这样可以确保我们使用了正确的默认配置（来自 gameInfo）
-        // 如果 loadingGame 为 true，settings 可能还是通用的默认值，所以要等加载完
         if (!pendingSettings && !loadingGame) {
-            // 确保 gameMode 类型正确
-            const safeSettings = ensureSafeSettings(settings);
-            setPendingSettings(safeSettings);
+            const normalized = normalizeSettings(settings);
+            setPendingSettings(normalized);
+            setBaselineSettings(normalized);
         }
-    }, [settings, loadingGame]);
+    }, [settings, loadingGame, normalizeSettings]);
 
     // 检查配置是否发生更改
     const isChanged = React.useMemo(() => {
-        if (!pendingSettings) return false;
-        // 深度比较 pendingSettings 和 settings
-        // 使用 JSON.stringify 进行简单对比，前提是对象属性顺序基本一致
-        return JSON.stringify(pendingSettings) !== JSON.stringify(ensureSafeSettings(settings));
-    }, [pendingSettings, settings]);
+        if (!pendingSettings || !baselineSettings) return false;
+        // 深度比较规范化后的对象
+        return JSON.stringify(normalizeSettings(pendingSettings)) !== JSON.stringify(baselineSettings);
+    }, [pendingSettings, baselineSettings, normalizeSettings]);
 
     // 加载当前选择的教材信息和进度，并执行智能默认选择
     useEffect(() => {
@@ -142,10 +168,20 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                     // 如果无效（为空或不在列表中）且有可用教材，自动选择第一个
                     if (!isValid && collections.length > 0) {
                         console.log('Smart Default: Auto-selecting first collection', collections[0].name);
-                        setPendingSettings(prev => ({
-                            ...(prev || ensureSafeSettings(settings)),
-                            collectionId: collections[0].id
-                        }));
+                        const newCollectionId = collections[0].id;
+
+                        setPendingSettings(prev => {
+                            const current = prev || normalizeSettings(settings);
+                            return { ...current, collectionId: newCollectionId };
+                        });
+
+                        // 重要：如果这是初始加载时的自动选择，我们同步更新基准
+                        // 这样“保存”按钮就不会因为系统自动纠错而立即点亮
+                        setBaselineSettings(prev => {
+                            const current = prev || normalizeSettings(settings);
+                            return { ...current, collectionId: newCollectionId };
+                        });
+
                         // 同时更新 textbookInfo 以便即时显示
                         setTextbookInfo({
                             name: collections[0].name,
