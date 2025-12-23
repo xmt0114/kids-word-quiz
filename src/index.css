@@ -33,6 +33,7 @@
     transform: translateY(-10px) rotate(0deg);
     opacity: 0.8;
   }
+
   100% {
     transform: translateY(100vh) rotate(360deg);
     opacity: 0;
@@ -44,6 +45,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -55,6 +57,7 @@
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -89,23 +92,19 @@ img {
   background-clip: text;
   animation: gradient-shift 3s ease-in-out infinite;
   letter-spacing: 0.1em;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 立体齿轮图标效果 */
 .gear-3d {
-  filter: 
-    drop-shadow(2px 2px 4px rgba(0,0,0,0.3))
-    drop-shadow(-1px -1px 2px rgba(255,255,255,0.8))
-    drop-shadow(0px 0px 8px rgba(0,0,0,0.1));
+  filter:
+    drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3)) drop-shadow(-1px -1px 2px rgba(255, 255, 255, 0.8)) drop-shadow(0px 0px 8px rgba(0, 0, 0, 0.1));
   transition: all 0.3s ease;
 }
 
 .gear-3d:hover {
-  filter: 
-    drop-shadow(3px 3px 6px rgba(0,0,0,0.4))
-    drop-shadow(-2px -2px 3px rgba(255,255,255,0.9))
-    drop-shadow(0px 0px 12px rgba(0,0,0,0.15));
+  filter:
+    drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.4)) drop-shadow(-2px -2px 3px rgba(255, 255, 255, 0.9)) drop-shadow(0px 0px 12px rgba(0, 0, 0, 0.15));
   transform: rotate(90deg) scale(1.1);
 }
 
@@ -124,9 +123,12 @@ img {
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
@@ -198,10 +200,10 @@ img {
 
 /* 结果页面专用样式 */
 .result-page-gradient {
-  background: linear-gradient(135deg, 
-    rgba(147, 51, 234, 0.05) 0%, 
-    rgba(59, 130, 246, 0.05) 50%, 
-    rgba(16, 185, 129, 0.05) 100%);
+  background: linear-gradient(135deg,
+      rgba(147, 51, 234, 0.05) 0%,
+      rgba(59, 130, 246, 0.05) 50%,
+      rgba(16, 185, 129, 0.05) 100%);
 }
 
 .grade-badge-glow {
@@ -221,8 +223,13 @@ img {
 }
 
 @keyframes rotate-glow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .achievement-pulse {
@@ -230,10 +237,13 @@ img {
 }
 
 @keyframes achievement-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
@@ -263,8 +273,8 @@ img {
   .result-page-compact {
     padding: 0.5rem;
   }
-  
-  .result-page-compact .space-y-sm > * + * {
+
+  .result-page-compact .space-y-sm>*+* {
     margin-top: 0.75rem;
   }
 }
@@ -278,6 +288,7 @@ img {
 
 /* 减少动画复杂度以提高性能 */
 @media (prefers-reduced-motion: reduce) {
+
   .animate-bounce-in,
   .animate-pulse-gentle,
   .animate-slide-in-right,
@@ -287,7 +298,7 @@ img {
     animation: none;
     transition: none;
   }
-  
+
   .grade-badge-glow::before {
     animation: none;
   }
@@ -299,10 +310,12 @@ img {
     transform: scale(0) rotate(0deg);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.3) rotate(180deg);
     opacity: 1;
   }
+
   100% {
     transform: scale(1) rotate(360deg);
     opacity: 1;
@@ -314,6 +327,7 @@ img {
     opacity: 0;
     transform: translateY(20px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -332,10 +346,10 @@ img {
 /* 深色模式支持 */
 @media (prefers-color-scheme: dark) {
   .result-page-gradient {
-    background: linear-gradient(135deg, 
-      rgba(147, 51, 234, 0.1) 0%, 
-      rgba(59, 130, 246, 0.1) 50%, 
-      rgba(16, 185, 129, 0.1) 100%);
+    background: linear-gradient(135deg,
+        rgba(147, 51, 234, 0.1) 0%,
+        rgba(59, 130, 246, 0.1) 50%,
+        rgba(16, 185, 129, 0.1) 100%);
   }
 }
 
@@ -361,6 +375,7 @@ img {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -434,6 +449,7 @@ img {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -444,6 +460,7 @@ img {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -485,12 +502,12 @@ img {
     max-width: 320px;
     right: 5vw;
   }
-  
+
   .renewal-modal-content {
     margin: 1rem;
     max-width: calc(100vw - 2rem);
   }
-  
+
   .user-info-clickable {
     padding: 0.5rem;
   }
@@ -505,6 +522,7 @@ img {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -516,10 +534,13 @@ img {
 }
 
 @keyframes vipPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.3));
   }
+
   50% {
     transform: scale(1.05);
     filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
@@ -532,10 +553,18 @@ img {
 }
 
 @keyframes gentleBlink {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
+}
+
+/* 音符旋转动画 - 较慢的速度更优雅 */
+.animate-music-spin {
+  animation: spin 3s linear infinite;
 }
