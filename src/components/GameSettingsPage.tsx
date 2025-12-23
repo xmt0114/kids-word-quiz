@@ -23,6 +23,12 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     const { gameId } = useParams<{ gameId: string }>();
     const location = useLocation();
 
+    // 辅助函数：确保设置类型安全
+    const ensureSafeSettings = (settings: any): QuizSettings => ({
+        ...settings,
+        gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
+    });
+
     // 从 location state 获取 selectedCollectionId (如果有)
     const selectedCollectionId = location.state?.selectedCollectionId;
 
@@ -107,13 +113,18 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         // 如果 loadingGame 为 true，settings 可能还是通用的默认值，所以要等加载完
         if (!pendingSettings && !loadingGame) {
             // 确保 gameMode 类型正确
-            const safeSettings = {
-                ...settings,
-                gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
-            };
+            const safeSettings = ensureSafeSettings(settings);
             setPendingSettings(safeSettings);
         }
     }, [settings, loadingGame]);
+
+    // 检查配置是否发生更改
+    const isChanged = React.useMemo(() => {
+        if (!pendingSettings) return false;
+        // 深度比较 pendingSettings 和 settings
+        // 使用 JSON.stringify 进行简单对比，前提是对象属性顺序基本一致
+        return JSON.stringify(pendingSettings) !== JSON.stringify(ensureSafeSettings(settings));
+    }, [pendingSettings, settings]);
 
     // 加载当前选择的教材信息和进度，并执行智能默认选择
     useEffect(() => {
@@ -216,11 +227,6 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         },
     ];
 
-    // 辅助函数：确保设置类型安全
-    const ensureSafeSettings = (settings: any): QuizSettings => ({
-        ...settings,
-        gameMode: (settings.gameMode === 'exam' ? 'exam' : 'practice') as 'practice' | 'exam'
-    });
 
     const gameModes = [
         {
@@ -402,12 +408,16 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     const handleSaveSettings = async () => {
         playSound('click');
         // 【服务器优先】保存待处理的设置
-        if (pendingSettings) {
+        // 仅在发生实质性更改时调用后端
+        if (isChanged && pendingSettings) {
             console.log(`💾 [GameSettings] 用户点击保存设置 [${gameId}] (服务器优先):`, pendingSettings);
 
             // 调用 setSettings（现在是异步的，会先更新服务器再更新本地缓存）
             await setSettings(pendingSettings);
         }
+
+        // 优化点2：回到首页时回到顶部
+        window.scrollTo(0, 0);
         navigate('/');
     };
 
@@ -423,6 +433,7 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     };
 
     const handleBackToHome = () => {
+        window.scrollTo(0, 0);
         navigate('/');
     };
 
@@ -1097,7 +1108,11 @@ const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
                         variant="success"
                         size="large"
                         onClick={handleSaveSettings}
-                        className="px-2xl py-md text-h2 font-bold shadow-lg hover:shadow-xl transition-all duration-normal"
+                        disabled={!isChanged}
+                        className={cn(
+                            "px-2xl py-md text-h2 font-bold shadow-lg transition-all duration-normal",
+                            !isChanged ? "opacity-50 cursor-not-allowed shadow-none" : "hover:shadow-xl"
+                        )}
                     >
                         保存设置
                     </Button>
