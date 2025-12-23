@@ -159,7 +159,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
 
 
   return (
-    <div className="min-h-screen result-page-gradient p-sm md:p-lg result-page-compact">
+    <div className="min-h-screen bg-gradient-to-br from-[rgba(147,51,234,0.05)] via-[rgba(59,130,246,0.05)] to-[rgba(16,185,129,0.05)] p-sm md:p-lg sm:max-sm:p-2">
       <div className="max-w-4xl mx-auto space-y-sm">
         {/* 星级结果卡片 */}
         <StarResultCard
@@ -176,7 +176,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
           timeSpent={enhancedResult.timeSpent}
           averageTimePerQuestion={detailedStats.averageTimePerQuestion}
           longestStreak={detailedStats.longestStreak}
-          className="stats-card-hover"
+          className="transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
         />
 
         {/* 题目概览区域 */}
@@ -229,7 +229,7 @@ const UniversalResultPage: React.FC<UniversalResultPageProps> = ({ result: propR
 
         {/* 成就信息（如果有特殊成就） */}
         {achievementInfo.hasAchievement && (
-          <Card className="p-md bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-center achievement-pulse">
+          <Card className="p-md bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-center animate-achievement-pulse-slow">
             <div className="flex items-center justify-center gap-sm">
               <span className="text-2xl animate-bounce-in">{achievementInfo.icon}</span>
               <div className="text-left">

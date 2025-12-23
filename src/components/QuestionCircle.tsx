@@ -28,10 +28,10 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
       const rect = circleRef.current.getBoundingClientRect();
       const tooltipWidth = 300; // 估算的悬浮提示宽度
       const tooltipHeight = 120; // 估算的悬浮提示高度
-      
+
       let left = rect.left + rect.width / 2 - tooltipWidth / 2;
       let top = rect.top - tooltipHeight - 8; // 8px 间距
-      
+
       // 确保悬浮提示不会超出视口边界
       const padding = 16;
       if (left < padding) {
@@ -39,12 +39,12 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
       } else if (left + tooltipWidth > window.innerWidth - padding) {
         left = window.innerWidth - tooltipWidth - padding;
       }
-      
+
       if (top < padding) {
         // 如果上方空间不够，显示在下方
         top = rect.bottom + 8;
       }
-      
+
       setTooltipPosition({ top, left });
     }
   };
@@ -65,7 +65,7 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
       // 监听窗口大小变化
       window.addEventListener('resize', updateTooltipPosition);
       window.addEventListener('scroll', updateTooltipPosition);
-      
+
       return () => {
         window.removeEventListener('resize', updateTooltipPosition);
         window.removeEventListener('scroll', updateTooltipPosition);
@@ -79,11 +79,11 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
         ref={circleRef}
         className={cn(
           'relative w-12 h-12 rounded-full flex items-center justify-center',
-          'text-lg font-black cursor-pointer question-circle-hover',
+          'text-lg font-black cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)]',
           'transform transition-all duration-300 hover:scale-110 hover:-translate-y-1',
           'shadow-2xl border-3',
-          isCorrect 
-            ? 'bg-gradient-to-br from-green-100 via-green-200 to-green-300 text-green-800 border-green-400 shadow-green-200' 
+          isCorrect
+            ? 'bg-gradient-to-br from-green-100 via-green-200 to-green-300 text-green-800 border-green-400 shadow-green-200'
             : 'bg-gradient-to-br from-red-100 via-red-200 to-red-300 text-red-800 border-red-400 shadow-red-200',
           className
         )}
@@ -98,22 +98,22 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
         {/* 内部高光效果 */}
         <div className={cn(
           'absolute inset-1 rounded-full',
-          isCorrect 
-            ? 'bg-gradient-to-br from-white/40 to-transparent' 
+          isCorrect
+            ? 'bg-gradient-to-br from-white/40 to-transparent'
             : 'bg-gradient-to-br from-white/40 to-transparent'
         )} />
-        
+
         {/* 题目序号 */}
         <span className="relative z-10 drop-shadow-sm">
           {questionNumber}
         </span>
-        
+
         {/* 状态图标 - 更立体 */}
         <div className={cn(
           'absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center',
           'shadow-lg border-2 border-white transform transition-all duration-300',
-          isCorrect 
-            ? 'bg-gradient-to-br from-green-500 to-green-600 shadow-green-300' 
+          isCorrect
+            ? 'bg-gradient-to-br from-green-500 to-green-600 shadow-green-300'
             : 'bg-gradient-to-br from-red-500 to-red-600 shadow-red-300'
         )}>
           {isCorrect ? (
@@ -129,9 +129,9 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
 
       {/* 悬浮提示 - 使用 Portal 渲染到 body */}
       {showTooltip && createPortal(
-        <div 
+        <div
           className="fixed pointer-events-none animate-fade-in"
-          style={{ 
+          style={{
             top: tooltipPosition.top,
             left: tooltipPosition.left,
             zIndex: 99999
@@ -147,7 +147,7 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
                 <span className="font-semibold text-blue-300">题目 {questionNumber}：</span>
                 <span className="text-white ml-1">{tooltipContent.question}</span>
               </div>
-              
+
               <div>
                 <span className="font-semibold text-gray-300">你的答案：</span>
                 <span className={cn(
@@ -157,14 +157,14 @@ const QuestionCircle: React.FC<QuestionCircleProps> = ({
                   {tooltipContent.userAnswer}
                 </span>
               </div>
-              
+
               {!tooltipContent.isCorrect && (
                 <div>
                   <span className="font-semibold text-gray-300">正确答案：</span>
                   <span className="text-green-300 ml-1 font-medium">{tooltipContent.correctAnswer}</span>
                 </div>
               )}
-              
+
               {tooltipContent.timeSpent && (
                 <div>
                   <span className="font-semibold text-gray-300">用时：</span>

@@ -265,7 +265,7 @@ const HomePage: React.FC = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent font-chinese">
                 热门游戏
               </h2>
             </div>
@@ -290,7 +290,7 @@ const HomePage: React.FC = () => {
                     <div className="max-w-6xl mx-auto">
                       <div className="flex items-center gap-3">
                         <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
-                        <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                        <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent font-chinese">
                           {group.group_title}
                         </h2>
                       </div>
@@ -335,10 +335,10 @@ const HomePage: React.FC = () => {
                               )}>
                                 <Icon size={40} className={styles.iconColor} />
                               </div>
-                              <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                              <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
                                 {game.title}
                               </h3>
-                              <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                              <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
                                 {game.description}
                               </p>
                             </div>
@@ -402,7 +402,7 @@ const HomePage: React.FC = () => {
                                   >
                                     <LucideIcons.Settings
                                       size={36}
-                                      className="text-gray-500 hover:text-gray-700 gear-3d"
+                                      className="text-gray-500 hover:text-gray-700 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)] hover:rotate-90 hover:scale-110"
                                     />
                                   </button>
                                 </Link>
@@ -454,10 +454,10 @@ const HomePage: React.FC = () => {
                           )}>
                             <Icon size={40} className={styles.iconColor} />
                           </div>
-                          <h3 className="text-h3 font-bold text-text-primary mb-sm" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                          <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
                             {game.title}
                           </h3>
-                          <p className="text-body text-text-secondary line-clamp-2 h-12" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                          <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
                             {game.description}
                           </p>
                         </div>
@@ -521,7 +521,7 @@ const HomePage: React.FC = () => {
                               >
                                 <LucideIcons.Settings
                                   size={36}
-                                  className="text-gray-500 hover:text-gray-700 gear-3d"
+                                  className="text-gray-500 hover:text-gray-700 hover:rotate-90 hover:scale-110 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)]"
                                 />
                               </button>
                             </Link>
@@ -541,9 +541,9 @@ const HomePage: React.FC = () => {
           <Card className="p-lg bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
             <div className="flex items-center justify-center gap-sm mb-sm">
               <LucideIcons.Trophy size={24} className="text-yellow-500" />
-              <h3 className="text-h3 font-bold text-text-primary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>学习成就系统</h3>
+              <h3 className="text-h3 font-bold text-text-primary font-chinese">学习成就系统</h3>
             </div>
-            <p className="text-body text-text-secondary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+            <p className="text-body text-text-secondary font-chinese">
               完成游戏获得积分，解锁成就徽章，追踪你的学习进度
             </p>
           </Card>

@@ -84,8 +84,10 @@ module.exports = {
 		extend: {
 			// 儿童友好字体
 			fontFamily: {
-				'display': ['Fredoka', 'Baloo 2', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-				'body': ['Fredoka', 'Nunito', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+				'display': ['Fredoka', 'Baloo 2', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+				'body': ['Fredoka', 'Nunito', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+				'title': ['ZCOOL QingKe HuangYou', 'Noto Sans SC', 'sans-serif'],
+				'chinese': ['Noto Sans SC', 'KaiTi', 'serif'],
 			},
 
 			// 色彩系统
@@ -130,6 +132,16 @@ module.exports = {
 				background: {
 					primary: '#fffbf0',
 					secondary: '#ffffff',
+				},
+
+				// 品牌渐变色 (用于 Header 按钮等)
+				brand: {
+					'purple-start': '#667eea',
+					'purple-end': '#764ba2',
+					'peach-start': '#ffecd2',
+					'peach-end': '#fcb69f',
+					'mint-start': '#a8edea',
+					'mint-end': '#fed6e3',
 				},
 
 				// 保留原有的shadcn/ui颜色（兼容性）

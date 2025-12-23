@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CreditCard, Loader2 } from 'lucide-react';
+import { X, CreditCard, Loader2, Zap } from 'lucide-react';
 import { MembershipRenewalModalProps } from '../types';
 import { MembershipService } from '../utils/membershipService';
 import { Button } from './Button';
@@ -10,10 +10,10 @@ import { Button } from './Button';
  * 提供激活码输入界面，处理续费操作
  * 包含输入验证、加载状态和错误处理
  */
-export function MembershipRenewalModal({ 
-  isOpen, 
-  onClose, 
-  onSuccess 
+export function MembershipRenewalModal({
+  isOpen,
+  onClose,
+  onSuccess
 }: MembershipRenewalModalProps) {
   const [activationCode, setActivationCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ export function MembershipRenewalModal({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setActivationCode(value);
-    
+
     // 清除之前的错误信息
     if (error) {
       setError('');
@@ -48,7 +48,7 @@ export function MembershipRenewalModal({
   // 处理续费提交
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (loading) return;
 
     // 客户端验证
@@ -67,7 +67,7 @@ export function MembershipRenewalModal({
 
     try {
       const result = await MembershipService.renewMembership(activationCode);
-      
+
       if (result.success) {
         // 续费成功
         onSuccess(result.newExpiryDate || '');
@@ -85,13 +85,22 @@ export function MembershipRenewalModal({
     }
   };
 
+  // Placeholder for handleActivate, assuming it's similar to handleSubmit
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Re-using handleSubmit logic for now, as the instruction implies a rename/refactor
+    await handleSubmit(e);
+  };
+
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="renewal-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="renewal-modal-content bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-[modalFadeIn_0.3s_ease-out]">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-[modalSlideUp_0.3s_ease-out] relative">
+        {/* 顶部装饰条 */}
+        <div className="h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500" />
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -115,7 +124,7 @@ export function MembershipRenewalModal({
             <p className="text-sm text-gray-600 mb-4">
               请输入您的激活码来续费会员服务。激活码通常由6-32位字母数字组成。
             </p>
-            
+
             <label htmlFor="activationCode" className="block text-sm font-medium text-gray-700 mb-2">
               激活码
             </label>
@@ -123,13 +132,13 @@ export function MembershipRenewalModal({
               id="activationCode"
               type="text"
               value={activationCode}
-              onChange={handleInputChange}
+              onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+              placeholder="请输入 12 位激活码"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all duration-200 tracking-[0.05em] font-mono text-center text-lg md:text-xl"
+              maxLength={12}
               disabled={loading}
-              placeholder="请输入激活码"
-              className="activation-code-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-              autoComplete="off"
             />
-            
+
             {/* 错误信息 */}
             {error && (
               <p className="mt-2 text-sm text-red-600">
@@ -149,21 +158,18 @@ export function MembershipRenewalModal({
             >
               取消
             </Button>
-            <Button
-              type="submit"
-              disabled={loading || !activationCode.trim()}
-              variant="primary"
-              className="flex-1 flex items-center justify-center space-x-2"
+            <button
+              onClick={handleActivate}
+              disabled={loading || activationCode.length < 5}
+              className="w-full text-white py-3 px-4 rounded-lg font-bold text-lg shadow-lg transition-all duration-300 ease-in-out relative overflow-hidden bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(139,92,246,0.3)] disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none before:content-[''] before:absolute before:top-0 before:left-[-100%] before:w-full before:height-full before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:transition-[left] before:duration-500 hover:enabled:before:left-full flex items-center justify-center gap-2"
             >
               {loading ? (
-                <>
-                  <Loader2 size={16} className="loading-spinner" />
-                  <span>处理中...</span>
-                </>
+                <Loader2 className="animate-spin" size={20} />
               ) : (
-                <span>确认续费</span>
+                <Zap size={20} />
               )}
-            </Button>
+              {loading ? '正在激活...' : '立即激活会员'}
+            </button>
           </div>
         </form>
 

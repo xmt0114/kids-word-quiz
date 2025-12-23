@@ -81,7 +81,10 @@ export function UserHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="title-font hover:scale-105 transition-transform duration-200">
+            <Link
+              to="/"
+              className="font-title text-[1.5rem] sm:text-[2rem] lg:text-[2.25rem] font-bold bg-gradient-to-r from-[#ff6b6b] via-[#4ecdc4] to-[#feca57] animate-title-slow bg-clip-text text-transparent tracking-widest drop-shadow-sm hover:scale-105 transition-transform duration-200"
+            >
               语智乐园
             </Link>
           </div>
@@ -94,13 +97,13 @@ export function UserHeader() {
                 {profile.role === 'admin' && (
                   <div className="flex items-center space-x-3 mr-6">
                     <Link to="/admin/data">
-                      <button className="header-button header-button-admin flex items-center gap-2">
+                      <button className="font-chinese text-[0.9rem] font-medium px-4 py-2 rounded-[1rem] transition-all duration-200 ease-in-out border-2 border-[#fed6e3] bg-gradient-to-br from-brand-mint-start to-brand-mint-end text-[#2d3748] shadow-[0_4px_15px_rgba(254,214,227,0.4)] hover:-translate-y-0.5 flex items-center gap-2">
                         <Database size={16} />
                         数据管理
                       </button>
                     </Link>
                     <Link to="/admin/invite">
-                      <button className="header-button header-button-admin flex items-center gap-2">
+                      <button className="font-chinese text-[0.9rem] font-medium px-4 py-2 rounded-[1rem] transition-all duration-200 ease-in-out border-2 border-[#fed6e3] bg-gradient-to-br from-brand-mint-start to-brand-mint-end text-[#2d3748] shadow-[0_4px_15px_rgba(254,214,227,0.4)] hover:-translate-y-0.5 flex items-center gap-2">
                         <Mail size={16} />
                         邀请用户
                       </button>
@@ -110,16 +113,16 @@ export function UserHeader() {
 
                 <div className="relative">
                   <div
-                    className="user-info-clickable flex items-center space-x-3 cursor-pointer px-3 py-2"
+                    className="flex items-center space-x-3 cursor-pointer px-3 py-2 transition-all duration-200 ease-in-out rounded-lg relative hover:bg-gray-100/80 hover:-translate-y-0.5 active:translate-y-0"
                     onClick={handleUserInfoClick}
                   >
                     <MembershipStatusIcon
                       status={membershipInfo.status}
                     />
-                    <span className="user-info font-semibold">
+                    <span className="font-chinese text-[0.9rem] text-[#4a5568] font-semibold">
                       {profile.display_name}
                     </span>
-                    <span className="user-role-badge">
+                    <span className="font-chinese text-[0.75rem] bg-gradient-to-br from-brand-purple-start to-brand-purple-end text-white px-3 py-1 rounded-[1rem] font-medium">
                       {getRoleDisplayName(profile.role)}
                     </span>
                   </div>
@@ -135,7 +138,7 @@ export function UserHeader() {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="header-button header-button-secondary flex items-center gap-2"
+                  className="font-chinese text-[0.9rem] font-medium px-4 py-2 rounded-[1rem] transition-all duration-200 ease-in-out border-2 border-[#fcb69f] bg-gradient-to-br from-brand-peach-start to-brand-peach-end text-[#8b4513] hover:bg-gradient-to-br hover:from-brand-peach-end hover:to-brand-peach-start hover:shadow-[0_4px_15px_rgba(252,182,159,0.4)] hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <LogOut size={16} />
                   登出
@@ -145,14 +148,14 @@ export function UserHeader() {
               // 未登录状态
               <>
                 <button
-                  className="header-button header-button-primary flex items-center gap-2"
+                  className="font-chinese text-[0.9rem] font-medium px-4 py-2 rounded-[1rem] transition-all duration-200 ease-in-out border-2 border-transparent bg-gradient-to-br from-brand-purple-start to-brand-purple-end text-white shadow-[0_4px_15px_rgba(102,126,234,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.4)] flex items-center gap-2"
                   onClick={() => openLoginModal('登录')}
                 >
                   <LogIn size={16} />
                   登录
                 </button>
                 <button
-                  className="header-button header-button-secondary flex items-center gap-2"
+                  className="font-chinese text-[0.9rem] font-medium px-4 py-2 rounded-[1rem] transition-all duration-200 ease-in-out border-2 border-[#fcb69f] bg-gradient-to-br from-brand-peach-start to-brand-peach-end text-[#8b4513] hover:bg-gradient-to-br hover:from-brand-peach-end hover:to-brand-peach-start hover:shadow-[0_4px_15px_rgba(252,182,159,0.4)] hover:-translate-y-0.5 flex items-center gap-2"
                   onClick={() => useAppStore.getState().openRegisterModal()}
                 >
                   <User size={16} />

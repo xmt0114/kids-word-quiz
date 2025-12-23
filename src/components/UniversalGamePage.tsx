@@ -588,13 +588,12 @@ const UniversalGamePage: React.FC = () => {
                             variant="secondary"
                             onClick={handleBackToHome}
                             className="flex items-center gap-2 px-6 py-3 text-base font-medium"
-                            style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
                         >
                             <Home size={22} />
                             返回首页
                         </Button>
                         <div className="text-center">
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
                                 {gameInfo?.title || '猜单词'}
                             </h1>
                         </div>
@@ -633,13 +632,12 @@ const UniversalGamePage: React.FC = () => {
                             variant="secondary"
                             onClick={handleBackToHome}
                             className="flex items-center gap-2 px-6 py-3 text-base font-medium"
-                            style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
                         >
                             <Home size={22} />
                             返回首页
                         </Button>
                         <div className="text-center">
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
                                 游戏加载中
                             </h1>
                         </div>
@@ -695,8 +693,7 @@ const UniversalGamePage: React.FC = () => {
                     <Button
                         variant="secondary"
                         onClick={handleBackToHome}
-                        className="flex items-center gap-2 px-6 py-3 text-base font-medium"
-                        style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}
+                        className="flex items-center gap-2 px-6 py-3 text-base font-medium font-chinese"
                     >
                         <Home size={22} />
                         返回首页
@@ -704,7 +701,7 @@ const UniversalGamePage: React.FC = () => {
 
 
                     <div className="text-center">
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent font-chinese">
                             {gameInfo?.title || '猜单词'}
                         </h1>
                     </div>
@@ -716,7 +713,7 @@ const UniversalGamePage: React.FC = () => {
                                 size="medium"
                                 className="text-text-secondary"
                             />
-                            <p className="text-sm font-medium text-text-secondary" style={{ fontFamily: 'Noto Sans SC, Fredoka, sans-serif' }}>
+                            <p className="text-sm font-medium text-text-secondary font-chinese">
                                 第 {quizState.currentQuestionIndex + 1} 题 / 共 {quizState.questions.length} 题
                             </p>
                         </div>
@@ -763,17 +760,9 @@ const UniversalGamePage: React.FC = () => {
                                                 className={cn(
                                                     "block text-center",
                                                     gameInfo?.language === 'zh'
-                                                        ? "font-serif font-semibold text-3xl leading-relaxed"
-                                                        : "text-4xl leading-tight"
+                                                        ? "font-chinese font-semibold text-3xl leading-relaxed"
+                                                        : "font-body text-4xl leading-tight tracking-[0.01em]"
                                                 )}
-                                                style={gameInfo?.language === 'en' ? {
-                                                    fontFamily: 'Nunito, sans-serif',
-                                                    lineHeight: '1.2',
-                                                    letterSpacing: '0.01em',
-                                                    fontSize: '2.25rem',
-                                                    fontWeight: '400',
-                                                    minHeight: '5.5rem'
-                                                } : {}}
                                             />
                                         ) : (
                                             <AutoSizeText
@@ -782,13 +771,10 @@ const UniversalGamePage: React.FC = () => {
                                                 minFontSize={18}
                                                 maxFontSize={gameInfo?.language === 'zh' ? 32 : 36}
                                                 language={gameInfo?.language as 'zh' | 'en'}
-                                                className="font-medium"
-                                                style={gameInfo?.language === 'zh' ? {
-                                                    fontWeight: '500'
-                                                } : {
-                                                    fontWeight: '400',
-                                                    letterSpacing: '0.01em'
-                                                }}
+                                                className={cn(
+                                                    "font-medium",
+                                                    gameInfo?.language === 'zh' ? "font-chinese" : "font-body tracking-[0.01em]"
+                                                )}
                                             />
                                         )}
                                     </div>
@@ -840,16 +826,8 @@ const UniversalGamePage: React.FC = () => {
                                                     language={gameInfo?.language as 'zh' | 'en'}
                                                     className={cn(
                                                         "text-3xl font-semibold",
-                                                        gameInfo?.language === 'zh' ? "font-serif" : ""
+                                                        gameInfo?.language === 'zh' ? "font-chinese" : "font-display tracking-[0.02em]"
                                                     )}
-                                                    style={gameInfo?.language === 'en' ? {
-                                                        fontFamily: 'Fredoka, sans-serif',
-                                                        letterSpacing: '0.02em',
-                                                        fontWeight: '600'
-                                                    } : {
-                                                        fontFamily: 'KaiTi, STKaiti, 楷体, serif',
-                                                        fontWeight: '600'
-                                                    }}
                                                 />
                                             }
                                             isSelected={selectedAnswer === option}

@@ -36,7 +36,7 @@ export const SoundToggle: React.FC<SoundToggleProps> = ({ className, variant = '
                         "w-full h-full transition-all duration-500",
                         isMuted
                             ? "text-gray-300 scale-90"
-                            : "text-primary-500 animate-music-spin"
+                            : "text-primary-500 animate-music-spin-slow"
                     )}
                     style={{
                         filter: isMuted
