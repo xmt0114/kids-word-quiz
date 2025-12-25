@@ -12,6 +12,7 @@ interface TextToSpeechButtonProps {
   textRef?: React.RefObject<HTMLElement>;
   ttsSettings?: TTSSettings;
   autoPlay?: boolean;
+  gameId?: string; // 添加 gameId 参数
 }
 
 export interface TextToSpeechButtonRef {
@@ -26,9 +27,10 @@ const TextToSpeechButton = React.forwardRef<TextToSpeechButtonRef, TextToSpeechB
   size = 'medium',
   textRef,
   ttsSettings: propTtsSettings,
-  autoPlay = false
+  autoPlay = false,
+  gameId
 }, ref) => {
-  const { settings } = useQuizSettings();
+  const { settings } = useQuizSettings(gameId || '');
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isSupported, setIsSupported] = useState(false);

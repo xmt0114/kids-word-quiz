@@ -478,7 +478,7 @@ export const getMergedQuizSettings = (
  * 专门用于答题设置的 Hook
  * 从 Zustand Store 读取设置，优先级：userSettings > guestConfig > 默认值
  */
-export const useQuizSettings = (gameId: string = 'guess_word', defaultConfig?: Partial<QuizSettings>) => {
+export const useQuizSettings = (gameId: string, defaultConfig?: Partial<QuizSettings>) => {
   // 直接使用 Zustand store 和 useAuthState
   const { session, profile: storeProfile } = useAppStore();
   const user = session?.user ?? null;

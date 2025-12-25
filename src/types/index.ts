@@ -83,7 +83,7 @@ export interface Game {
   title: string;
   description: string;
   icon: string;
-  type: 'guess_word' | 'fill_blank';
+  type: 'guess_word' | 'fill_blank' | 'observe';
   language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;
@@ -108,7 +108,7 @@ export interface HomepageGameData {
     learning_count: number;
     mastered_count: number;
     remaining_count: number;
-  };
+  } | null; // collection 可能为 null（对于 observe 类型游戏）
   created_at: string;
   updated_at: string;
 }

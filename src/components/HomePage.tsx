@@ -127,6 +127,13 @@ const HomePage: React.FC = () => {
   // 开始游戏函数 - 检查登录状态
   const handleStartGame = async (game: Game | HomepageGameData) => {
     playSound('click');
+    
+    // 如果是 observe 类型游戏，暂时不处理（按钮已置灰）
+    if (game.type === 'observe') {
+      console.log('observe 类型游戏暂未开放，default_config:', game.default_config);
+      return;
+    }
+    
     if (!user || !profile) {
       // 用户未登录，弹出选项弹窗（立即体验 vs 账号登录）
       setSelectedGameForChoice(game);
@@ -158,8 +165,8 @@ const HomePage: React.FC = () => {
       finalSettings.collectionId = homepageGame.collection.id;
     }
 
-    // 如果仍然没有 collectionId，尝试自动获取
-    if (!finalSettings.collectionId) {
+    // 如果仍然没有 collectionId，尝试自动获取（仅对非 observe 类型游戏）
+    if (!finalSettings.collectionId && game.type !== 'observe') {
       try {
         const response = await wordAPI.getCollections?.(game.id);
         if (response?.success && response.data && response.data.length > 0) {
@@ -345,7 +352,13 @@ const HomePage: React.FC = () => {
 
                             {/* 教材信息和进度条 */}
                             <div className="mb-sm space-y-xs">
-                              {(game as HomepageGameData).collection ? (
+                              {game.type === 'observe' ? (
+                                /* observe 类型游戏不显示教材信息 */
+                                <div className="flex items-center justify-center text-small text-text-tertiary">
+                                  <LucideIcons.Brain size={14} className="mr-xs" />
+                                  <span>专注力训练游戏</span>
+                                </div>
+                              ) : (game as HomepageGameData).collection ? (
                                 <>
                                   {/* 教材选择器 */}
                                   <div className="flex items-center justify-center">
@@ -389,23 +402,32 @@ const HomePage: React.FC = () => {
                               <div className="flex items-center justify-center gap-sm">
                                 <Button
                                   size="default"
-                                  className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
-                                  onClick={() => handleStartGame(game)}
+                                  className={cn(
+                                    "flex items-center gap-xs shadow-md hover:shadow-lg",
+                                    game.type === 'observe' 
+                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                                      : styles.color
+                                  )}
+                                  onClick={() => game.type === 'observe' ? null : handleStartGame(game)}
+                                  disabled={game.type === 'observe'}
                                 >
                                   <LucideIcons.Gamepad2 size={16} />
-                                  开始游戏
+                                  {game.type === 'observe' ? '敬请期待' : '开始游戏'}
                                 </Button>
-                                <Link to={`/games/${game.id}/settings`}>
-                                  <button
-                                    className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
-                                    title="游戏设置"
-                                  >
-                                    <LucideIcons.Settings
-                                      size={36}
-                                      className="text-gray-500 hover:text-gray-700 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)] hover:rotate-90 hover:scale-110"
-                                    />
-                                  </button>
-                                </Link>
+                                {/* observe 类型游戏不显示设置按钮 */}
+                                {game.type !== 'observe' && (
+                                  <Link to={`/games/${game.id}/settings`}>
+                                    <button
+                                      className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                      title="游戏设置"
+                                    >
+                                      <LucideIcons.Settings
+                                        size={36}
+                                        className="text-gray-500 hover:text-gray-700 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)] hover:rotate-90 hover:scale-110"
+                                      />
+                                    </button>
+                                  </Link>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -464,7 +486,13 @@ const HomePage: React.FC = () => {
 
                         {/* 教材信息和进度条 */}
                         <div className="mb-sm space-y-xs">
-                          {(game as HomepageGameData).collection ? (
+                          {game.type === 'observe' ? (
+                            /* observe 类型游戏不显示教材信息 */
+                            <div className="flex items-center justify-center text-small text-text-tertiary">
+                              <LucideIcons.Brain size={14} className="mr-xs" />
+                              <span>专注力训练游戏</span>
+                            </div>
+                          ) : (game as HomepageGameData).collection ? (
                             <>
                               {/* 教材选择器 */}
                               <div className="flex items-center justify-center">
@@ -508,23 +536,32 @@ const HomePage: React.FC = () => {
                           <div className="flex items-center justify-center gap-sm">
                             <Button
                               size="default"
-                              className={cn("flex items-center gap-xs shadow-md hover:shadow-lg", styles.color)}
-                              onClick={() => handleStartGame(game)}
+                              className={cn(
+                                "flex items-center gap-xs shadow-md hover:shadow-lg",
+                                game.type === 'observe' 
+                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                                  : styles.color
+                              )}
+                              onClick={() => game.type === 'observe' ? null : handleStartGame(game)}
+                              disabled={game.type === 'observe'}
                             >
                               <LucideIcons.Gamepad2 size={16} />
-                              开始游戏
+                              {game.type === 'observe' ? '敬请期待' : '开始游戏'}
                             </Button>
-                            <Link to={`/games/${game.id}/settings`}>
-                              <button
-                                className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
-                                title="游戏设置"
-                              >
-                                <LucideIcons.Settings
-                                  size={36}
-                                  className="text-gray-500 hover:text-gray-700 hover:rotate-90 hover:scale-110 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)]"
-                                />
-                              </button>
-                            </Link>
+                            {/* observe 类型游戏不显示设置按钮 */}
+                            {game.type !== 'observe' && (
+                              <Link to={`/games/${game.id}/settings`}>
+                                <button
+                                  className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                  title="游戏设置"
+                                >
+                                  <LucideIcons.Settings
+                                    size={36}
+                                    className="text-gray-500 hover:text-gray-700 hover:rotate-90 hover:scale-110 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)]"
+                                  />
+                                </button>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </div>

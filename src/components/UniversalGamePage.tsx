@@ -736,6 +736,7 @@ const UniversalGamePage: React.FC = () => {
                                         ref={audioTTSRef}
                                         text={currentWord.audioText}
                                         size="large"
+                                        gameId={gameId}
                                     />
                                 </div>
                             ) : (
@@ -746,6 +747,7 @@ const UniversalGamePage: React.FC = () => {
                                             text={currentWord.definition}
                                             size="large"
                                             ttsSettings={quizState.settings.tts}
+                                            gameId={gameId}
                                         />
                                     </div>
 

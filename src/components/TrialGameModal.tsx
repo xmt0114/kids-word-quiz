@@ -295,6 +295,7 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
                                 <TextToSpeechButton
                                     text={currentWord.audio_text} // 修正：文字题也朗读 audio_text
                                     size="medium"
+                                    gameId="" // 试用模式使用空字符串
                                     ttsSettings={{
                                         lang: config.ttsLang,
                                         rate: config.ttsLang.startsWith('zh') ? 0.75 : 0.9, // 中文稍微慢一点
@@ -312,6 +313,7 @@ const TrialGameModal: React.FC<TrialGameModalProps> = ({ isOpen, onClose, onLogi
                                     <TextToSpeechButton
                                         text={currentWord.audio_text}
                                         size="large"
+                                        gameId="" // 试用模式使用空字符串
                                         autoPlay={true} // 自动播放一次
                                         key={`audio-${currentIndex}`} // 题号变化时触发重新挂载/播放
                                         ttsSettings={{

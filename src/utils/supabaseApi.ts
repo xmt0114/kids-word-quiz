@@ -895,7 +895,7 @@ export class SupabaseWordAPI implements WordAPI {
   // 获取首页数据 - 包含游戏信息、当前教材和学习进度
   async getHomepageData(): Promise<ApiResponse<any[]>> { // Keeping return type generic or adjust to HomepageGameGroup[] but allowing any[] for now to avoid strict type breaking if I missed something, actually better be strict if I imported the type.
     try {
-      const { data, error } = await supabase.rpc('get_homepage_data_v2')
+      const { data, error } = await supabase.rpc('get_homepage_data_v3')
 
       if (error) {
         console.error('Supabase getHomepageData error:', error)

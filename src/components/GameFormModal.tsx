@@ -35,7 +35,7 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
         title: '',
         description: '',
         icon: 'Brain',
-        type: 'guess_word' as 'guess_word' | 'fill_blank',
+        type: 'universal' as 'universal' | 'observe',
         language: 'en' as 'en' | 'zh',
         default_config: {
             questionType: 'text' as 'text' | 'audio',
@@ -72,7 +72,7 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                     title: '',
                     description: '',
                     icon: 'Brain',
-                    type: 'guess_word' as 'guess_word' | 'fill_blank',
+                    type: 'universal' as 'universal' | 'observe',
                     language: 'en',
                     default_config: {
                         questionType: 'text',
