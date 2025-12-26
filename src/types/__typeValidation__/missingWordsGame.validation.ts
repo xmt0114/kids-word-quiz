@@ -29,6 +29,7 @@ import type {
   UseMissingWordsGameReturn,
   ConfigValidationResult,
   AnswerValidationResult,
+  CategoryOption,
 } from '../missingWordsGame';
 
 import { DEFAULT_GAME_CONFIG } from '../missingWordsGame';
@@ -67,28 +68,28 @@ const testDefaultConfig: GameConfig = DEFAULT_GAME_CONFIG;
 // 验证MissingWord接口
 const testWord: MissingWord = {
   id: '1',
-  text: '苹果',
+  text: '你好',
   language: 'chinese',
-  category: 'fruit',
+  category: 'test',
 };
 
 // 验证WordPosition接口
 const testPosition: WordPosition = {
   wordId: '1',
-  x: 100,
-  y: 200,
-  rotation: 15,
+  x: 10,
+  y: 20,
+  rotation: 0,
 };
 
 // 验证CurrentRound接口
-const testRound: CurrentRound = {
+const testCurrentRound: CurrentRound = {
   words: [testWord],
   hiddenWords: [],
   allWords: [testWord],
-  answerOptions: [],
+  answerOptions: [testWord],
   wordPositions: [testPosition],
   userAnswers: [],
-  isCorrect: undefined,
+  isCorrect: true,
 };
 
 // 验证GameState接口
@@ -96,33 +97,17 @@ const testGameState: GameState = {
   phase: 'idle',
   mode: 'casual',
   config: testGameConfig,
-  currentRound: testRound,
+  currentRound: testCurrentRound,
   observationTimeLeft: 5,
   showResult: false,
 };
 
-// 验证WordRequestParams接口
-const testRequestParams: WordRequestParams = {
-  count: 10,
-  language: 'chinese',
-  difficulty: 'easy',
-  category: 'fruit',
-};
-
-// 验证WordDataSource接口
-const testDataSource: WordDataSource = {
-  getWords: async (params: WordRequestParams): Promise<MissingWord[]> => {
-    return [testWord];
-  },
-};
-
-// 验证AudioManager接口
-const testAudioManager: AudioManager = {
-  playCardAppear: () => {},
-  playClick: () => {},
-  playSuccess: () => {},
-  playError: () => {},
-  playCurtain: () => {},
+// 验证CategoryOption接口
+const testCategoryOption: CategoryOption = {
+  id: 'test',
+  name: '测试',
+  collections: ['1', '2'],
+  requireMembership: false,
 };
 
 // ===== 组件Props验证 =====
@@ -132,7 +117,7 @@ const testWordCardProps: WordCardProps = {
   word: testWord,
   isVisible: true,
   position: testPosition,
-  animationDelay: 100,
+  animationDelay: 0,
   className: 'test-class',
 };
 
@@ -140,44 +125,45 @@ const testWordCardProps: WordCardProps = {
 const testGameStageProps: GameStageProps = {
   words: [testWord],
   wordPositions: [testPosition],
-  gamePhase: 'observation',
+  gamePhase: 'idle',
   gameMode: 'casual',
   observationTimeLeft: 5,
-  observationTotalTime: 5,
-  onCurtainComplete: () => {},
+  observationTotalTime: 10,
+  onCurtainComplete: () => { },
   className: 'test-class',
 };
 
 // 验证CurtainEffectProps
-const testCurtainProps: CurtainEffectProps = {
-  isActive: true,
-  onComplete: () => {},
+const testCurtainEffectProps: CurtainEffectProps = {
+  isActive: false,
+  onComplete: () => { },
+  onStateChange: (state: 'closed' | 'closing' | 'opening' | 'open') => { },
   fullCoverage: true,
   className: 'test-class',
 };
 
 // 验证GameControlsProps
 const testGameControlsProps: GameControlsProps = {
-  gamePhase: 'observation',
+  gamePhase: 'idle',
   gameMode: 'casual',
   timeLeft: 5,
   answerOptions: [testWord],
   selectedAnswers: [],
   hiddenCount: 1,
-  onObservationComplete: () => {},
-  onAnswerSelect: (wordId: string) => {},
-  onSubmitAnswer: () => {},
-  onShowAnswer: () => {},
-  onStartGame: () => {},
+  onObservationComplete: () => { },
+  onAnswerSelect: (wordId: string) => { },
+  onSubmitAnswer: () => { },
+  onShowAnswer: () => { },
+  onStartGame: () => { },
   className: 'test-class',
 };
 
 // 验证GameConfigModalProps
-const testConfigModalProps: GameConfigModalProps = {
-  isOpen: true,
+const testGameConfigModalProps: GameConfigModalProps = {
+  isOpen: false,
   currentConfig: testGameConfig,
-  onClose: () => {},
-  onSave: (config: GameConfig) => {},
+  onClose: () => { },
+  onSave: (config: GameConfig) => { },
 };
 
 // 验证TimerProps
@@ -194,7 +180,7 @@ const testAnswerOptionsProps: AnswerOptionsProps = {
   isMultiSelect: false,
   showResult: false,
   correctAnswers: ['1'],
-  onSelect: (wordId: string) => {},
+  onSelect: (wordId: string) => { },
   disabled: false,
   className: 'test-class',
 };
@@ -215,14 +201,20 @@ const testHookReturn: UseMissingWordsGameReturn = {
   selectedAnswers: [],
   showResult: false,
   isCorrect: undefined,
-  startGame: () => {},
-  handleObservationComplete: () => {},
-  handleCurtainComplete: () => {},
-  handleAnswerSelect: (wordId: string) => {},
-  handleSubmitAnswer: () => {},
-  handleShowAnswer: () => {},
-  updateConfig: (newConfig: Partial<GameConfig>) => {},
-  resetGame: () => {},
+  startGame: () => { },
+  handleObservationComplete: () => { },
+  handleCurtainComplete: () => { },
+  handleAnswerSelect: (wordId: string) => { },
+  handleSubmitAnswer: () => { },
+  handleShowAnswer: () => { },
+  updateConfig: (newConfig: Partial<GameConfig>) => { },
+  resetGame: () => { },
+  selectedCategoryId: 'test',
+  setSelectedCategoryId: (id: string) => { },
+  availableCategories: [],
+  setAvailableCategories: (categories: CategoryOption[]) => { },
+  isLoadingWords: false,
+  loadError: null,
   loadWordsFromSource: async (params: WordRequestParams) => { return []; },
 };
 
