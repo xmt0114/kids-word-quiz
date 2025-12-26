@@ -83,7 +83,7 @@ export interface Game {
   title: string;
   description: string;
   icon: string;
-  type: 'guess_word' | 'fill_blank' | 'observe';
+  type: 'universal' | 'observe';
   language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;

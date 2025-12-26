@@ -88,6 +88,8 @@ module.exports = {
 				'body': ['Fredoka', 'Nunito', 'Noto Sans SC', 'system-ui', 'sans-serif'],
 				'title': ['ZCOOL QingKe HuangYou', 'Noto Sans SC', 'sans-serif'],
 				'chinese': ['Noto Sans SC', 'KaiTi', 'serif'],
+				'fredoka': ['Fredoka', 'system-ui', 'sans-serif'],
+				'kaiti': ['KaiTi', 'STKaiti', 'SimKai', 'serif'],
 			},
 
 			// 色彩系统

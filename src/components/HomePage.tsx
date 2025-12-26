@@ -404,15 +404,19 @@ const HomePage: React.FC = () => {
                                   size="default"
                                   className={cn(
                                     "flex items-center gap-xs shadow-md hover:shadow-lg",
-                                    game.type === 'observe' 
-                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                                      : styles.color
+                                    styles.color
                                   )}
-                                  onClick={() => game.type === 'observe' ? null : handleStartGame(game)}
-                                  disabled={game.type === 'observe'}
+                                  onClick={() => {
+                                    if (game.type === 'observe') {
+                                      navigate('/missing-words-game');
+                                    } else {
+                                      handleStartGame(game);
+                                    }
+                                  }}
+                                  disabled={false}
                                 >
                                   <LucideIcons.Gamepad2 size={16} />
-                                  {game.type === 'observe' ? '敬请期待' : '开始游戏'}
+                                  开始游戏
                                 </Button>
                                 {/* observe 类型游戏不显示设置按钮 */}
                                 {game.type !== 'observe' && (
@@ -538,15 +542,19 @@ const HomePage: React.FC = () => {
                               size="default"
                               className={cn(
                                 "flex items-center gap-xs shadow-md hover:shadow-lg",
-                                game.type === 'observe' 
-                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                                  : styles.color
+                                styles.color
                               )}
-                              onClick={() => game.type === 'observe' ? null : handleStartGame(game)}
-                              disabled={game.type === 'observe'}
+                              onClick={() => {
+                                if (game.type === 'observe') {
+                                  navigate('/missing-words-game');
+                                } else {
+                                  handleStartGame(game);
+                                }
+                              }}
+                              disabled={false}
                             >
                               <LucideIcons.Gamepad2 size={16} />
-                              {game.type === 'observe' ? '敬请期待' : '开始游戏'}
+                              开始游戏
                             </Button>
                             {/* observe 类型游戏不显示设置按钮 */}
                             {game.type !== 'observe' && (

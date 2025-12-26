@@ -20,6 +20,7 @@ import { UniversalResultPage } from './components/UniversalResultPage';
 import { LoginModal } from './components/auth/LoginModal';
 import { RegisterModal } from './components/auth/RegisterModal';
 import { useAppStore } from './stores/appStore';
+import { MissingWordsGamePage } from './components/MissingWordsGame';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -169,6 +170,7 @@ function AppContent() {
           <Route path="/games/:gameId/settings" element={<GameSettingsPage />} />
           <Route path="/games/:gameId/play" element={<UniversalGamePage />} />
           <Route path="/games/:gameId/result" element={<UniversalResultPage />} />
+          <Route path="/missing-words-game" element={<MissingWordsGamePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
