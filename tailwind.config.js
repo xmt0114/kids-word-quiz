@@ -90,6 +90,7 @@ module.exports = {
 				'chinese': ['Noto Sans SC', 'KaiTi', 'serif'],
 				'fredoka': ['Fredoka', 'system-ui', 'sans-serif'],
 				'kaiti': ['KaiTi', 'STKaiti', 'SimKai', 'serif'],
+				'kuaile': ['ZCOOL KuaiLe', 'ZCOOL QingKe HuangYou', 'sans-serif'],
 			},
 
 			// 色彩系统

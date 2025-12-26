@@ -27,6 +27,8 @@ export interface UseMissingWordsGameAudioReturn {
   playCurtain: () => void;
   /** 播放开始游戏音效 */
   playStart: () => void;
+  /** 播放倒计时音效 */
+  playCountdown: () => void;
   /** 播放悬停音效 */
   playHover: () => void;
 }
@@ -73,6 +75,14 @@ export function useMissingWordsGameAudio(): UseMissingWordsGameAudioReturn {
   }, [playSound]);
 
   /**
+   * 播放倒计时音效
+   * 场景：挑战模式观察时间最后3秒
+   */
+  const playCountdown = useCallback(() => {
+    playSound('toggle');
+  }, [playSound]);
+
+  /**
    * 播放幕布音效
    * 场景：幕布合拢或拉开时
    */
@@ -104,5 +114,6 @@ export function useMissingWordsGameAudio(): UseMissingWordsGameAudioReturn {
     playCurtain,
     playStart,
     playHover,
+    playCountdown,
   };
 }

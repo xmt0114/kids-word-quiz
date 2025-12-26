@@ -945,4 +945,66 @@ export class SupabaseWordAPI implements WordAPI {
       }
     }
   }
+
+  // 安全获取随机单词列表（通过 RPC）
+  async getRandomWordsSecure(params: {
+    collection_ids: string[];
+    count: number;
+    game_id?: string;
+  }): Promise<ApiResponse<any[]>> {
+    try {
+      console.log('[SupabaseAPI] getRandomWordsSecure called with params:', params)
+
+      // 使用 rpc 调用，根据用户提供的例子调整参数名
+      // 如果后端支持数组，则传递集合列表，否则取第一个（由于当前逻辑支持多选，我们优先尝试传递数组）
+      // 这里的 p_collection_id 如果后端只支持单个，请用户确认。目前按最通用的 rpc 风格尝试。
+      const { data, error } = await supabase.rpc('get_random_words_secure', {
+        p_collection_id: params.collection_ids[0], // 暂时取第一个，配合用户提供的例子
+        p_count: params.count
+      })
+
+      if (error) {
+        console.error('Supabase get_random_words_secure error:', error)
+
+        // 解析错误码，如果是 P0001 或 消息包含 MEMBERSHIP_EXPIRED 则表示会员过期
+        const errorCode = (error as any).code || '';
+        const errorMessage = error.message || '';
+
+        if (errorMessage.includes('MEMBERSHIP_EXPIRED') || errorCode === 'P0001') {
+          return {
+            success: false,
+            error: 'VIP_REQUIRED',
+            message: 'MEMBERSHIP_EXPIRED'
+          }
+        }
+
+        return {
+          success: false,
+          error: errorMessage || 'FETCH_FAILED',
+          message: errorCode
+        }
+      }
+
+      // 按照用户例子清洗数据：如果是对象数组，提取 word 字段
+      // 但为了兼容现有逻辑，我们返回对象格式
+      const words = (data || []).map((item: any) => ({
+        id: item.id || Math.random().toString(),
+        word: typeof item === 'string' ? item : (item.word || ''),
+        definition: item.definition || '',
+        // 其他字段保持默认
+      }))
+
+      return {
+        success: true,
+        data: words,
+        message: `成功获取到${words.length}个词汇`
+      }
+    } catch (error) {
+      console.error('Unexpected error in getRandomWordsSecure:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
 }

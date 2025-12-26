@@ -135,6 +135,8 @@ export interface WordRequestParams {
   difficulty?: 'easy' | 'medium' | 'hard';
   /** 词语分类 */
   category?: string;
+  /** 集合ID列表（用于API调用） */
+  collection_ids?: string[];
 }
 
 /**
@@ -154,7 +156,7 @@ export interface WordDataSource {
 /**
  * 音效类型
  */
-export type SoundType = 
+export type SoundType =
   | 'cardAppear'    // 卡片出现
   | 'click'         // 点击
   | 'success'       // 成功
@@ -175,6 +177,20 @@ export interface AudioManager {
   playError: () => void;
   /** 播放幕布音效 */
   playCurtain: () => void;
+}
+
+/**
+ * 分类选项接口
+ */
+export interface CategoryOption {
+  /** 分类ID（用于逻辑处理） */
+  id: string;
+  /** 显示名称 */
+  name: string;
+  /** 集合ID列表 (仅对API分类有效) */
+  collections?: string[];
+  /** 是否需要会员 (默认false) */
+  requireMembership?: boolean;
 }
 
 // ===== 组件Props类型 =====
@@ -225,6 +241,8 @@ export interface CurtainEffectProps {
   isActive: boolean;
   /** 完成回调 */
   onComplete: () => void;
+  /** 状态改变回调 - 用于同步卡片显示时序 */
+  onStateChange?: (state: 'closed' | 'closing' | 'opening' | 'open') => void;
   /** 确保幕布完全遮挡舞台 */
   fullCoverage: boolean;
   /** 自定义类名 */
@@ -319,24 +337,25 @@ export interface UseMissingWordsGameReturn {
   gamePhase: GamePhase;
   gameMode: GameMode;
   config: GameConfig;
-  
+
   // 词语数据
   currentWords: MissingWord[];
   hiddenWords: MissingWord[];
   allWords: MissingWord[];
   answerOptions: MissingWord[];
   wordPositions: WordPosition[];
-  
+
   // 计时器
   observationTimeLeft: number;
-  
+
   // 用户交互
   selectedAnswers: string[];
   showResult: boolean;
+  /** 是否答对 */
   isCorrect: boolean | undefined;
-  
+
   // 方法
-  startGame: () => void;
+  startGame: (stageDimensions?: { width: number; height: number }) => void;
   handleObservationComplete: () => void;
   handleCurtainComplete: () => void;
   handleAnswerSelect: (wordId: string) => void;
@@ -344,7 +363,17 @@ export interface UseMissingWordsGameReturn {
   handleShowAnswer: () => void;
   updateConfig: (newConfig: Partial<GameConfig>) => void;
   resetGame: () => void;
-  
+
+  // 分类选择
+  selectedCategoryId: string;
+  setSelectedCategoryId: (id: string) => void;
+  availableCategories: CategoryOption[];
+  setAvailableCategories: (categories: CategoryOption[]) => void;
+
+  // 状态检查
+  isLoadingWords: boolean;
+  loadError: string | null;
+
   // 为未来扩展预留的数据获取方法
   loadWordsFromSource?: (params: WordRequestParams) => Promise<MissingWord[]>;
 }

@@ -90,6 +90,16 @@ export interface WordAPI {
 
   getHomepageData?(): Promise<ApiResponse<any[]>>;
   getTrialGameData?(): Promise<ApiResponse<any>>;
+
+  /**
+   * 安全获取随机单词列表（通过Edge Function）
+   * 会检查用户权限和会员状态
+   */
+  getRandomWordsSecure?(params: {
+    collection_ids: string[];
+    count: number;
+    game_id?: string;
+  }): Promise<ApiResponse<any[]>>;
 }
 
 // 本地数据API实现

@@ -46,10 +46,8 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     }
 
     // 验证观察时间（挑战模式）
-    if (config.gameMode === 'challenge') {
-      if (config.observationTime < 3 || config.observationTime > 10) {
-        newErrors.observationTime = '观察时间必须在3-10秒之间';
-      }
+    if (config.observationTime < 3 || config.observationTime > 10) {
+      newErrors.observationTime = '观察时间必须在3-10秒之间';
     }
 
     return newErrors;
@@ -59,7 +57,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   const handleConfigChange = (key: keyof GameConfig, value: any) => {
     const newConfig = { ...localConfig, [key]: value };
     setLocalConfig(newConfig);
-    
+
     // 实时验证
     const newErrors = validateConfig(newConfig);
     setErrors(newErrors);
@@ -68,7 +66,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   // 处理保存
   const handleSave = () => {
     const validationErrors = validateConfig(localConfig);
-    
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -90,12 +88,12 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleCancel}
       data-testid="config-modal-overlay"
     >
-      <div 
+      <div
         className="bg-white rounded-3xl p-8 shadow-2xl max-w-md w-full mx-4 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
         data-testid="config-modal"
@@ -114,36 +112,6 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
 
         {/* 配置表单 */}
         <div className="space-y-6">
-          {/* 游戏模式 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              游戏模式
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleConfigChange('gameMode', 'casual')}
-                className={cn(
-                  'p-3 rounded-xl border-2 font-semibold transition-all',
-                  localConfig.gameMode === 'casual'
-                    ? 'bg-primary-500 text-white border-primary-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
-                )}
-              >
-                休闲模式
-              </button>
-              <button
-                onClick={() => handleConfigChange('gameMode', 'challenge')}
-                className={cn(
-                  'p-3 rounded-xl border-2 font-semibold transition-all',
-                  localConfig.gameMode === 'challenge'
-                    ? 'bg-primary-500 text-white border-primary-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
-                )}
-              >
-                挑战模式
-              </button>
-            </div>
-          </div>
 
           {/* 词语数量 */}
           <div>

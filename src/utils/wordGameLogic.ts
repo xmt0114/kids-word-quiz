@@ -32,7 +32,7 @@ export function calculateDistractorCount(hiddenCount: number): number {
  */
 export function prepareWordsForGame(
   config: GameConfig,
-  language?: 'chinese' | 'english'
+  source: 'chinese' | 'english' | MissingWord[] = 'chinese'
 ): {
   allWords: MissingWord[];
   displayWords: MissingWord[];
@@ -42,7 +42,10 @@ export function prepareWordsForGame(
 
   if (gameMode === 'casual') {
     // 休闲模式：只需要观察词语数量
-    const words = getRandomWords(wordCount, language);
+    const words = Array.isArray(source)
+      ? selectRandomItems(source, wordCount)
+      : getRandomWords(wordCount, source);
+
     return {
       allWords: words,
       displayWords: words,
@@ -51,12 +54,15 @@ export function prepareWordsForGame(
   } else {
     // 挑战模式：需要观察词语 + 干扰项
     const totalWords = calculateTotalWordsForChallenge(config);
-    const allWords = getRandomWords(totalWords, language);
-    const displayWords = allWords.slice(0, wordCount);
-    const distractors = allWords.slice(wordCount);
+    const allWordsSource = Array.isArray(source)
+      ? selectRandomItems(source, totalWords)
+      : getRandomWords(totalWords, source);
+
+    const displayWords = allWordsSource.slice(0, wordCount);
+    const distractors = allWordsSource.slice(wordCount);
 
     return {
-      allWords,
+      allWords: allWordsSource,
       displayWords,
       distractors,
     };
@@ -83,13 +89,13 @@ export function generateAnswerOptions(
 ): MissingWord[] {
   // 合并正确答案和干扰项
   const options = [...hiddenWords, ...distractors];
-  
+
   // 随机打乱顺序
   for (let i = options.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [options[i], options[j]] = [options[j], options[i]];
   }
-  
+
   return options;
 }
 
@@ -105,61 +111,79 @@ export function generateWordPositions(
   stageHeight: number = 400
 ): WordPosition[] {
   const positions: WordPosition[] = [];
-  
+
   // 卡片尺寸（需要与 WordCard 组件中的尺寸一致）
   const cardWidth = 192; // w-48 = 12rem = 192px
   const cardHeight = 144; // h-36 = 9rem = 144px
-  
+
   // 边距：卡片宽度和高度的一半，确保卡片不会被裁剪
   const marginX = cardWidth / 2; // 96px
   const marginY = cardHeight / 2; // 72px
-  
+
   // 可用区域（从边距到边距）
   const availableWidth = stageWidth - 2 * marginX;
   const availableHeight = stageHeight - 2 * marginY;
-  
+
   // 使用改进的分布算法：
   // 1. 计算合适的行列数（基于可用区域的宽高比）
   const aspectRatio = availableWidth / availableHeight;
-  const cols = Math.ceil(Math.sqrt(wordCount * aspectRatio));
-  const rows = Math.ceil(wordCount / cols);
-  
-  // 2. 计算单元格尺寸
+
+  // 启发式算法：根据词数和宽高比决定行列
+  let cols = Math.ceil(Math.sqrt(wordCount * aspectRatio));
+  let rows = Math.ceil(wordCount / cols);
+
+  // 调整确保行列积包含足够格子
+  while (cols * rows < wordCount) {
+    if (cols / rows < aspectRatio) cols++;
+    else rows++;
+  }
+
+  // 2. 计算单元格正中心位置（用于分布）
   const cellWidth = availableWidth / cols;
   const cellHeight = availableHeight / rows;
-  
-  // 3. 随机偏移范围（单元格尺寸的40%，确保不会超出单元格太多）
-  const offsetRangeX = cellWidth * 0.4;
-  const offsetRangeY = cellHeight * 0.4;
-  
+
+  // 3. 随机偏移：格子内部偏移，防止太死板
+  // 减少偏移范围，避免由于旋转导致的格子重叠感过强
+  const offsetRangeX = cellWidth * 0.25;
+  const offsetRangeY = cellHeight * 0.25;
+
   // 为每个卡片生成位置
-  for (let i = 0; i < wordCount; i++) {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
-    
-    // 计算单元格中心位置（相对于整个舞台，包括边距）
+  // 随机打乱索引，让卡片看起来不是按顺序排列在网格里的
+  const indices = Array.from({ length: cols * rows }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  const selectedIndices = indices.slice(0, wordCount);
+
+  for (const idx of selectedIndices) {
+    const row = Math.floor(idx / cols);
+    const col = idx % cols;
+
+    // 单元格中心位置
     const centerX = marginX + col * cellWidth + cellWidth / 2;
     const centerY = marginY + row * cellHeight + cellHeight / 2;
-    
+
     // 添加随机偏移
     const offsetX = (Math.random() - 0.5) * 2 * offsetRangeX;
     const offsetY = (Math.random() - 0.5) * 2 * offsetRangeY;
-    
+
     // 最终位置
     const x = centerX + offsetX;
     const y = centerY + offsetY;
-    
-    // 随机旋转角度（-15度到15度）
-    const rotation = (Math.random() - 0.5) * 30;
-    
+
+    // 随机旋转角度（-10度到10度，稍微减小防止遮挡）
+    const rotation = (Math.random() - 0.5) * 20;
+
     positions.push({
-      wordId: '', // 将在使用时设置
+      wordId: '',
       x,
       y,
       rotation,
     });
   }
-  
+
   return positions;
 }
 
@@ -201,7 +225,7 @@ export function validateAnswer(
   const missedAnswers = correctAnswers.filter(id => !userSet.has(id));
 
   // 判断是否完全正确
-  const isCorrect = 
+  const isCorrect =
     correctCount === correctAnswers.length &&
     wrongAnswers.length === 0;
 
@@ -219,7 +243,9 @@ export function validateAnswer(
  */
 export function initializeGameRound(
   config: GameConfig,
-  language?: 'chinese' | 'english'
+  source: 'chinese' | 'english' | MissingWord[] = 'chinese',
+  stageWidth?: number,
+  stageHeight?: number
 ): {
   words: MissingWord[];
   allWords: MissingWord[];
@@ -227,10 +253,10 @@ export function initializeGameRound(
   positions: WordPosition[];
 } {
   // 准备词语
-  const { allWords, displayWords, distractors } = prepareWordsForGame(config, language);
+  const { allWords, displayWords, distractors } = prepareWordsForGame(config, source);
 
   // 生成位置
-  const positions = generateWordPositions(displayWords.length);
+  const positions = generateWordPositions(displayWords.length, stageWidth, stageHeight);
   const assignedPositions = assignWordsToPositions(displayWords, positions);
 
   return {
