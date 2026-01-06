@@ -372,7 +372,14 @@ export const MissingWordsGamePage: React.FC = () => {
                     key={word.id}
                     onClick={() => handleAnswerSelect(word.id)}
                     className={cn(
-                      'inline-flex items-center justify-center min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold text-xl transition-all duration-200 active:scale-95 shadow-xl',
+                      'inline-flex items-center justify-center min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold transition-all duration-200 active:scale-95 shadow-xl',
+                      word.language === 'chinese' ? (
+                        word.text.length <= 2 ? 'text-3xl' :
+                          word.text.length <= 4 ? 'text-xl' : 'text-base'
+                      ) : (
+                        word.text.length <= 8 ? 'text-xl' :
+                          word.text.length <= 14 ? 'text-lg' : 'text-sm'
+                      ),
                       word.language === 'chinese' ? 'font-kaiti' : 'font-fredoka',
                       selectedAnswers.includes(word.id)
                         ? 'bg-gradient-to-br from-orange-400 to-red-500 text-white border-orange-100 scale-105 shadow-orange-200/50'
@@ -408,7 +415,14 @@ export const MissingWordsGamePage: React.FC = () => {
             {gameMode === 'casual' ? (
               hiddenWords.map(word => (
                 <div key={word.id} className={cn(
-                  'inline-flex items-center justify-center gap-2 min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold text-xl transition-all duration-300 shadow-xl bg-gradient-to-br from-green-400 to-green-600 text-white border-green-100 animate-bounce-in',
+                  'inline-flex items-center justify-center gap-2 min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold transition-all duration-300 shadow-xl bg-gradient-to-br from-green-400 to-green-600 text-white border-green-100 animate-bounce-in',
+                  word.language === 'chinese' ? (
+                    word.text.length <= 2 ? 'text-3xl' :
+                      word.text.length <= 4 ? 'text-xl' : 'text-base'
+                  ) : (
+                    word.text.length <= 8 ? 'text-xl' :
+                      word.text.length <= 14 ? 'text-lg' : 'text-sm'
+                  ),
                   word.language === 'chinese' ? 'font-kaiti' : 'font-fredoka'
                 )}>
                   <span className="flex items-center gap-2 drop-shadow-sm" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
@@ -438,7 +452,14 @@ export const MissingWordsGamePage: React.FC = () => {
 
                 return (
                   <div key={word.id} className={cn(
-                    'inline-flex items-center justify-center gap-2 min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold text-xl transition-all duration-300',
+                    'inline-flex items-center justify-center gap-2 min-w-[120px] h-[64px] px-8 py-3 border-2 rounded-2xl font-bold transition-all duration-300',
+                    word.language === 'chinese' ? (
+                      word.text.length <= 2 ? 'text-3xl' :
+                        word.text.length <= 4 ? 'text-xl' : 'text-base'
+                    ) : (
+                      word.text.length <= 8 ? 'text-xl' :
+                        word.text.length <= 14 ? 'text-lg' : 'text-sm'
+                    ),
                     word.language === 'chinese' ? 'font-kaiti' : 'font-fredoka',
                     stateClasses
                   )}>

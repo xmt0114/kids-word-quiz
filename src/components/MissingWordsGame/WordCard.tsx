@@ -19,7 +19,7 @@ export const WordCard: React.FC<WordCardProps> = ({
   className,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   // 根据语言选择字体
   const fontClass = word.language === 'chinese' ? 'font-kaiti' : 'font-fredoka';
 
@@ -29,7 +29,7 @@ export const WordCard: React.FC<WordCardProps> = ({
       const timer = setTimeout(() => {
         setIsAnimating(true);
       }, animationDelay);
-      
+
       return () => clearTimeout(timer);
     } else {
       setIsAnimating(false);
@@ -61,16 +61,28 @@ export const WordCard: React.FC<WordCardProps> = ({
     'border-4 border-yellow-400',
     'flex items-center justify-center',
     'select-none',
-    
+
     // 尺寸 - 增大卡片
     'w-40 h-32',
     'md:w-48 md:h-36',
-    
-    // 文字样式 - 增大字体
-    'text-3xl md:text-4xl font-black',
-    'text-gray-800',
+
+    // 文字样式 - 动态调整字体大小
+    word.language === 'chinese' ? (
+      word.text.length === 1 ? 'text-6xl md:text-7xl' :
+        word.text.length === 2 ? 'text-5xl md:text-6xl' :
+          word.text.length === 3 ? 'text-4xl md:text-5xl' :
+            word.text.length === 4 ? 'text-3xl md:text-4xl' :
+              'text-2xl md:text-3xl'
+    ) : (
+      word.text.length <= 4 ? 'text-4xl md:text-5xl' :
+        word.text.length <= 8 ? 'text-2xl md:text-3xl' :
+          word.text.length <= 12 ? 'text-xl md:text-2xl' :
+            word.text.length <= 16 ? 'text-base md:text-xl' :
+              'text-sm md:text-base'
+    ),
+    'font-black text-gray-800 leading-tight text-center break-words px-2',
     fontClass,
-    
+
     // 自定义类名
     className
   );
@@ -98,15 +110,15 @@ export const WordCard: React.FC<WordCardProps> = ({
       data-language={word.language}
     >
       {/* 卡片内容 */}
-      <div className="relative z-10 px-4 py-2">
+      <div className="relative z-10 px-2 py-1 w-full">
         {word.text}
       </div>
-      
+
       {/* 卡片装饰 - 顶部星星 */}
       <div className="absolute top-1 right-1 text-yellow-500 text-xs">
         ⭐
       </div>
-      
+
       {/* 卡片装饰 - 底部阴影效果 */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-yellow-200/20 to-transparent pointer-events-none" />
     </div>

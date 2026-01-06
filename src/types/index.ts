@@ -83,7 +83,7 @@ export interface Game {
   title: string;
   description: string;
   icon: string;
-  type: 'universal' | 'observe';
+  type: 'universal' | 'observe' | 'typing';
   language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;
@@ -207,7 +207,7 @@ export interface EnhancedQuizResult extends QuizResult {
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'success' | 'error';
+  variant?: 'primary' | 'secondary' | 'success' | 'error' | 'ghost'; // Added ghost
   size?: 'default' | 'large';
   disabled?: boolean;
   className?: string;

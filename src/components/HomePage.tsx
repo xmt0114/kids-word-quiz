@@ -16,6 +16,8 @@ import { isTTSSupported } from '../utils/tts';
 import { ConfirmDialog } from './ConfirmDialog';
 
 
+// 定义前端支持的游戏类型
+const SUPPORTED_GAME_TYPES = ['universal', 'observe', 'typing'];
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -127,13 +129,19 @@ const HomePage: React.FC = () => {
   // 开始游戏函数 - 检查登录状态
   const handleStartGame = async (game: Game | HomepageGameData) => {
     playSound('click');
-    
-    // 如果是 observe 类型游戏，暂时不处理（按钮已置灰）
+
+    // 如果是 observe 类型游戏 (看词填空)
     if (game.type === 'observe') {
-      console.log('observe 类型游戏暂未开放，default_config:', game.default_config);
+      navigate('/missing-words-game');
       return;
     }
-    
+
+    // 如果是打字练习游戏
+    if (game.type === 'typing') {
+      navigate('/typing-game');
+      return;
+    }
+
     if (!user || !profile) {
       // 用户未登录，弹出选项弹窗（立即体验 vs 账号登录）
       setSelectedGameForChoice(game);
@@ -290,292 +298,287 @@ const HomePage: React.FC = () => {
 
           <div className="space-y-12">
             {homepageGroups && homepageGroups.length > 0 ? (
-              homepageGroups.map((group, groupIndex) => (
-                <div key={groupIndex}>
-                  {/* 分组标题 */}
-                  <div className="mb-6">
-                    <div className="max-w-6xl mx-auto">
-                      <div className="flex items-center gap-3">
-                        <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
-                        <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent font-chinese">
-                          {group.group_title}
-                        </h2>
+              homepageGroups
+                .map(group => ({
+                  ...group,
+                  // 过滤掉当前前端版本尚不支持的游戏类型
+                  games: group.games.filter(game => SUPPORTED_GAME_TYPES.includes(game.type))
+                }))
+                .filter(group => group.games.length > 0)
+                .map((group, groupIndex) => (
+                  <div key={groupIndex}>
+                    {/* 分组标题 */}
+                    <div className="mb-6">
+                      <div className="max-w-6xl mx-auto">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full"></div>
+                          <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent font-chinese">
+                            {group.group_title}
+                          </h2>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 分组游戏列表 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-                    {group.games.map((game) => {
-                      const Icon = getIconComponent(game.icon);
-                      const styles = getGameStyles(game.id);
+                    {/* 分组游戏列表 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+                      {group.games.map((game) => {
+                        const Icon = getIconComponent(game.icon);
+                        const styles = getGameStyles(game.id);
 
-                      return (
-                        <Card
-                          key={game.id}
-                          className={cn(
-                            'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
-                            styles.borderColor
-                          )}
-                          onMouseEnter={() => playSound('hover')}
-                        >
-                          {/* 背景渐变 */}
-                          <div className={cn(
-                            'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
-                            styles.bgColor
-                          )} />
+                        return (
+                          <Card
+                            key={game.id}
+                            className={cn(
+                              'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
+                              styles.borderColor
+                            )}
+                            onMouseEnter={() => playSound('hover')}
+                          >
+                            {/* 背景渐变 */}
+                            <div className={cn(
+                              'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
+                              styles.bgColor
+                            )} />
 
-                          {/* 装饰性圆点 */}
-                          <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
-                          <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
+                            {/* 装饰性圆点 */}
+                            <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
+                            <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
 
-                          {/* 左上角装饰线 */}
-                          <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
-                          <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
+                            {/* 左上角装饰线 */}
+                            <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
+                            <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
 
-                          <div className="relative p-md">
-                            {/* 游戏图标 */}
-                            <div className="text-center mb-md">
-                              <div className={cn(
-                                'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
-                                styles.iconBg
-                              )}>
-                                <Icon size={40} className={styles.iconColor} />
+                            <div className="relative p-md">
+                              {/* 游戏图标 */}
+                              <div className="text-center mb-md">
+                                <div className={cn(
+                                  'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
+                                  styles.iconBg
+                                )}>
+                                  <Icon size={40} className={styles.iconColor} />
+                                </div>
+                                <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
+                                  {game.title}
+                                </h3>
+                                <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
+                                  {game.description}
+                                </p>
                               </div>
-                              <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
-                                {game.title}
-                              </h3>
-                              <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
-                                {game.description}
-                              </p>
-                            </div>
 
-                            {/* 教材信息和进度条 */}
-                            <div className="mb-sm space-y-xs">
-                              {game.type === 'observe' ? (
-                                /* observe 类型游戏不显示教材信息 */
-                                <div className="flex items-center justify-center text-small text-text-tertiary">
-                                  <LucideIcons.Brain size={14} className="mr-xs" />
-                                  <span>专注力训练游戏</span>
-                                </div>
-                              ) : (game as HomepageGameData).collection ? (
-                                <>
-                                  {/* 教材选择器 */}
-                                  <div className="flex items-center justify-center">
-                                    {switchingTextbook === game.id ? (
-                                      <div className="flex items-center gap-xs text-small text-text-secondary">
-                                        <LucideIcons.Loader size={14} className="animate-spin" />
-                                        <span>切换中...</span>
-                                      </div>
-                                    ) : (
-                                      <TextbookSelector
-                                        currentTextbook={(game as HomepageGameData).collection.id}
-                                        currentTextbookName={(game as HomepageGameData).collection.name}
-                                        gameId={game.id}
-                                        onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
-                                      />
-                                    )}
+                              {/* 教材信息和进度条 */}
+                              <div className="mb-sm space-y-xs">
+                                {game.type === 'observe' ? (
+                                  /* observe 类型游戏不显示教材信息 */
+                                  <div className="flex items-center justify-center text-small text-text-tertiary">
+                                    <LucideIcons.Brain size={14} className="mr-xs" />
+                                    <span>专注力训练游戏</span>
                                   </div>
+                                ) : (game as HomepageGameData).collection ? (
+                                  <>
+                                    {/* 教材选择器 */}
+                                    <div className="flex items-center justify-center">
+                                      {switchingTextbook === game.id ? (
+                                        <div className="flex items-center gap-xs text-small text-text-secondary">
+                                          <LucideIcons.Loader size={14} className="animate-spin" />
+                                          <span>切换中...</span>
+                                        </div>
+                                      ) : (
+                                        <TextbookSelector
+                                          currentTextbook={(game as HomepageGameData).collection.id}
+                                          currentTextbookName={(game as HomepageGameData).collection.name}
+                                          gameId={game.id}
+                                          onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
+                                        />
+                                      )}
+                                    </div>
 
-                                  {/* 学习进度条 */}
-                                  <div className="px-xs">
-                                    <LearningProgressBar
-                                      mastered={(game as HomepageGameData).collection.mastered_count}
-                                      learning={(game as HomepageGameData).collection.learning_count}
-                                      remaining={(game as HomepageGameData).collection.remaining_count}
-                                      total={(game as HomepageGameData).collection.total_count}
-                                      className="h-1.5"
-                                    />
-                                  </div>
-                                </>
-                              ) : (
-                                /* 教材数据不可用时的后备内容 */
-                                <div className="flex items-center justify-center text-small text-text-tertiary">
-                                  <LucideIcons.BookOpen size={14} className="mr-xs" />
-                                  <span>暂无教材数据</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* 操作按钮 */}
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-sm">
-                                <Button
-                                  size="default"
-                                  className={cn(
-                                    "flex items-center gap-xs shadow-md hover:shadow-lg",
-                                    styles.color
-                                  )}
-                                  onClick={() => {
-                                    if (game.type === 'observe') {
-                                      navigate('/missing-words-game');
-                                    } else {
-                                      handleStartGame(game);
-                                    }
-                                  }}
-                                  disabled={false}
-                                >
-                                  <LucideIcons.Gamepad2 size={16} />
-                                  开始游戏
-                                </Button>
-                                {/* observe 类型游戏不显示设置按钮 */}
-                                {game.type !== 'observe' && (
-                                  <Link to={`/games/${game.id}/settings`}>
-                                    <button
-                                      className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
-                                      title="游戏设置"
-                                    >
-                                      <LucideIcons.Settings
-                                        size={36}
-                                        className="text-gray-500 hover:text-gray-700 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)] hover:rotate-90 hover:scale-110"
+                                    {/* 学习进度条 */}
+                                    <div className="px-xs">
+                                      <LearningProgressBar
+                                        mastered={(game as HomepageGameData).collection.mastered_count}
+                                        learning={(game as HomepageGameData).collection.learning_count}
+                                        remaining={(game as HomepageGameData).collection.remaining_count}
+                                        total={(game as HomepageGameData).collection.total_count}
+                                        className="h-1.5"
                                       />
-                                    </button>
-                                  </Link>
+                                    </div>
+                                  </>
+                                ) : (
+                                  /* 教材数据不可用时的后备内容 */
+                                  <div className="flex items-center justify-center text-small text-text-tertiary">
+                                    <LucideIcons.BookOpen size={14} className="mr-xs" />
+                                    <span>暂无教材数据</span>
+                                  </div>
                                 )}
                               </div>
+
+                              {/* 操作按钮 */}
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-sm">
+                                  <Button
+                                    size="default"
+                                    className={cn(
+                                      "flex items-center gap-xs shadow-md hover:shadow-lg",
+                                      styles.color
+                                    )}
+                                    onClick={() => handleStartGame(game)}
+                                    disabled={false}
+                                  >
+                                    <LucideIcons.Gamepad2 size={16} />
+                                    开始游戏
+                                  </Button>
+                                  {game.type === 'universal' && (
+                                    <Link to={`/games/${game.id}/settings`}>
+                                      <button
+                                        className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                        title="游戏设置"
+                                      >
+                                        <LucideIcons.Settings
+                                          size={36}
+                                          className="text-gray-500 hover:text-gray-700 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)] hover:rotate-90 hover:scale-110"
+                                        />
+                                      </button>
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </Card>
-                      );
-                    })}
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
             ) : (
               // Fallback for flat list or empty state
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-                {games.map((game) => {
-                  const Icon = getIconComponent(game.icon);
-                  const styles = getGameStyles(game.id);
+                {games
+                  .filter(game => SUPPORTED_GAME_TYPES.includes(game.type))
+                  .map((game) => {
+                    const Icon = getIconComponent(game.icon);
+                    const styles = getGameStyles(game.id);
 
-                  return (
-                    <Card
-                      key={game.id}
-                      className={cn(
-                        'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
-                        styles.borderColor
-                      )}
-                      onMouseEnter={() => playSound('hover')}
-                    >
-                      {/* 背景渐变 */}
-                      <div className={cn(
-                        'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
-                        styles.bgColor
-                      )} />
+                    return (
+                      <Card
+                        key={game.id}
+                        className={cn(
+                          'relative overflow-hidden transition-all duration-normal hover:scale-105 hover:shadow-xl group bg-white/80 backdrop-blur-sm border-2',
+                          styles.borderColor
+                        )}
+                        onMouseEnter={() => playSound('hover')}
+                      >
+                        {/* 背景渐变 */}
+                        <div className={cn(
+                          'absolute inset-0 opacity-5 transition-opacity group-hover:opacity-15',
+                          styles.bgColor
+                        )} />
 
-                      {/* 装饰性圆点 */}
-                      <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
-                      <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
+                        {/* 装饰性圆点 */}
+                        <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full opacity-30"></div>
+                        <div className="absolute top-6 right-6 w-1 h-1 bg-gradient-to-r from-secondary-400 to-accent-500 rounded-full opacity-50"></div>
 
-                      {/* 左上角装饰线 */}
-                      <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
-                      <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
+                        {/* 左上角装饰线 */}
+                        <div className="absolute top-0 left-0 w-8 h-1 bg-gradient-to-r from-primary-400 to-transparent opacity-40"></div>
+                        <div className="absolute top-0 left-0 w-1 h-8 bg-gradient-to-b from-primary-400 to-transparent opacity-40"></div>
 
-                      <div className="relative p-md">
-                        {/* 游戏图标 */}
-                        <div className="text-center mb-md">
-                          <div className={cn(
-                            'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
-                            styles.iconBg
-                          )}>
-                            <Icon size={40} className={styles.iconColor} />
+                        <div className="relative p-md">
+                          {/* 游戏图标 */}
+                          <div className="text-center mb-md">
+                            <div className={cn(
+                              'w-20 h-20 mx-auto mb-md rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110',
+                              styles.iconBg
+                            )}>
+                              <Icon size={40} className={styles.iconColor} />
+                            </div>
+                            <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
+                              {game.title}
+                            </h3>
+                            <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
+                              {game.description}
+                            </p>
                           </div>
-                          <h3 className="text-h3 font-bold text-text-primary mb-sm font-chinese">
-                            {game.title}
-                          </h3>
-                          <p className="text-body text-text-secondary line-clamp-2 h-12 font-chinese">
-                            {game.description}
-                          </p>
-                        </div>
 
-                        {/* 教材信息和进度条 */}
-                        <div className="mb-sm space-y-xs">
-                          {game.type === 'observe' ? (
-                            /* observe 类型游戏不显示教材信息 */
-                            <div className="flex items-center justify-center text-small text-text-tertiary">
-                              <LucideIcons.Brain size={14} className="mr-xs" />
-                              <span>专注力训练游戏</span>
-                            </div>
-                          ) : (game as HomepageGameData).collection ? (
-                            <>
-                              {/* 教材选择器 */}
-                              <div className="flex items-center justify-center">
-                                {switchingTextbook === game.id ? (
-                                  <div className="flex items-center gap-xs text-small text-text-secondary">
-                                    <LucideIcons.Loader size={14} className="animate-spin" />
-                                    <span>切换中...</span>
-                                  </div>
-                                ) : (
-                                  <TextbookSelector
-                                    currentTextbook={(game as HomepageGameData).collection.id}
-                                    currentTextbookName={(game as HomepageGameData).collection.name}
-                                    gameId={game.id}
-                                    onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
-                                  />
-                                )}
+                          {/* 教材信息和进度条 */}
+                          <div className="mb-sm space-y-xs">
+                            {game.type === 'observe' ? (
+                              /* observe 类型游戏不显示教材信息 */
+                              <div className="flex items-center justify-center text-small text-text-tertiary">
+                                <LucideIcons.Brain size={14} className="mr-xs" />
+                                <span>专注力训练游戏</span>
                               </div>
+                            ) : (game as HomepageGameData).collection ? (
+                              <>
+                                {/* 教材选择器 */}
+                                <div className="flex items-center justify-center">
+                                  {switchingTextbook === game.id ? (
+                                    <div className="flex items-center gap-xs text-small text-text-secondary">
+                                      <LucideIcons.Loader size={14} className="animate-spin" />
+                                      <span>切换中...</span>
+                                    </div>
+                                  ) : (
+                                    <TextbookSelector
+                                      currentTextbook={(game as HomepageGameData).collection.id}
+                                      currentTextbookName={(game as HomepageGameData).collection.name}
+                                      gameId={game.id}
+                                      onSelect={(collectionId) => handleTextbookChange(game.id, collectionId)}
+                                    />
+                                  )}
+                                </div>
 
-                              {/* 学习进度条 */}
-                              <div className="px-xs">
-                                <LearningProgressBar
-                                  mastered={(game as HomepageGameData).collection.mastered_count}
-                                  learning={(game as HomepageGameData).collection.learning_count}
-                                  remaining={(game as HomepageGameData).collection.remaining_count}
-                                  total={(game as HomepageGameData).collection.total_count}
-                                  className="h-1.5"
-                                />
-                              </div>
-                            </>
-                          ) : (
-                            /* 教材数据不可用时的后备内容 */
-                            <div className="flex items-center justify-center text-small text-text-tertiary">
-                              <LucideIcons.BookOpen size={14} className="mr-xs" />
-                              <span>暂无教材数据</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 操作按钮 */}
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-sm">
-                            <Button
-                              size="default"
-                              className={cn(
-                                "flex items-center gap-xs shadow-md hover:shadow-lg",
-                                styles.color
-                              )}
-                              onClick={() => {
-                                if (game.type === 'observe') {
-                                  navigate('/missing-words-game');
-                                } else {
-                                  handleStartGame(game);
-                                }
-                              }}
-                              disabled={false}
-                            >
-                              <LucideIcons.Gamepad2 size={16} />
-                              开始游戏
-                            </Button>
-                            {/* observe 类型游戏不显示设置按钮 */}
-                            {game.type !== 'observe' && (
-                              <Link to={`/games/${game.id}/settings`}>
-                                <button
-                                  className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
-                                  title="游戏设置"
-                                >
-                                  <LucideIcons.Settings
-                                    size={36}
-                                    className="text-gray-500 hover:text-gray-700 hover:rotate-90 hover:scale-110 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)]"
+                                {/* 学习进度条 */}
+                                <div className="px-xs">
+                                  <LearningProgressBar
+                                    mastered={(game as HomepageGameData).collection.mastered_count}
+                                    learning={(game as HomepageGameData).collection.learning_count}
+                                    remaining={(game as HomepageGameData).collection.remaining_count}
+                                    total={(game as HomepageGameData).collection.total_count}
+                                    className="h-1.5"
                                   />
-                                </button>
-                              </Link>
+                                </div>
+                              </>
+                            ) : (
+                              /* 教材数据不可用时的后备内容 */
+                              <div className="flex items-center justify-center text-small text-text-tertiary">
+                                <LucideIcons.BookOpen size={14} className="mr-xs" />
+                                <span>暂无教材数据</span>
+                              </div>
                             )}
                           </div>
+
+                          {/* 操作按钮 */}
+                          <div className="text-center">
+                            <div className="flex items-center justify-center gap-sm">
+                              <Button
+                                size="default"
+                                className={cn(
+                                  "flex items-center gap-xs shadow-md hover:shadow-lg",
+                                  styles.color
+                                )}
+                                onClick={() => handleStartGame(game)}
+                                disabled={false}
+                              >
+                                <LucideIcons.Gamepad2 size={16} />
+                                开始游戏
+                              </Button>
+                              {game.type === 'universal' && (
+                                <Link to={`/games/${game.id}/settings`}>
+                                  <button
+                                    className="flex items-center justify-center p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+                                    title="游戏设置"
+                                  >
+                                    <LucideIcons.Settings
+                                      size={36}
+                                      className="text-gray-500 hover:text-gray-700 hover:rotate-90 hover:scale-110 transition-all duration-300 ease-in-out drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)] drop-shadow-[-1px_-1px_2px_rgba(255,255,255,0.8)] drop-shadow-[0px_0px_8px_rgba(0,0,0,0.1)] hover:drop-shadow-[3px_3px_6px_rgba(0,0,0,0.4)] hover:drop-shadow-[-2px_-2px_3px_rgba(255,255,255,0.9)] hover:drop-shadow-[0px_0px_12px_rgba(0,0,0,0.15)]"
+                                    />
+                                  </button>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                      </Card>
+                    );
+                  })}
               </div>
             )}
           </div>

@@ -3,14 +3,14 @@ import { ButtonProps } from '../types';
 import { cn } from '../lib/utils';
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ 
-    children, 
-    onClick, 
-    variant = 'primary', 
-    size = 'default', 
-    disabled = false, 
+  ({
+    children,
+    onClick,
+    variant = 'primary',
+    size = 'default',
+    disabled = false,
     className,
-    ...props 
+    ...props
   }, ref) => {
     const baseClasses = [
       'inline-flex items-center justify-center',
@@ -48,6 +48,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         'text-text-inverse',
         'shadow-md',
         'hover:bg-opacity-90',
+      ],
+      ghost: [
+        'bg-transparent',
+        'text-text-secondary',
+        'hover:bg-slate-100',
+        'hover:text-text-primary',
+        'shadow-none',
+        'border-0'
       ],
     };
 
