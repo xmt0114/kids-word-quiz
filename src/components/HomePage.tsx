@@ -17,7 +17,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 
 
 // 定义前端支持的游戏类型
-const SUPPORTED_GAME_TYPES = ['universal', 'observe', 'typing'];
+const SUPPORTED_GAME_TYPES = ['universal', 'observe', 'typing', 'shizi_test'];
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -139,6 +139,12 @@ const HomePage: React.FC = () => {
     // 如果是打字练习游戏
     if (game.type === 'typing') {
       navigate('/typing-game');
+      return;
+    }
+
+    // 如果是识字量测试游戏
+    if (game.type === 'shizi_test') {
+      navigate('/literacy-assessment');
       return;
     }
 

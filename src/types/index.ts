@@ -83,7 +83,7 @@ export interface Game {
   title: string;
   description: string;
   icon: string;
-  type: 'universal' | 'observe' | 'typing';
+  type: 'universal' | 'observe' | 'typing' | 'shizi_test';
   language: 'en' | 'zh';
   default_config: QuizSettings;
   is_active: boolean;

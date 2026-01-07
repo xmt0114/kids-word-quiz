@@ -100,6 +100,33 @@ export interface WordAPI {
     count: number;
     game_id?: string;
   }): Promise<ApiResponse<any[]>>;
+
+  /**
+   * 开始识字量测试
+   * @param birthDate 出生日期（YYYY-MM-DD格式）
+   * @returns 测试会话ID和初始题包
+   */
+  startAssessmentV6?(birthDate: string): Promise<ApiResponse<{
+    session_id: string;
+    packets: any[];
+  }>>;
+
+  /**
+   * 提交测试结果
+   * @param sessionId 会话ID
+   * @param results 测试结果数组
+   * @returns 测试状态和下一步数据（新题包或最终报告）
+   */
+  submitPacketV6?(sessionId: string, results: Array<{
+    level: number;
+    passed: boolean;
+    correct: number;
+    total: number;
+  }>): Promise<ApiResponse<{
+    status: 'active' | 'completed';
+    packets?: any[];
+    report?: any;
+  }>>;
 }
 
 // 本地数据API实现

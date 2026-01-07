@@ -22,6 +22,7 @@ import { RegisterModal } from './components/auth/RegisterModal';
 import { useAppStore } from './stores/appStore';
 import { MissingWordsGamePage } from './components/MissingWordsGame';
 import { TypingGamePage } from './components/TypingGame/TypingGamePage';
+import { LiteracyAssessmentGamePage } from './components/LiteracyAssessmentGame';
 
 // 数据管理页面路由保护 - 仅管理员可访问
 const ProtectedDataManagement = () => {
@@ -173,6 +174,7 @@ function AppContent() {
           <Route path="/games/:gameId/result" element={<UniversalResultPage />} />
           <Route path="/missing-words-game" element={<MissingWordsGamePage />} />
           <Route path="/typing-game" element={<TypingGamePage />} />
+          <Route path="/literacy-assessment" element={<LiteracyAssessmentGamePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

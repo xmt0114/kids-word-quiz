@@ -1007,4 +1007,121 @@ export class SupabaseWordAPI implements WordAPI {
       }
     }
   }
+
+  // ==================== 识字量测试 API ====================
+
+  /**
+   * 开始识字量测试
+   * @param birthDate 出生日期（YYYY-MM-DD格式）
+   * @returns 测试会话ID和初始题包
+   */
+  async startAssessmentV6(birthDate: string): Promise<ApiResponse<{
+    session_id: string;
+    packets: any[];
+  }>> {
+    try {
+      console.log('[SupabaseAPI] startAssessmentV6 called with birthDate:', birthDate)
+
+      const { data, error } = await supabase.rpc('start_assessment_v6', {
+        p_birth_date: birthDate
+      })
+
+      if (error) {
+        console.error('Supabase start_assessment_v6 error:', error)
+        return {
+          success: false,
+          error: `开始测试失败: ${error.message}`
+        }
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: '未收到测试数据'
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          session_id: data.session_id,
+          packets: data.packets || []
+        },
+        message: '成功开始测试'
+      }
+    } catch (error) {
+      console.error('Unexpected error in startAssessmentV6:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 提交测试结果
+   * @param sessionId 会话ID
+   * @param results 测试结果数组
+   * @returns 测试状态和下一步数据（新题包或最终报告）
+   */
+  async submitPacketV6(sessionId: string, results: Array<{
+    level: number;
+    passed: boolean;
+    correct: number;
+    total: number;
+  }>): Promise<ApiResponse<{
+    status: 'active' | 'completed';
+    packets?: any[];
+    report?: any;
+  }>> {
+    try {
+      console.log('[SupabaseAPI] submitPacketV6 called with:', { sessionId, results })
+
+      const { data, error } = await supabase.rpc('submit_packet_v6', {
+        p_session_id: sessionId,
+        p_results: results
+      })
+
+      if (error) {
+        console.error('Supabase submit_packet_v6 error:', error)
+        return {
+          success: false,
+          error: `提交结果失败: ${error.message}`
+        }
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: '未收到响应数据'
+        }
+      }
+
+      const response: {
+        status: 'active' | 'completed';
+        packets?: any[];
+        report?: any;
+      } = {
+        status: data.status
+      }
+
+      if (data.status === 'active' && data.packets) {
+        response.packets = data.packets
+      } else if (data.status === 'completed' && data.report) {
+        response.report = data.report
+      }
+
+      return {
+        success: true,
+        data: response,
+        message: data.status === 'completed' ? '测试完成' : '继续测试'
+      }
+    } catch (error) {
+      console.error('Unexpected error in submitPacketV6:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
 }

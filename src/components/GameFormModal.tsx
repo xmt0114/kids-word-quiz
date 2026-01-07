@@ -35,7 +35,7 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
         title: '',
         description: '',
         icon: 'Brain',
-        type: 'universal' as 'universal' | 'observe' | 'typing',
+        type: 'universal' as 'universal' | 'observe' | 'typing' | 'shizi_test',
         language: 'en' as 'en' | 'zh',
         default_config: {
             questionType: 'text' as 'text' | 'audio',
@@ -72,7 +72,7 @@ export const GameFormModal: React.FC<GameFormModalProps> = ({
                     title: '',
                     description: '',
                     icon: 'Brain',
-                    type: 'universal' as 'universal' | 'observe' | 'typing',
+                    type: 'universal' as 'universal' | 'observe' | 'typing' | 'shizi_test',
                     language: 'en',
                     default_config: {
                         questionType: 'text',
