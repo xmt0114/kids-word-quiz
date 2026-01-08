@@ -11,6 +11,7 @@ import { useLiteracyAssessmentGame } from './useLiteracyAssessmentGame';
 import { AgeSelector } from './AgeSelector';
 import { QuestionDisplay } from './QuestionDisplay';
 import { LevelTransition } from './LevelTransition';
+import { FinalTransition } from './FinalTransition';
 import { ResultDisplay } from './ResultDisplay';
 
 export const LiteracyAssessmentGamePage: React.FC = () => {
@@ -23,6 +24,7 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
     submitAnswer,
     nextQuestion,
     completeLevelTransition,
+    completeFinalTransition,
     restartAssessment,
     getCurrentOptions,
   } = useLiteracyAssessmentGame();
@@ -40,7 +42,7 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
       const timer = setTimeout(() => {
         nextQuestion();
       }, 1500);
-      
+
       return () => clearTimeout(timer);
     }
   }, [gameState.showFeedback, nextQuestion]);
@@ -119,8 +121,11 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
 
   // 渲染主内容
   const renderContent = () => {
-    // 加载状态
-    if (gameState.isLoading && gameState.phase !== 'age-selection') {
+    // 加载状态 - 在年龄选择、等级过渡或最终过渡期间不显示全局加载
+    if (gameState.isLoading &&
+      gameState.phase !== 'age-selection' &&
+      gameState.phase !== 'level-transition' &&
+      gameState.phase !== 'final-transition') {
       return renderLoading();
     }
 
@@ -135,6 +140,7 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
         return (
           <AgeSelector
             onStartAssessment={startAssessment}
+            onBack={handleBack}
             isLoading={gameState.isLoading}
             error={gameState.error}
           />
@@ -178,6 +184,13 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
           />
         );
 
+      case 'final-transition':
+        return (
+          <FinalTransition
+            onComplete={completeFinalTransition}
+          />
+        );
+
       case 'result':
         if (!gameState.report) {
           return renderLoading();
@@ -187,6 +200,7 @@ export const LiteracyAssessmentGamePage: React.FC = () => {
           <ResultDisplay
             report={gameState.report}
             onRestart={restartAssessment}
+            onBack={handleBack}
           />
         );
 

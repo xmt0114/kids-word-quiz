@@ -6,6 +6,12 @@ const MobileGuard: React.FC = () => {
 
     useEffect(() => {
         const checkOrientation = () => {
+            // 如果是识字量测试页面，放行
+            if (window.location.pathname === '/literacy-assessment') {
+                setIsMobilePortrait(false);
+                return;
+            }
+
             const isPortrait = window.innerHeight > window.innerWidth;
             const isSmallScreen = window.innerWidth < 768;
             setIsMobilePortrait(isPortrait && isSmallScreen);

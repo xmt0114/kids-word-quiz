@@ -13,32 +13,32 @@ const BackgroundDecorations: React.FC = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* 大型S形水印 - 品牌感 */}
-      <div 
+      <div
         className="absolute -right-20 -bottom-20 text-[400px] font-bold text-purple-500/[0.03] select-none"
         style={{ fontFamily: 'Arial, sans-serif' }}
       >
         S
       </div>
-      
+
       {/* 左上角云朵 */}
       <div className="absolute -left-10 -top-10 text-8xl text-purple-300/10 animate-float-slow">
         ☁
       </div>
-      
+
       {/* 右上角云朵 */}
       <div className="absolute right-10 top-20 text-6xl text-pink-300/10 animate-float-slow" style={{ animationDelay: '1s' }}>
         ☁
       </div>
-      
+
       {/* 左下角云朵 */}
       <div className="absolute left-20 bottom-10 text-7xl text-blue-300/10 animate-float-slow" style={{ animationDelay: '2s' }}>
         ☁
       </div>
-      
+
       {/* 装饰性汉字 */}
       <div className="absolute left-5 top-1/3 text-4xl text-purple-400/5 rotate-12">字</div>
       <div className="absolute right-8 bottom-1/3 text-5xl text-pink-400/5 -rotate-12">读</div>
-      
+
       {/* 小星星装饰 */}
       <div className="absolute left-1/4 top-10 text-2xl text-yellow-400/10 animate-twinkle">✨</div>
       <div className="absolute right-1/4 bottom-20 text-3xl text-yellow-400/10 animate-twinkle" style={{ animationDelay: '0.5s' }}>✨</div>
@@ -49,7 +49,7 @@ const BackgroundDecorations: React.FC = () => {
 // 波纹效果组件
 const RippleEffect: React.FC<{ isActive: boolean }> = ({ isActive }) => {
   if (!isActive) return null;
-  
+
   return (
     <>
       <span className="absolute inset-0 rounded-full bg-white/30 animate-ripple-1"></span>
@@ -90,7 +90,7 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
 
   useEffect(() => {
     if (showFeedback) {
-      const timer = setTimeout(() => {}, 1500);
+      const timer = setTimeout(() => { }, 1500);
       return () => clearTimeout(timer);
     }
   }, [showFeedback]);
@@ -130,7 +130,7 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
 
   const getOptionStyle = (option: string) => {
     const isSelected = selectedOption === option;
-    
+
     if (showFeedback && isSelected) {
       if (isCorrect) {
         return 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-[0_8px_20px_rgba(34,197,94,0.4)] scale-105';
@@ -179,20 +179,19 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
             onClick={playTTS}
             disabled={isPlaying}
             title="点击喇叭听声音"
-            className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 transform ${
-              isPlaying
+            className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 transform ${isPlaying
                 ? 'bg-gradient-to-br from-purple-500 to-purple-700 scale-95'
                 : 'bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-700 hover:scale-110 active:scale-95'
-            } shadow-[0_8px_30px_rgba(139,92,246,0.5)] border-4 border-white/50`}
+              } shadow-[0_8px_30px_rgba(139,92,246,0.5)] border-4 border-white/50`}
           >
             {/* 波纹扩散效果 */}
             <RippleEffect isActive={showRipple && !isPlaying} />
-            
+
             {/* 喇叭图标 */}
             <Volume2 className={`relative z-10 w-12 h-12 text-white drop-shadow-lg ${isPlaying ? 'animate-pulse' : ''}`} />
           </button>
         </div>
-        
+
         {/* 提示文字 */}
         <p className="mt-3 text-sm text-purple-400/70 font-medium animate-pulse">
           👆 点击听声音
@@ -200,10 +199,10 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       </div>
 
       {/* 选项网格 - 增强卡片样式 */}
-      <div className="relative z-10 grid grid-cols-2 gap-6 max-w-md mx-auto">
+      <div className="relative z-10 grid grid-cols-2 gap-12 max-w-md mx-auto">
         {displayOptions.map((option, index) => {
           const icon = getOptionIcon(option);
-          
+
           return (
             <button
               key={`${option}-${index}`}
@@ -217,7 +216,7 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
               `}
             >
               {/* 田字格 - 内部红色细线 */}
-              <div className="absolute inset-4 pointer-events-none">
+              <div className="absolute inset-2 pointer-events-none">
                 <div className="absolute inset-0 border border-red-300/25 rounded-sm"></div>
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-red-300/25"></div>
                 <div className="absolute top-1/2 left-0 right-0 h-px bg-red-300/25"></div>
@@ -228,8 +227,8 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
               </div>
 
               {/* 汉字 */}
-              <div 
-                className="text-6xl font-bold relative z-10 text-gray-800"
+              <div
+                className="text-8xl font-bold relative z-10 text-gray-800"
                 style={{ fontFamily: 'KaiTi, STKaiti, "楷体", serif' }}
               >
                 {option}
@@ -241,7 +240,7 @@ export const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
                   {icon}
                 </div>
               )}
-              
+
               {/* 卡片光泽效果 */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
             </button>

@@ -8,10 +8,11 @@
 /**
  * 游戏阶段
  */
-export type GamePhase = 
+export type GamePhase =
   | 'age-selection'    // 年龄选择
   | 'assessment'       // 测试进行中
   | 'level-transition' // 等级过渡
+  | 'final-transition' // 最终过渡
   | 'result';          // 结果展示
 
 // ==================== Assessment Question ====================
@@ -138,6 +139,7 @@ export interface GameState {
   showFeedback: boolean;                      // 是否显示反馈
   isCorrect: boolean | null;                  // 当前答案是否正确
   report: AssessmentReport | null;            // 测试报告
+  nextLevelData: SubmitPacketResponse | null; // 预加载的下一关数据
   isLoading: boolean;                         // 是否加载中
   error: string | null;                       // 错误信息
 }
@@ -194,6 +196,7 @@ export interface AgeValidationResult {
  */
 export interface AgeSelectorProps {
   onStartAssessment: (birthDate: string) => void;
+  onBack?: () => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -219,11 +222,19 @@ export interface LevelTransitionProps {
 }
 
 /**
+ * 最终过渡组件Props
+ */
+export interface FinalTransitionProps {
+  onComplete: () => void;
+}
+
+/**
  * 结果展示组件Props
  */
 export interface ResultDisplayProps {
   report: AssessmentReport;
   onRestart: () => void;
+  onBack?: () => void;
 }
 
 /**
@@ -243,14 +254,15 @@ export interface NormalDistributionChartProps {
 export interface UseLiteracyAssessmentGameReturn {
   // 状态
   gameState: GameState;
-  
+
   // 方法
   startAssessment: (birthDate: string) => Promise<void>;
   submitAnswer: (answer: string) => void;
   nextQuestion: () => void;
   completeLevelTransition: () => void;
+  completeFinalTransition: () => void;
   restartAssessment: () => void;
-  
+
   // 辅助方法
   validateAge: (birthDate: string) => AgeValidationResult;
   getCurrentOptions: () => string[];
@@ -267,8 +279,22 @@ export type LevelTier = 'novice' | 'standard' | 'expert' | 'master';
  * 等级区间信息
  */
 export interface LevelTierInfo {
-  tier: LevelTier;
-  label: string;
+  name: string;
   minPercentile: number;
+  maxPercentile: number;
   color: string;
+  bgColor: string;
+  textColor: string;
+  iconColor: string;
 }
+
+/**
+ * 统一的等级配置
+ */
+export const ASSESSMENT_LEVELS: LevelTierInfo[] = [
+  { name: '菜鸟级', minPercentile: 0, maxPercentile: 5, color: '#94a3b8', bgColor: 'bg-slate-50', textColor: 'text-slate-600', iconColor: 'from-slate-400 to-slate-500' },
+  { name: '新手级', minPercentile: 5, maxPercentile: 20, color: '#60a5fa', bgColor: 'bg-blue-50', textColor: 'text-blue-600', iconColor: 'from-blue-400 to-blue-500' },
+  { name: '标准级', minPercentile: 20, maxPercentile: 80, color: '#38bdf8', bgColor: 'bg-sky-50', textColor: 'text-sky-600', iconColor: 'from-sky-400 to-sky-500' },
+  { name: '高手级', minPercentile: 80, maxPercentile: 95, color: '#4ade80', bgColor: 'bg-green-50', textColor: 'text-green-600', iconColor: 'from-green-400 to-green-500' },
+  { name: '大师级', minPercentile: 95, maxPercentile: 100, color: '#facc15', bgColor: 'bg-yellow-50', textColor: 'text-yellow-600', iconColor: 'from-yellow-400 to-yellow-500' },
+];

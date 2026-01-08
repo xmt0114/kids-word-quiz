@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuthState } from '../../hooks/useAuth'
 import { useAppStore } from '../../stores/appStore'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 import { LogIn, User, LogOut, Mail, Database } from 'lucide-react'
 import { MembershipStatusIcon } from '../MembershipStatusIcon'
@@ -10,6 +10,34 @@ import { MembershipRenewalModal } from '../MembershipRenewalModal'
 import { MembershipService } from '../../utils/membershipService'
 import { SoundToggle } from '../SoundToggle'
 
+// 配置需要隐藏 UserHeader 的路由
+// 支持精确匹配和路径模式匹配
+const ROUTES_WITHOUT_HEADER = [
+  '/literacy-assessment',
+  '/missing-words-game',
+  '/typing-game',
+  // 在这里添加更多需要隐藏 header 的路由
+];
+
+// 路径模式匹配（支持动态参数）
+const ROUTE_PATTERNS_WITHOUT_HEADER = [
+  /^\/games\/[^/]+\/play$/,  // 匹配 /games/{gameId}/play
+  /^\/games\/[^/]+\/result$/,  // 匹配 /games/{gameId}/result
+  /^\/games\/[^/]+\/settings$/,  // 匹配 /games/{gameId}/settings
+  // 在这里添加更多需要模式匹配的路由
+];
+
+// 检查当前路径是否应该隐藏 header
+const shouldHideHeader = (pathname: string): boolean => {
+  // 检查精确匹配
+  if (ROUTES_WITHOUT_HEADER.includes(pathname)) {
+    return true;
+  }
+
+  // 检查模式匹配
+  return ROUTE_PATTERNS_WITHOUT_HEADER.some(pattern => pattern.test(pathname));
+};
+
 export function UserHeader() {
   // 直接使用 Zustand store 和 useAuthState
   const { session, profile, refreshUserProfile } = useAppStore();
@@ -17,6 +45,7 @@ export function UserHeader() {
   const { signOut } = useAuthState();
   const { openLoginModal } = useAppStore()
   const navigate = useNavigate()
+  const location = useLocation()
 
   // 会员功能状态
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -74,6 +103,11 @@ export function UserHeader() {
         message: '续费成功！您的会员已延长。'
       });
     }
+  }
+
+  // 如果当前路由在隐藏列表中，不显示 header
+  if (shouldHideHeader(location.pathname)) {
+    return null;
   }
 
   return (
