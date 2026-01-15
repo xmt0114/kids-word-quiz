@@ -148,11 +148,73 @@ export const englishWords: MissingWord[] = [
 ];
 
 /**
+ * 字母Mock数据（大小写）
+ */
+export const letterWords: MissingWord[] = [
+  // 大写字母
+  { id: 'letter-1', text: 'A', language: 'english', category: 'letter' },
+  { id: 'letter-2', text: 'B', language: 'english', category: 'letter' },
+  { id: 'letter-3', text: 'C', language: 'english', category: 'letter' },
+  { id: 'letter-4', text: 'D', language: 'english', category: 'letter' },
+  { id: 'letter-5', text: 'E', language: 'english', category: 'letter' },
+  { id: 'letter-6', text: 'F', language: 'english', category: 'letter' },
+  { id: 'letter-7', text: 'G', language: 'english', category: 'letter' },
+  { id: 'letter-8', text: 'H', language: 'english', category: 'letter' },
+  { id: 'letter-9', text: 'I', language: 'english', category: 'letter' },
+  { id: 'letter-10', text: 'J', language: 'english', category: 'letter' },
+  { id: 'letter-11', text: 'K', language: 'english', category: 'letter' },
+  { id: 'letter-12', text: 'L', language: 'english', category: 'letter' },
+  { id: 'letter-13', text: 'M', language: 'english', category: 'letter' },
+  { id: 'letter-14', text: 'N', language: 'english', category: 'letter' },
+  { id: 'letter-15', text: 'O', language: 'english', category: 'letter' },
+  { id: 'letter-16', text: 'P', language: 'english', category: 'letter' },
+  { id: 'letter-17', text: 'Q', language: 'english', category: 'letter' },
+  { id: 'letter-18', text: 'R', language: 'english', category: 'letter' },
+  { id: 'letter-19', text: 'S', language: 'english', category: 'letter' },
+  { id: 'letter-20', text: 'T', language: 'english', category: 'letter' },
+  { id: 'letter-21', text: 'U', language: 'english', category: 'letter' },
+  { id: 'letter-22', text: 'V', language: 'english', category: 'letter' },
+  { id: 'letter-23', text: 'W', language: 'english', category: 'letter' },
+  { id: 'letter-24', text: 'X', language: 'english', category: 'letter' },
+  { id: 'letter-25', text: 'Y', language: 'english', category: 'letter' },
+  { id: 'letter-26', text: 'Z', language: 'english', category: 'letter' },
+
+  // 小写字母
+  { id: 'letter-27', text: 'a', language: 'english', category: 'letter' },
+  { id: 'letter-28', text: 'b', language: 'english', category: 'letter' },
+  { id: 'letter-29', text: 'c', language: 'english', category: 'letter' },
+  { id: 'letter-30', text: 'd', language: 'english', category: 'letter' },
+  { id: 'letter-31', text: 'e', language: 'english', category: 'letter' },
+  { id: 'letter-32', text: 'f', language: 'english', category: 'letter' },
+  { id: 'letter-33', text: 'g', language: 'english', category: 'letter' },
+  { id: 'letter-34', text: 'h', language: 'english', category: 'letter' },
+  { id: 'letter-35', text: 'i', language: 'english', category: 'letter' },
+  { id: 'letter-36', text: 'j', language: 'english', category: 'letter' },
+  { id: 'letter-37', text: 'k', language: 'english', category: 'letter' },
+  { id: 'letter-38', text: 'l', language: 'english', category: 'letter' },
+  { id: 'letter-39', text: 'm', language: 'english', category: 'letter' },
+  { id: 'letter-40', text: 'n', language: 'english', category: 'letter' },
+  { id: 'letter-41', text: 'o', language: 'english', category: 'letter' },
+  { id: 'letter-42', text: 'p', language: 'english', category: 'letter' },
+  { id: 'letter-43', text: 'q', language: 'english', category: 'letter' },
+  { id: 'letter-44', text: 'r', language: 'english', category: 'letter' },
+  { id: 'letter-45', text: 's', language: 'english', category: 'letter' },
+  { id: 'letter-46', text: 't', language: 'english', category: 'letter' },
+  { id: 'letter-47', text: 'u', language: 'english', category: 'letter' },
+  { id: 'letter-48', text: 'v', language: 'english', category: 'letter' },
+  { id: 'letter-49', text: 'w', language: 'english', category: 'letter' },
+  { id: 'letter-50', text: 'x', language: 'english', category: 'letter' },
+  { id: 'letter-51', text: 'y', language: 'english', category: 'letter' },
+  { id: 'letter-52', text: 'z', language: 'english', category: 'letter' },
+];
+
+/**
  * 所有词语的合集
  */
 export const allMockWords: MissingWord[] = [
   ...chineseWords,
   ...englishWords,
+  ...letterWords,
 ];
 
 /**

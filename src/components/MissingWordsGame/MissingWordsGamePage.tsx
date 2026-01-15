@@ -109,6 +109,7 @@ export const MissingWordsGamePage: React.FC = () => {
       }));
       setAvailableCategories([
         { id: 'local_chinese', name: '汉字', requireMembership: false },
+        { id: 'local_letters', name: '字母', requireMembership: false },
         ...apiCategories
       ]);
     }
@@ -132,8 +133,8 @@ export const MissingWordsGamePage: React.FC = () => {
 
   // 开始游戏并传递舞台尺寸
   const handleStartGame = () => {
-    // 权限检查：如果选择的是非本地汉字分类（即API分类），且用户未登录
-    if (selectedCategoryId !== 'local_chinese' && !session) {
+    // 权限检查：如果选择的是非本地分类（即API分类），且用户未登录
+    if (selectedCategoryId !== 'local_chinese' && selectedCategoryId !== 'local_letters' && !session) {
       playSound('wrong');
       setShowLoginAlert(true);
       return;
@@ -243,7 +244,7 @@ export const MissingWordsGamePage: React.FC = () => {
                   详细设置
                 </Button>
 
-                {selectedCategoryId !== 'local_chinese' && (
+                {selectedCategoryId !== 'local_chinese' && selectedCategoryId !== 'local_letters' && (
                   <p className="text-base text-primary-500 font-bold flex items-center justify-center gap-2 animate-pulse font-kuaile">
                     <Zap size={18} className="fill-current" />
                     需活跃会员即可解锁全部分类

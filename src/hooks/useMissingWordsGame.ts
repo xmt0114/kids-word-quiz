@@ -31,6 +31,7 @@ import { useMissingWordsGameAudio } from './useMissingWordsGameAudio';
 import { useAppStore } from '../stores/appStore';
 import { wordAPI } from '../utils/api';
 import type { CategoryOption } from '../types/missingWordsGame';
+import { letterWords } from '../data/mockWords';
 
 /**
  * 核心游戏状态管理Hook
@@ -65,7 +66,8 @@ export function useMissingWordsGame(): UseMissingWordsGameReturn {
   // 分类管理
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('local_chinese');
   const [availableCategories, setAvailableCategories] = useState<CategoryOption[]>([
-    { id: 'local_chinese', name: '汉字', requireMembership: false }
+    { id: 'local_chinese', name: '汉字', requireMembership: false },
+    { id: 'local_letters', name: '字母', requireMembership: false }
   ]);
 
   // 加载状态
@@ -189,11 +191,22 @@ export function useMissingWordsGame(): UseMissingWordsGameReturn {
 
       const currentCategory = availableCategories.find(c => c.id === selectedCategoryId);
 
-      if (selectedCategoryId === 'local_chinese' || !currentCategory) {
+      if (selectedCategoryId === 'local_chinese' || (!currentCategory && selectedCategoryId !== 'local_letters')) {
         // 使用本地汉字
         const roundData = initializeGameRound(
           gameState.config,
           'chinese',
+          stageDimensions?.width,
+          stageDimensions?.height
+        );
+        finalWords = roundData.words;
+        allPotentialWords = roundData.allWords;
+        positions = roundData.positions;
+      } else if (selectedCategoryId === 'local_letters') {
+        // 使用本地字母
+        const roundData = initializeGameRound(
+          gameState.config,
+          letterWords,
           stageDimensions?.width,
           stageDimensions?.height
         );

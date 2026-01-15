@@ -74,11 +74,14 @@ export const WordCard: React.FC<WordCardProps> = ({
             word.text.length === 4 ? 'text-3xl md:text-4xl' :
               'text-2xl md:text-3xl'
     ) : (
-      word.text.length <= 4 ? 'text-4xl md:text-5xl' :
-        word.text.length <= 8 ? 'text-2xl md:text-3xl' :
-          word.text.length <= 12 ? 'text-xl md:text-2xl' :
-            word.text.length <= 16 ? 'text-base md:text-xl' :
-              'text-sm md:text-base'
+      // 英文字母和单词
+      word.text.length === 1 ? 'text-6xl md:text-7xl' : // 单个字母使用最大字号
+        word.text.length === 2 ? 'text-5xl md:text-6xl' : // 两个字母
+          word.text.length <= 4 ? 'text-4xl md:text-5xl' :
+            word.text.length <= 8 ? 'text-2xl md:text-3xl' :
+              word.text.length <= 12 ? 'text-xl md:text-2xl' :
+                word.text.length <= 16 ? 'text-base md:text-xl' :
+                  'text-sm md:text-base'
     ),
     'font-black text-gray-800 leading-tight text-center break-words px-2',
     fontClass,
