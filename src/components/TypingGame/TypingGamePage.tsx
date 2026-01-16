@@ -39,6 +39,14 @@ export const TypingGamePage: React.FC = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const settingsChangedRef = React.useRef(false);
 
+    // Preload hand images
+    useEffect(() => {
+        const leftHand = new Image();
+        leftHand.src = '/img/left_hand.png';
+        const rightHand = new Image();
+        rightHand.src = '/img/right_hand.png';
+    }, []);
+
     // Determines if there is a next level available
     const hasNextLevel = () => {
         const currentChap = config.chapters[gameState.currentChapterIndex];
@@ -243,14 +251,11 @@ export const TypingGamePage: React.FC = () => {
                         </div>
 
                         {/* Hand Guides Overlay */}
-                        <div className="absolute inset-x-0 bottom-0 top-0 z-20 pointer-events-none flex items-center justify-center">
-                            {/* Adjusted transform for the new container context - Removed global opacity-40 */}
-                            <div className="w-full max-w-4xl h-full transform translate-y-20 scale-[1.4] lg:scale-[1.6]">
-                                <HandGuides
-                                    targetChar={getTargetChar()}
-                                    showHint={gameState.showHint}
-                                />
-                            </div>
+                        <div className="absolute inset-0 z-20 pointer-events-none">
+                            <HandGuides
+                                targetChar={getTargetChar()}
+                                showHint={gameState.showHint}
+                            />
                         </div>
                     </div>
 
