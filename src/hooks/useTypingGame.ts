@@ -202,6 +202,9 @@ export const useTypingGame = () => {
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (gameState.status !== 'playing') return;
 
+        // Skip repeated keydown events when a key is held down
+        if (e.repeat) return;
+
         if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
         if (e.key === ' ' && e.target === document.body) e.preventDefault();
 

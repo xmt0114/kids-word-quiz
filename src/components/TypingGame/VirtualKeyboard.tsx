@@ -51,6 +51,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ targetChar, sh
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.repeat) return;
             setPressedKeys(prev => {
                 const newSet = new Set(prev);
                 newSet.add(e.code);

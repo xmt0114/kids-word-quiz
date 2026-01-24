@@ -99,6 +99,9 @@ export const TypingGamePage: React.FC = () => {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
+            // Skip repeated keydown events when a key is held down
+            if (e.repeat) return;
+
             // Ignore if modals are open
             if (isSettingsOpen || isSidebarOpen) return;
 
